@@ -3,554 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>(주)태엔종합물류 - 신뢰와 혁신의 물류 파트너</title>
-  <style>
-/* ============================================================
-   (주)태엔종합물류 — Main Stylesheet
-   ============================================================ */
-
-/* ---------- CSS Variables ---------- */
-:root {
-  --primary:   #1a3c6e;   /* Deep Navy */
-  --accent:    #e85d04;   /* Orange */
-  --accent2:   #f4a261;   /* Light Orange */
-  --dark:      #0d1f3c;
-  --text:      #333;
-  --text-light:#666;
-  --bg-light:  #f5f7fa;
-  --white:     #fff;
-  --border:    #e0e5ee;
-  --transition: 0.3s ease;
-  --shadow:    0 4px 24px rgba(0,0,0,0.10);
-  --radius:    8px;
-}
-
-/* ---------- Reset ---------- */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; font-size: 16px; }
-body { font-family: 'Noto Sans KR', sans-serif; color: var(--text); background: var(--white); line-height: 1.7; }
-a { text-decoration: none; color: inherit; }
-ul, ol { list-style: none; }
-img { max-width: 100%; display: block; }
-button { cursor: pointer; border: none; background: none; }
-input, select, textarea { font-family: inherit; font-size: 1rem; }
-
-/* ---------- Utility ---------- */
-.container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
-.section-label { color: var(--accent); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 10px; }
-.section-title { font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 800; color: var(--primary); line-height: 1.3; margin-bottom: 18px; }
-.section-desc  { color: var(--text-light); font-size: 1rem; max-width: 600px; }
-.section-header { text-align: center; margin-bottom: 56px; }
-.section-header .section-desc { margin: 0 auto; }
-.btn-primary {
-  display: inline-block; background: var(--accent); color: var(--white);
-  padding: 13px 32px; border-radius: 4px; font-size: 0.95rem; font-weight: 600;
-  transition: background var(--transition), transform var(--transition);
-}
-.btn-primary:hover { background: #c94e00; transform: translateY(-2px); }
-.btn-outline {
-  display: inline-block; border: 2px solid var(--white); color: var(--white);
-  padding: 11px 28px; border-radius: 4px; font-size: 0.95rem; font-weight: 600;
-  transition: background var(--transition);
-}
-.btn-outline:hover { background: rgba(255,255,255,0.15); }
-
-/* ============================================================
-   HEADER
-   ============================================================ */
-#header {
-  position: fixed; top: 0; left: 0; width: 100%; z-index: 1000;
-  background: transparent; transition: background var(--transition), box-shadow var(--transition);
-}
-#header.scrolled {
-  background: var(--primary); box-shadow: 0 2px 16px rgba(0,0,0,0.18);
-}
-.header-inner {
-  max-width: 1200px; margin: 0 auto; padding: 0 24px;
-  display: flex; align-items: center; height: 72px; gap: 32px;
-}
-.logo a { display: flex; align-items: baseline; gap: 4px; }
-.logo .logo-main { font-size: 1.3rem; font-weight: 900; color: var(--white); letter-spacing: -0.02em; }
-.logo .logo-sub  { font-size: 0.75rem; color: rgba(255,255,255,0.7); font-weight: 400; }
-.gnb { flex: 1; }
-.gnb ul { display: flex; gap: 4px; }
-.gnb ul li a {
-  display: block; padding: 8px 16px; color: rgba(255,255,255,0.9);
-  font-size: 0.95rem; font-weight: 500; border-radius: 4px;
-  transition: color var(--transition), background var(--transition);
-}
-.gnb ul li a:hover { color: var(--white); background: rgba(255,255,255,0.12); }
-.btn-consult {
-  display: inline-block; border: 1.5px solid var(--accent); color: var(--white);
-  background: var(--accent); padding: 8px 20px; border-radius: 4px;
-  font-size: 0.88rem; font-weight: 600; transition: var(--transition);
-}
-.btn-consult:hover { background: #c94e00; }
-.hamburger { display: none; flex-direction: column; gap: 5px; padding: 4px; }
-.hamburger span { display: block; width: 26px; height: 2.5px; background: var(--white); border-radius: 2px; transition: var(--transition); }
-
-/* Mobile Menu */
-.mobile-menu {
-  display: none; background: var(--primary);
-  padding: 0; max-height: 0; overflow: hidden; transition: max-height 0.4s ease, padding 0.3s;
-}
-.mobile-menu.open { max-height: 400px; padding: 16px 0 24px; }
-.mobile-menu ul { display: flex; flex-direction: column; }
-.mobile-menu ul li a {
-  display: block; padding: 12px 24px; color: rgba(255,255,255,0.9);
-  font-size: 1rem; border-bottom: 1px solid rgba(255,255,255,0.08);
-}
-.mobile-menu ul li a:hover { background: rgba(255,255,255,0.1); }
-
-/* ============================================================
-   HERO
-   ============================================================ */
-.hero {
-  position: relative; height: 100vh; min-height: 600px;
-  display: flex; align-items: center; overflow: hidden;
-}
-.hero-slides { position: absolute; inset: 0; }
-.slide {
-  position: absolute; inset: 0; display: flex; align-items: center;
-  opacity: 0; transition: opacity 1s ease;
-  background-size: cover; background-position: center;
-}
-.slide.active { opacity: 1; z-index: 1; }
-.slide-1 { background: linear-gradient(135deg, #0d1f3c 0%, #1a3c6e 50%, #0d2a5e 100%); }
-.slide-2 { background: linear-gradient(135deg, #0a2040 0%, #1e4f8c 50%, #0d3568 100%); }
-.slide-3 { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
-
-/* Decorative pattern overlay */
-.slide::before {
-  content: ''; position: absolute; inset: 0; z-index: 0;
-  background-image: repeating-linear-gradient(
-    45deg, rgba(255,255,255,0.02) 0, rgba(255,255,255,0.02) 1px,
-    transparent 0, transparent 50%
-  );
-  background-size: 20px 20px;
-}
-/* Decorative circle */
-.slide::after {
-  content: ''; position: absolute; right: -100px; top: 50%; transform: translateY(-50%);
-  width: 600px; height: 600px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(232,93,4,0.15) 0%, transparent 70%);
-  z-index: 0;
-}
-
-.slide-content {
-  position: relative; z-index: 2;
-  max-width: 1200px; margin: 0 auto; padding: 0 24px; width: 100%;
-}
-.slide-tag {
-  color: var(--accent); font-size: 0.78rem; font-weight: 700;
-  letter-spacing: 0.2em; margin-bottom: 20px;
-}
-.slide-content h1 {
-  font-size: clamp(2rem, 5vw, 3.6rem); font-weight: 900;
-  color: var(--white); line-height: 1.2; margin-bottom: 20px;
-}
-.slide-desc { color: rgba(255,255,255,0.8); font-size: 1.05rem; line-height: 1.8; margin-bottom: 36px; }
-.hero-btns { display: flex; gap: 16px; flex-wrap: wrap; }
-
-/* Slide Controls */
-.slide-nav {
-  position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
-  display: flex; gap: 10px; z-index: 10;
-}
-.dot {
-  width: 10px; height: 10px; border-radius: 50%;
-  background: rgba(255,255,255,0.4); transition: var(--transition);
-}
-.dot.active { background: var(--accent); transform: scale(1.3); }
-.slide-prev, .slide-next {
-  position: absolute; top: 50%; transform: translateY(-50%); z-index: 10;
-  width: 48px; height: 48px; border-radius: 50%;
-  background: rgba(255,255,255,0.12); color: var(--white); font-size: 1.8rem;
-  display: flex; align-items: center; justify-content: center;
-  transition: background var(--transition);
-}
-.slide-prev:hover, .slide-next:hover { background: var(--accent); }
-.slide-prev { left: 24px; }
-.slide-next { right: 24px; }
-
-/* Scroll indicator */
-.hero-scroll {
-  position: absolute; bottom: 40px; right: 40px; z-index: 10;
-  display: flex; flex-direction: column; align-items: center; gap: 8px;
-}
-.hero-scroll span { color: rgba(255,255,255,0.5); font-size: 0.7rem; letter-spacing: 0.15em; writing-mode: vertical-rl; }
-.scroll-line { width: 1px; height: 50px; background: linear-gradient(var(--accent), transparent); }
-
-/* ============================================================
-   QUICK SERVICES
-   ============================================================ */
-.quick-services {
-  background: var(--white); padding: 0;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-  position: relative; z-index: 5;
-}
-.qs-grid {
-  display: grid; grid-template-columns: repeat(5, 1fr);
-}
-.qs-item {
-  display: flex; align-items: center; gap: 14px;
-  padding: 24px 20px; border-right: 1px solid var(--border);
-  cursor: pointer; transition: background var(--transition);
-}
-.qs-item:last-child { border-right: none; }
-.qs-item:hover { background: var(--bg-light); }
-.qs-icon {
-  width: 48px; height: 48px; border-radius: 50%;
-  background: var(--bg-light); display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; font-size: 1.4rem;
-  border: 2px solid var(--border); transition: var(--transition);
-}
-.qs-item:hover .qs-icon { background: var(--accent); border-color: var(--accent); }
-.qs-icon img { width: 24px; height: 24px; filter: invert(0); }
-.qs-text strong { display: block; font-size: 0.95rem; color: var(--primary); font-weight: 700; }
-.qs-text p { font-size: 0.78rem; color: var(--text-light); margin-top: 2px; }
-
-/* SVG icons in quick services */
-.qs-icon img { width: 28px; height: 28px; filter: invert(17%) sepia(40%) saturate(1000%) hue-rotate(193deg) brightness(80%); }
-.qs-item:hover .qs-icon img { filter: invert(1); }
-
-/* ============================================================
-   ABOUT
-   ============================================================ */
-.about { padding: 100px 0; background: var(--white); }
-.about-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
-
-.about-img { position: relative; height: 480px; }
-.img-box {
-  position: absolute; border-radius: var(--radius); overflow: hidden;
-}
-.img-box-1 {
-  width: 75%; height: 360px; top: 0; left: 0;
-  background: linear-gradient(135deg, #1a3c6e, #2d6cbe);
-}
-.img-box-1::after {
-  content: ''; position: absolute; inset: 0;
-  background: url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='30' cy='30' r='2' fill='rgba(255,255,255,0.1)'/%3E%3C/svg%3E") repeat;
-}
-.img-box-2 {
-  width: 55%; height: 260px; bottom: 0; right: 0;
-  background: linear-gradient(135deg, #e85d04, #f4a261);
-}
-.about-badge {
-  position: absolute; top: 30px; right: 0; transform: translateX(20px);
-  background: var(--primary); color: var(--white);
-  padding: 20px 24px; border-radius: var(--radius); text-align: center;
-  box-shadow: var(--shadow); z-index: 2;
-}
-.badge-num { display: block; font-size: 2rem; font-weight: 900; color: var(--accent2); }
-.badge-txt { font-size: 0.82rem; opacity: 0.9; }
-
-.about-content .section-label { margin-bottom: 8px; }
-.about-desc { color: var(--text-light); line-height: 1.9; margin-bottom: 28px; }
-.about-points { margin-bottom: 36px; display: flex; flex-direction: column; gap: 10px; }
-.about-points li { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; }
-.check { color: var(--accent); font-size: 1rem; font-weight: 700; }
-
-/* ============================================================
-   STATS
-   ============================================================ */
-.stats {
-  background: var(--primary); padding: 60px 0;
-}
-.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); }
-.stat-item {
-  text-align: center; padding: 20px; border-right: 1px solid rgba(255,255,255,0.12);
-}
-.stat-item:last-child { border-right: none; }
-.stat-num {
-  font-size: clamp(2.2rem, 4vw, 3.2rem); font-weight: 900;
-  color: var(--white);
-}
-.stat-unit { font-size: 1.4rem; font-weight: 700; color: var(--accent2); }
-.stat-item p { color: rgba(255,255,255,0.65); font-size: 0.88rem; margin-top: 6px; }
-
-/* ============================================================
-   SERVICES
-   ============================================================ */
-.services { padding: 100px 0; background: var(--bg-light); }
-.services-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
-.service-card {
-  background: var(--white); border-radius: var(--radius); padding: 36px 28px;
-  border: 1px solid var(--border); transition: var(--transition);
-  position: relative; overflow: hidden;
-}
-.service-card::before {
-  content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%;
-  background: var(--accent); transform: scaleY(0); transition: transform 0.3s;
-  transform-origin: bottom;
-}
-.service-card:hover { transform: translateY(-6px); box-shadow: var(--shadow); }
-.service-card:hover::before { transform: scaleY(1); }
-.service-icon {
-  width: 64px; height: 64px; border-radius: 12px;
-  margin-bottom: 24px; display: flex; align-items: center; justify-content: center;
-  font-size: 1.8rem;
-}
-.service-icon.land    { background: #eef4ff; color: var(--primary); }
-.service-icon.sea     { background: #e8f5e9; color: #2e7d32; }
-.service-icon.air     { background: #fff3e0; color: #e65100; }
-.service-icon.warehouse { background: #f3e5f5; color: #7b1fa2; }
-.service-icon.customs { background: #e0f7fa; color: #00695c; }
-.service-icon.solution{ background: #fce4ec; color: #c62828; }
-
-/* CSS icons for services */
-.service-icon.land::before    { content: '🚚'; }
-.service-icon.sea::before     { content: '🚢'; }
-.service-icon.air::before     { content: '✈️'; }
-.service-icon.warehouse::before { content: '🏭'; }
-.service-icon.customs::before { content: '📦'; }
-.service-icon.solution::before { content: '⚙️'; }
-
-.service-card h3 { font-size: 1.15rem; font-weight: 700; color: var(--primary); margin-bottom: 12px; }
-.service-card p { color: var(--text-light); font-size: 0.9rem; line-height: 1.8; margin-bottom: 20px; }
-.service-link { color: var(--accent); font-size: 0.88rem; font-weight: 600; transition: var(--transition); }
-.service-link:hover { color: var(--primary); }
-
-/* ============================================================
-   WHY US
-   ============================================================ */
-.why-us { padding: 100px 0; background: var(--white); }
-.why-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; }
-.why-item {
-  padding: 36px 28px; border-radius: var(--radius);
-  border: 1px solid var(--border); transition: var(--transition);
-}
-.why-item:hover { border-color: var(--accent); background: #fff9f5; }
-.why-num {
-  font-size: 3rem; font-weight: 900; color: #e8e8e8;
-  line-height: 1; margin-bottom: 16px; transition: color 0.3s;
-}
-.why-item:hover .why-num { color: var(--accent2); }
-.why-item h3 { font-size: 1.05rem; font-weight: 700; color: var(--primary); margin-bottom: 12px; }
-.why-item p { color: var(--text-light); font-size: 0.88rem; line-height: 1.8; }
-
-/* ============================================================
-   NETWORK
-   ============================================================ */
-.network { padding: 100px 0; background: var(--bg-light); }
-.network-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
-.network-desc { color: var(--text-light); line-height: 1.9; margin-bottom: 28px; }
-.network-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 36px; }
-.network-list li { padding: 12px 16px; background: var(--white); border-radius: 6px; border-left: 4px solid var(--accent); font-size: 0.9rem; color: var(--text); }
-.network-list li strong { color: var(--primary); }
-.network-map { display: flex; align-items: center; justify-content: center; }
-.map-placeholder {
-  background: var(--white); border-radius: 16px; padding: 32px;
-  box-shadow: var(--shadow); width: 100%; max-width: 380px;
-}
-.korea-map svg { width: 100%; max-width: 300px; margin: 0 auto; display: block; }
-
-/* ============================================================
-   INFO SECTION
-   ============================================================ */
-.info-section { padding: 80px 0; background: var(--white); }
-.info-grid { display: grid; grid-template-columns: 1fr 1fr 320px; gap: 28px; }
-.info-box { padding: 32px; border: 1px solid var(--border); border-radius: var(--radius); }
-.info-box-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-.info-box-header h3 { font-size: 1.15rem; font-weight: 700; color: var(--primary); }
-.more-link { font-size: 0.82rem; color: var(--text-light); transition: color var(--transition); }
-.more-link:hover { color: var(--accent); }
-.notice-list { display: flex; flex-direction: column; gap: 14px; }
-.notice-list li { display: flex; align-items: center; gap: 10px; font-size: 0.88rem; }
-.notice-list li a { flex: 1; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color var(--transition); }
-.notice-list li a:hover { color: var(--accent); }
-.notice-badge {
-  flex-shrink: 0; padding: 2px 8px; border-radius: 3px;
-  font-size: 0.72rem; font-weight: 700;
-}
-.notice-badge.new { background: var(--accent); color: var(--white); }
-.notice-badge.recruit { background: var(--primary); color: var(--white); }
-.notice-date { flex-shrink: 0; color: var(--text-light); font-size: 0.78rem; }
-
-.cta-box {
-  background: var(--primary); border-color: var(--primary);
-  color: var(--white); display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
-}
-.cta-label { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em; color: var(--accent2); }
-.cta-box h3 { font-size: 1.5rem; font-weight: 800; line-height: 1.3; }
-.cta-box p { font-size: 0.88rem; color: rgba(255,255,255,0.75); line-height: 1.7; }
-.btn-white {
-  display: inline-block; background: var(--white); color: var(--primary);
-  padding: 11px 24px; border-radius: 4px; font-size: 0.88rem; font-weight: 700;
-  transition: var(--transition); margin-top: 8px;
-}
-.btn-white:hover { background: var(--accent); color: var(--white); }
-.cta-phone { margin-top: auto; }
-.cta-phone span { display: block; font-size: 0.78rem; color: rgba(255,255,255,0.6); margin-bottom: 4px; }
-.cta-phone strong { font-size: 1.5rem; font-weight: 900; color: var(--accent2); }
-
-/* ============================================================
-   CONTACT
-   ============================================================ */
-.contact { padding: 100px 0; background: var(--bg-light); }
-.contact-inner { display: grid; grid-template-columns: 320px 1fr; gap: 60px; }
-.contact-info { display: flex; flex-direction: column; gap: 28px; }
-.contact-item { display: flex; gap: 16px; align-items: flex-start; }
-.contact-icon {
-  width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;
-  background: var(--primary); display: flex; align-items: center; justify-content: center;
-  font-size: 1.2rem;
-}
-.contact-icon.phone-icon::before  { content: '📞'; }
-.contact-icon.fax-icon::before    { content: '📠'; }
-.contact-icon.email-icon::before  { content: '✉️'; }
-.contact-icon.addr-icon::before   { content: '📍'; }
-.contact-item strong { display: block; color: var(--primary); font-weight: 700; font-size: 0.95rem; margin-bottom: 4px; }
-.contact-item p { color: var(--text); font-size: 0.95rem; line-height: 1.6; }
-.contact-item small { color: var(--text-light); font-size: 0.82rem; }
-
-/* Contact Form */
-.contact-form { display: flex; flex-direction: column; gap: 20px; }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.form-group { display: flex; flex-direction: column; gap: 6px; }
-.form-group label { font-size: 0.88rem; font-weight: 600; color: var(--primary); }
-.form-group input,
-.form-group select,
-.form-group textarea {
-  padding: 12px 16px; border: 1.5px solid var(--border); border-radius: 6px;
-  font-size: 0.95rem; color: var(--text); background: var(--white);
-  transition: border-color var(--transition), box-shadow var(--transition);
-  outline: none;
-}
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,60,110,0.08); }
-.form-group textarea { resize: vertical; min-height: 120px; }
-.form-check { display: flex; align-items: flex-start; gap: 10px; font-size: 0.88rem; color: var(--text-light); }
-.form-check input[type="checkbox"] { margin-top: 3px; accent-color: var(--primary); }
-.form-check a { color: var(--primary); text-decoration: underline; }
-.btn-submit {
-  background: var(--primary); color: var(--white); padding: 15px 40px;
-  border-radius: 4px; font-size: 1rem; font-weight: 700;
-  transition: background var(--transition), transform var(--transition);
-  align-self: flex-start;
-}
-.btn-submit:hover { background: var(--accent); transform: translateY(-2px); }
-
-/* ============================================================
-   FOOTER
-   ============================================================ */
-.footer-top { background: var(--dark); padding: 64px 0 40px; }
-.footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1.5fr; gap: 40px; }
-.footer-logo { display: flex; align-items: baseline; gap: 4px; margin-bottom: 16px; }
-.footer-logo .logo-main { font-size: 1.2rem; font-weight: 900; color: var(--white); }
-.footer-logo .logo-sub  { font-size: 0.72rem; color: rgba(255,255,255,0.5); }
-.footer-about p { color: rgba(255,255,255,0.55); font-size: 0.88rem; line-height: 1.8; margin-bottom: 20px; }
-.footer-sns { display: flex; gap: 10px; }
-.sns-link {
-  padding: 6px 14px; border: 1px solid rgba(255,255,255,0.2);
-  color: rgba(255,255,255,0.6); border-radius: 4px; font-size: 0.78rem;
-  transition: var(--transition);
-}
-.sns-link:hover { border-color: var(--accent); color: var(--accent); }
-.footer-links h4 { color: var(--white); font-size: 0.95rem; font-weight: 700; margin-bottom: 20px; }
-.footer-links ul li { margin-bottom: 10px; }
-.footer-links ul li a { color: rgba(255,255,255,0.55); font-size: 0.88rem; transition: color var(--transition); }
-.footer-links ul li a:hover { color: var(--accent2); }
-.footer-contact-info h4 { color: var(--white); font-size: 0.95rem; font-weight: 700; margin-bottom: 20px; }
-.footer-contact-info p { color: rgba(255,255,255,0.55); font-size: 0.82rem; margin-bottom: 8px; line-height: 1.6; }
-.footer-contact-info strong { color: rgba(255,255,255,0.8); }
-
-.footer-bottom { background: #080f1f; padding: 20px 0; }
-.footer-bottom-inner { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
-.copyright { color: rgba(255,255,255,0.35); font-size: 0.82rem; }
-.footer-policy { display: flex; gap: 20px; }
-.footer-policy a { color: rgba(255,255,255,0.4); font-size: 0.82rem; transition: color var(--transition); }
-.footer-policy a:hover { color: var(--accent2); }
-.footer-policy a.bold { color: rgba(255,255,255,0.6); font-weight: 600; }
-
-/* ============================================================
-   SCROLL TO TOP
-   ============================================================ */
-.scroll-top {
-  position: fixed; bottom: 32px; right: 32px; z-index: 999;
-  width: 48px; height: 48px; border-radius: 50%;
-  background: var(--accent); color: var(--white); font-size: 1rem;
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 4px 16px rgba(232,93,4,0.4);
-  opacity: 0; pointer-events: none; transform: translateY(10px);
-  transition: opacity 0.3s, transform 0.3s;
-}
-.scroll-top.visible { opacity: 1; pointer-events: all; transform: translateY(0); }
-.scroll-top:hover { background: #c94e00; }
-
-/* ============================================================
-   ANIMATIONS (Fade-in on scroll)
-   ============================================================ */
-.fade-in { opacity: 0; transform: translateY(30px); transition: opacity 0.7s ease, transform 0.7s ease; }
-.fade-in.visible { opacity: 1; transform: translateY(0); }
-.fade-in-delay-1 { transition-delay: 0.1s; }
-.fade-in-delay-2 { transition-delay: 0.2s; }
-.fade-in-delay-3 { transition-delay: 0.3s; }
-.fade-in-delay-4 { transition-delay: 0.4s; }
-
-/* ============================================================
-   RESPONSIVE
-   ============================================================ */
-@media (max-width: 1100px) {
-  .qs-grid { grid-template-columns: repeat(3, 1fr); }
-  .qs-item:nth-child(3) { border-right: none; }
-  .qs-item:nth-child(4), .qs-item:nth-child(5) { border-top: 1px solid var(--border); }
-
-  .about-inner  { grid-template-columns: 1fr; gap: 60px; }
-  .about-img    { height: 320px; }
-  .img-box-1    { height: 260px; }
-  .img-box-2    { height: 200px; }
-
-  .network-inner { grid-template-columns: 1fr; gap: 48px; }
-  .footer-grid   { grid-template-columns: 1fr 1fr; gap: 32px; }
-  .footer-about  { grid-column: 1 / -1; }
-}
-
-@media (max-width: 900px) {
-  .services-grid { grid-template-columns: repeat(2, 1fr); }
-  .why-grid      { grid-template-columns: repeat(2, 1fr); }
-  .stats-grid    { grid-template-columns: repeat(2, 1fr); }
-  .stat-item     { border-bottom: 1px solid rgba(255,255,255,0.12); }
-  .stat-item:nth-child(2) { border-right: none; }
-  .info-grid     { grid-template-columns: 1fr; }
-  .contact-inner { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 768px) {
-  .gnb, .header-right { display: none; }
-  .hamburger { display: flex; margin-left: auto; }
-  .mobile-menu { display: block; }
-
-  .qs-grid { grid-template-columns: repeat(2, 1fr); }
-  .qs-item { border-top: 1px solid var(--border); }
-  .qs-item:nth-child(odd) { border-right: 1px solid var(--border); }
-  .qs-item:nth-child(even) { border-right: none; }
-
-  .services-grid { grid-template-columns: 1fr; }
-  .why-grid      { grid-template-columns: 1fr; }
-  .stats-grid    { grid-template-columns: repeat(2, 1fr); }
-  .form-row      { grid-template-columns: 1fr; }
-
-  .footer-grid { grid-template-columns: 1fr 1fr; }
-  .footer-about { grid-column: 1 / -1; }
-  .footer-contact-info { grid-column: 1 / -1; }
-
-  .footer-bottom-inner { flex-direction: column; text-align: center; }
-  .hero-scroll { display: none; }
-  .slide-prev, .slide-next { display: none; }
-}
-
-@media (max-width: 480px) {
-  .hero { min-height: 500px; }
-  .qs-grid { grid-template-columns: 1fr; }
-  .qs-item { border-right: none !important; }
-  .stats-grid { grid-template-columns: 1fr 1fr; }
-  .footer-grid { grid-template-columns: 1fr; }
-  .about-badge { transform: none; right: 10px; }
-}
-
-</style>
+  <title>(주)태인종합물류 - 신뢰와 혁신의 물류 파트너</title>
+  <link rel="stylesheet" href="style.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
 </head>
@@ -561,8 +15,46 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
     <div class="header-inner">
       <div class="logo">
         <a href="#home">
-          <span class="logo-main">태엔종합물류</span>
-          <span class="logo-sub">(주)</span>
+          <svg class="logo-icon" viewBox="0 0 48 52" xmlns="http://www.w3.org/2000/svg">
+            <!-- Back page: red stripes, rotated -->
+            <g transform="rotate(-10,24,26) translate(-4,-2)">
+              <rect x="6" y="4" width="34" height="42" rx="1" fill="#cc2b2b"/>
+              <rect x="6" y="9"  width="34" height="2.5" fill="rgba(255,255,255,0.35)"/>
+              <rect x="6" y="14" width="34" height="2.5" fill="rgba(255,255,255,0.35)"/>
+              <rect x="6" y="19" width="34" height="2.5" fill="rgba(255,255,255,0.35)"/>
+              <rect x="6" y="24" width="34" height="2.5" fill="rgba(255,255,255,0.35)"/>
+              <rect x="6" y="29" width="34" height="2.5" fill="rgba(255,255,255,0.35)"/>
+              <rect x="6" y="34" width="34" height="2.5" fill="rgba(255,255,255,0.35)"/>
+              <rect x="6" y="39" width="34" height="2.5" fill="rgba(255,255,255,0.35)"/>
+            </g>
+            <!-- Middle page: mixed, slightly rotated -->
+            <g transform="rotate(-4,24,26) translate(-1,0)">
+              <rect x="6" y="4" width="34" height="42" rx="1" fill="#2255bb"/>
+              <rect x="6" y="4"  width="34" height="16" fill="#cc2b2b"/>
+              <rect x="6" y="9"  width="34" height="2.5" fill="rgba(255,255,255,0.35)"/>
+              <rect x="6" y="14" width="34" height="2.5" fill="rgba(255,255,255,0.35)"/>
+              <rect x="6" y="22" width="34" height="2.5" fill="rgba(255,255,255,0.35)"/>
+              <rect x="6" y="27" width="34" height="2.5" fill="rgba(255,255,255,0.35)"/>
+              <rect x="6" y="32" width="34" height="2.5" fill="rgba(255,255,255,0.35)"/>
+              <rect x="6" y="37" width="34" height="2.5" fill="rgba(255,255,255,0.35)"/>
+            </g>
+            <!-- Front page: blue stripes -->
+            <g transform="translate(2,2)">
+              <rect x="6" y="4" width="34" height="42" rx="1" fill="#1a3c9e"/>
+              <rect x="6" y="4"  width="34" height="10" fill="#cc2b2b"/>
+              <rect x="6" y="7"  width="34" height="2.5" fill="rgba(255,255,255,0.4)"/>
+              <rect x="6" y="17" width="34" height="2.5" fill="rgba(255,255,255,0.4)"/>
+              <rect x="6" y="22" width="34" height="2.5" fill="rgba(255,255,255,0.4)"/>
+              <rect x="6" y="27" width="34" height="2.5" fill="rgba(255,255,255,0.4)"/>
+              <rect x="6" y="32" width="34" height="2.5" fill="rgba(255,255,255,0.4)"/>
+              <rect x="6" y="37" width="34" height="2.5" fill="rgba(255,255,255,0.4)"/>
+              <rect x="6" y="42" width="34" height="2.5" fill="rgba(255,255,255,0.4)"/>
+            </g>
+          </svg>
+          <div class="logo-text">
+            <span class="logo-main">태인종합물류</span>
+            <span class="logo-sub">(주)</span>
+          </div>
         </a>
       </div>
       <nav class="gnb">
@@ -695,22 +187,22 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
           <div class="img-box img-box-1"></div>
           <div class="img-box img-box-2"></div>
           <div class="about-badge">
-            <span class="badge-num">20+</span>
-            <span class="badge-txt">년 물류 전문</span>
+            <span class="badge-num">16년</span>
+            <span class="badge-txt">물류 전문기업</span>
           </div>
         </div>
         <div class="about-content">
           <p class="section-label">ABOUT US</p>
-          <h2 class="section-title">(주)태엔종합물류를<br/>소개합니다</h2>
+          <h2 class="section-title">(주)태인종합물류를<br/>소개합니다</h2>
           <p class="about-desc">
-            (주)태엔종합물류는 20년 이상의 물류 전문 경험을 바탕으로 육상·해상·항공의 복합 물류 서비스를 제공하는 종합물류 기업입니다.
-            고객의 화물을 내 화물처럼 소중하게 다루는 마음으로, 최적의 물류 솔루션과 경쟁력 있는 비용으로 고객 만족을 최우선으로 합니다.
+            (주)태인종합물류는 2010년 설립 이래 16년간 쌓아온 물류 전문 경험을 바탕으로 육상·해상·항공의 복합 물류 서비스를 제공하는 종합물류 기업입니다.
+            연간 매출 90.9억 원, 동종업계 상위 30%의 경쟁력으로 고객의 화물을 내 화물처럼 소중하게 운송합니다.
           </p>
           <ul class="about-points">
-            <li><span class="check">✓</span> 전국 15개 거점 물류 네트워크</li>
-            <li><span class="check">✓</span> ISO 9001 품질경영시스템 인증</li>
-            <li><span class="check">✓</span> 24시간 365일 고객 지원</li>
-            <li><span class="check">✓</span> 실시간 화물 추적 시스템</li>
+            <li><span class="check">✓</span> 2010년 창립, 업력 16년차 중소기업</li>
+            <li><span class="check">✓</span> 서울 마포구 본사 (망원역 인근)</li>
+            <li><span class="check">✓</span> 매출 성장률 ▲14.2% (2020년 기준)</li>
+            <li><span class="check">✓</span> 동종업계 매출 상위 30%</li>
           </ul>
           <a href="#about" class="btn-primary">회사 소개 더보기</a>
         </div>
@@ -723,20 +215,20 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
     <div class="container">
       <div class="stats-grid">
         <div class="stat-item">
-          <span class="stat-num" data-target="20">0</span><span class="stat-unit">+</span>
-          <p>업력 (년)</p>
+          <span class="stat-num" data-target="16">0</span><span class="stat-unit">년</span>
+          <p>업력 (2010년 설립)</p>
         </div>
         <div class="stat-item">
-          <span class="stat-num" data-target="1500">0</span><span class="stat-unit">+</span>
-          <p>고객사</p>
+          <span class="stat-num" data-target="90">0</span><span class="stat-unit">억+</span>
+          <p>연간 매출액</p>
         </div>
         <div class="stat-item">
-          <span class="stat-num" data-target="15">0</span><span class="stat-unit">개</span>
-          <p>전국 거점</p>
+          <span class="stat-num" data-target="16">0</span><span class="stat-unit">명</span>
+          <p>임직원 수</p>
         </div>
         <div class="stat-item">
-          <span class="stat-num" data-target="300">0</span><span class="stat-unit">+</span>
-          <p>전문 인력</p>
+          <span class="stat-num" data-target="30">0</span><span class="stat-unit">%</span>
+          <p>동종업계 상위</p>
         </div>
       </div>
     </div>
@@ -748,7 +240,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
       <div class="section-header">
         <p class="section-label">OUR SERVICES</p>
         <h2 class="section-title">다양한 물류 서비스를<br/>제공합니다</h2>
-        <p class="section-desc">태엔종합물류는 고객의 모든 물류 요구를 충족시키는 통합 솔루션을 제공합니다.</p>
+        <p class="section-desc">태인종합물류는 고객의 모든 물류 요구를 충족시키는 통합 솔루션을 제공합니다.</p>
       </div>
       <div class="services-grid">
         <div class="service-card">
@@ -796,7 +288,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
     <div class="container">
       <div class="section-header">
         <p class="section-label">WHY TAEN</p>
-        <h2 class="section-title">태엔종합물류를 선택해야 하는<br/>이유가 있습니다</h2>
+        <h2 class="section-title">태인종합물류를 선택해야 하는<br/>이유가 있습니다</h2>
       </div>
       <div class="why-grid">
         <div class="why-item">
@@ -903,7 +395,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
               <span class="notice-date">2025.12.01</span>
             </li>
             <li>
-              <a href="#">태엔물류 ISO 9001:2015 재인증 완료</a>
+              <a href="#">태인물류 ISO 9001:2015 재인증 완료</a>
               <span class="notice-date">2025.11.10</span>
             </li>
             <li>
@@ -949,7 +441,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
           <a href="#contact" class="btn-white">견적 문의하기</a>
           <div class="cta-phone">
             <span>고객센터</span>
-            <strong>1588-0000</strong>
+            <strong>02-3142-4051</strong>
           </div>
         </div>
       </div>
@@ -970,7 +462,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
             <div class="contact-icon phone-icon"></div>
             <div>
               <strong>대표전화</strong>
-              <p>1588-0000</p>
+              <p>02-3142-4051</p>
               <small>평일 09:00 ~ 18:00</small>
             </div>
           </div>
@@ -978,21 +470,21 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
             <div class="contact-icon fax-icon"></div>
             <div>
               <strong>팩스</strong>
-              <p>02-0000-0000</p>
+              <p>02-3142-4055</p>
             </div>
           </div>
           <div class="contact-item">
             <div class="contact-icon email-icon"></div>
             <div>
               <strong>이메일</strong>
-              <p>info@taen-logistics.co.kr</p>
+              <p>op@ttt3.co.kr</p>
             </div>
           </div>
           <div class="contact-item">
             <div class="contact-icon addr-icon"></div>
             <div>
               <strong>본사 주소</strong>
-              <p>서울특별시 강서구 마곡동<br/>마곡중앙로 XX, XX층</p>
+              <p>서울특별시 마포구 월드컵로 112, 4층<br/>(망원역 6호선 인근)</p>
             </div>
           </div>
         </div>
@@ -1045,7 +537,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
         <div class="footer-grid">
           <div class="footer-about">
             <div class="footer-logo">
-              <span class="logo-main">태엔종합물류</span>
+              <span class="logo-main">태인종합물류</span>
               <span class="logo-sub">(주)</span>
             </div>
             <p>신뢰와 혁신으로 연결하는<br/>대한민국 대표 종합물류 기업</p>
@@ -1085,10 +577,10 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
           </div>
           <div class="footer-contact-info">
             <h4>연락처</h4>
-            <p><strong>대표전화</strong> 1588-0000</p>
-            <p><strong>팩스</strong> 02-0000-0000</p>
-            <p><strong>이메일</strong> info@taen-logistics.co.kr</p>
-            <p><strong>주소</strong> 서울특별시 강서구 마곡동</p>
+            <p><strong>대표전화</strong> 02-3142-4051</p>
+            <p><strong>팩스</strong> 02-3142-4055</p>
+            <p><strong>이메일</strong> op@ttt3.co.kr</p>
+            <p><strong>주소</strong> 서울 마포구 월드컵로 112, 4층</p>
           </div>
         </div>
       </div>
@@ -1096,7 +588,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
     <div class="footer-bottom">
       <div class="container">
         <div class="footer-bottom-inner">
-          <p class="copyright">Copyright &copy; 2026 (주)태엔종합물류. All Rights Reserved.</p>
+          <p class="copyright">Copyright &copy; 2026 (주)태인종합물류. All Rights Reserved.</p>
           <div class="footer-policy">
             <a href="#">이용약관</a>
             <a href="#" class="bold">개인정보처리방침</a>
@@ -1110,160 +602,6 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   <!-- SCROLL TO TOP -->
   <button class="scroll-top" id="scrollTop" aria-label="맨 위로">▲</button>
 
-  <script>
-/* ============================================================
-   (주)태엔종합물류 — Main JavaScript
-   ============================================================ */
-
-document.addEventListener('DOMContentLoaded', () => {
-
-  /* ── HEADER: scroll effect ── */
-  const header = document.getElementById('header');
-  const onScroll = () => {
-    header.classList.toggle('scrolled', window.scrollY > 60);
-    scrollTopBtn.classList.toggle('visible', window.scrollY > 400);
-  };
-  window.addEventListener('scroll', onScroll, { passive: true });
-
-  /* ── HAMBURGER MENU ── */
-  const hamburger  = document.getElementById('hamburger');
-  const mobileMenu = document.getElementById('mobileMenu');
-  hamburger.addEventListener('click', () => {
-    mobileMenu.classList.toggle('open');
-  });
-  // Close on nav link click
-  mobileMenu.querySelectorAll('a').forEach(link => {
-    link.addEventListener('click', () => mobileMenu.classList.remove('open'));
-  });
-
-  /* ── HERO SLIDER ── */
-  const slides  = document.querySelectorAll('.slide');
-  const dots    = document.querySelectorAll('.dot');
-  let current   = 0;
-  let autoPlay;
-
-  const goTo = (idx) => {
-    slides[current].classList.remove('active');
-    dots[current].classList.remove('active');
-    current = (idx + slides.length) % slides.length;
-    slides[current].classList.add('active');
-    dots[current].classList.add('active');
-  };
-
-  const startAuto = () => {
-    autoPlay = setInterval(() => goTo(current + 1), 5000);
-  };
-  const stopAuto = () => clearInterval(autoPlay);
-
-  document.getElementById('slideNext').addEventListener('click', () => { stopAuto(); goTo(current + 1); startAuto(); });
-  document.getElementById('slidePrev').addEventListener('click', () => { stopAuto(); goTo(current - 1); startAuto(); });
-  dots.forEach(dot => {
-    dot.addEventListener('click', () => { stopAuto(); goTo(Number(dot.dataset.idx)); startAuto(); });
-  });
-  startAuto();
-
-  /* ── SCROLL TO TOP ── */
-  const scrollTopBtn = document.getElementById('scrollTop');
-  scrollTopBtn.addEventListener('click', () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  });
-
-  /* ── SMOOTH SCROLL for anchor links ── */
-  document.querySelectorAll('a[href^="#"]').forEach(link => {
-    link.addEventListener('click', (e) => {
-      const target = document.querySelector(link.getAttribute('href'));
-      if (target) {
-        e.preventDefault();
-        const offset = 72; // header height
-        const top = target.getBoundingClientRect().top + window.scrollY - offset;
-        window.scrollTo({ top, behavior: 'smooth' });
-      }
-    });
-  });
-
-  /* ── FADE-IN ANIMATION on scroll ── */
-  const fadeEls = document.querySelectorAll(
-    '.service-card, .why-item, .stat-item, .about-content, .about-img, .network-content, .network-map, .info-box, .contact-item, .contact-form'
-  );
-  fadeEls.forEach((el, i) => {
-    el.classList.add('fade-in');
-    if (i % 4 === 1) el.classList.add('fade-in-delay-1');
-    if (i % 4 === 2) el.classList.add('fade-in-delay-2');
-    if (i % 4 === 3) el.classList.add('fade-in-delay-3');
-  });
-
-  const fadeObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('visible');
-        fadeObserver.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0.12 });
-
-  fadeEls.forEach(el => fadeObserver.observe(el));
-
-  /* ── STATS COUNTER ANIMATION ── */
-  const statNums = document.querySelectorAll('.stat-num');
-  const countObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const el     = entry.target;
-        const target = Number(el.dataset.target);
-        const dur    = 1800;
-        const step   = 16;
-        const inc    = target / (dur / step);
-        let current  = 0;
-        const timer  = setInterval(() => {
-          current += inc;
-          if (current >= target) { current = target; clearInterval(timer); }
-          el.textContent = Math.floor(current).toLocaleString();
-        }, step);
-        countObserver.unobserve(el);
-      }
-    });
-  }, { threshold: 0.5 });
-
-  statNums.forEach(el => countObserver.observe(el));
-
-  /* ── CONTACT FORM ── */
-  const form = document.getElementById('contactForm');
-  if (form) {
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const btn = form.querySelector('.btn-submit');
-      btn.textContent = '전송 중...';
-      btn.disabled = true;
-      // Simulate async submit
-      setTimeout(() => {
-        btn.textContent = '문의가 접수되었습니다 ✓';
-        btn.style.background = '#2e7d32';
-        setTimeout(() => {
-          form.reset();
-          btn.textContent = '문의 보내기';
-          btn.style.background = '';
-          btn.disabled = false;
-        }, 3000);
-      }, 1000);
-    });
-  }
-
-  /* ── ACTIVE NAV highlight on scroll ── */
-  const sections = document.querySelectorAll('section[id]');
-  const navLinks = document.querySelectorAll('.gnb a');
-  const highlightNav = () => {
-    let current = '';
-    sections.forEach(sec => {
-      if (window.scrollY >= sec.offsetTop - 100) current = sec.id;
-    });
-    navLinks.forEach(link => {
-      link.style.fontWeight = link.getAttribute('href') === `#${current}` ? '700' : '';
-    });
-  };
-  window.addEventListener('scroll', highlightNav, { passive: true });
-
-});
-
-</script>
+  <script src="main.js"></script>
 </body>
 </html>
