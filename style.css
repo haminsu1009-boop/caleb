@@ -63,7 +63,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   display: flex; align-items: center; height: 72px; gap: 32px;
 }
 .logo a { display: flex; align-items: center; gap: 10px; }
-.logo-icon { width: 40px; height: 44px; flex-shrink: 0; }
+.logo-icon { width: 52px; height: 52px; flex-shrink: 0; }
 .logo-text { display: flex; align-items: baseline; gap: 4px; }
 .logo .logo-main { font-size: 1.25rem; font-weight: 900; color: var(--white); letter-spacing: -0.02em; }
 .logo .logo-sub  { font-size: 0.72rem; color: rgba(255,255,255,0.7); font-weight: 400; }
@@ -185,7 +185,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   position: relative; z-index: 5;
 }
 .qs-grid {
-  display: grid; grid-template-columns: repeat(5, 1fr);
+  display: grid; grid-template-columns: repeat(4, 1fr);
 }
 .qs-item {
   display: flex; align-items: center; gap: 14px;
