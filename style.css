@@ -460,6 +460,71 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .footer-policy a.bold { color: rgba(255,255,255,0.6); font-weight: 600; }
 
 /* ============================================================
+   CEO GREETING
+   ============================================================ */
+.ceo-section { padding: 100px 0; background: var(--primary); }
+.ceo-inner { display: grid; grid-template-columns: 280px 1fr; gap: 72px; align-items: flex-start; }
+.ceo-photo { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+.ceo-photo-box {
+  width: 200px; height: 200px; border-radius: 50%;
+  background: rgba(255,255,255,0.12); border: 3px solid rgba(255,255,255,0.25);
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.ceo-photo-placeholder { width: 100%; height: 100%; }
+.ceo-name-box { text-align: center; }
+.ceo-label { display: block; color: rgba(255,255,255,0.6); font-size: 0.78rem; letter-spacing: 0.1em; margin-bottom: 6px; }
+.ceo-name { display: block; font-size: 1.6rem; font-weight: 900; color: var(--white); letter-spacing: 0.1em; }
+.ceo-eng { display: block; color: rgba(255,255,255,0.5); font-size: 0.78rem; margin-top: 6px; }
+.ceo-content .section-label { color: var(--accent2); }
+.ceo-content .section-title { color: var(--white); }
+.ceo-text { margin-bottom: 32px; }
+.ceo-text p { color: rgba(255,255,255,0.82); font-size: 0.97rem; line-height: 2; margin-bottom: 18px; }
+.ceo-text strong { color: var(--white); font-weight: 700; }
+.ceo-signature {
+  display: flex; flex-direction: column; align-items: flex-end;
+  padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.15);
+}
+.ceo-signature span { color: rgba(255,255,255,0.55); font-size: 0.85rem; margin-bottom: 8px; }
+.ceo-signature strong { color: var(--white); font-size: 1.6rem; font-weight: 900; letter-spacing: 0.15em; }
+
+/* ============================================================
+   GLOBAL NETWORK GRID
+   ============================================================ */
+.global-network-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+}
+.gn-region {
+  background: var(--white); border-radius: var(--radius);
+  padding: 24px 20px; border: 1px solid var(--border);
+}
+.gn-region-title {
+  font-size: 0.95rem; font-weight: 700; margin-bottom: 10px;
+  padding-bottom: 8px; border-bottom: 2px solid;
+}
+.gn-region-title.europe    { color: #1a3c9e; border-color: #1a3c9e; }
+.gn-region-title.middle-east { color: #c8292a; border-color: #c8292a; }
+.gn-region-title.africa    { color: #c8292a; border-color: #c8292a; }
+.gn-region-title.pacific   { color: #1a3c9e; border-color: #1a3c9e; }
+.gn-region-title.asia      { color: #1a3c9e; border-color: #1a3c9e; }
+.gn-region-title.america   { color: #c8292a; border-color: #c8292a; }
+.gn-region p { font-size: 0.8rem; color: var(--text-light); line-height: 1.8; }
+
+/* ============================================================
+   CONTACT BRANCHES
+   ============================================================ */
+.contact-branches { display: flex; flex-direction: column; gap: 24px; }
+.branch-box { border-radius: var(--radius); padding: 24px; border: 1px solid var(--border); }
+.branch-box.hq { border-left: 4px solid var(--primary); }
+.branch-box.busan { border-left: 4px solid var(--accent); }
+.branch-tag {
+  display: inline-block; padding: 4px 12px; border-radius: 20px;
+  font-size: 0.75rem; font-weight: 700; margin-bottom: 16px;
+  color: var(--white);
+}
+.branch-box.hq .branch-tag { background: var(--primary); }
+.branch-box.busan .branch-tag { background: var(--accent); }
+
+/* ============================================================
    SCROLL TO TOP
    ============================================================ */
 .scroll-top {
