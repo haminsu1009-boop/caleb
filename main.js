@@ -23,6 +23,18 @@ document.addEventListener('DOMContentLoaded', () => {
     link.addEventListener('click', () => mobileMenu.classList.remove('open'));
   });
 
+  // Accordion: toggle sub-items on title click
+  mobileMenu.querySelectorAll('.mobile-acc-title').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = btn.closest('.mobile-accordion');
+      const isOpen = item.classList.contains('open');
+      // Close all open accordions
+      mobileMenu.querySelectorAll('.mobile-accordion.open').forEach(el => el.classList.remove('open'));
+      // Open clicked one if it was closed
+      if (!isOpen) item.classList.add('open');
+    });
+  });
+
   /* ── HERO SLIDER ── */
   const slides  = document.querySelectorAll('.slide');
   const dots    = document.querySelectorAll('.dot');
