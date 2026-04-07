@@ -634,6 +634,25 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .btn-submit:hover { background: var(--accent); transform: translateY(-2px); }
 
 /* ============================================================
+   INLINE INQUIRY SECTION (Homepage)
+   ============================================================ */
+.inquiry-section { background: var(--bg); padding: 80px 0; }
+.inquiry-notice {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: #eaf4ff; border: 1px solid #aacfff; border-left: 4px solid var(--primary);
+  padding: 14px 20px; border-radius: var(--radius);
+  max-width: 720px; margin: 0 auto 28px;
+  font-size: 0.92rem; color: var(--primary); font-weight: 500;
+}
+.inquiry-notice svg { flex-shrink: 0; margin-top: 2px; stroke: var(--primary); }
+.required-highlight { color: var(--accent) !important; font-weight: 700 !important; }
+.input-highlight {
+  border-color: var(--accent) !important;
+  background: #fff8f8 !important;
+  box-shadow: 0 0 0 3px rgba(212,54,54,0.08) !important;
+}
+
+/* ============================================================
    FOOTER
    ============================================================ */
 .footer-top { background: var(--dark); padding: 64px 0 40px; }

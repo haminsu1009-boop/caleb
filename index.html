@@ -257,39 +257,39 @@
           <div class="q-panes">
             <div class="q-pane active" id="qt-fcl">
               <div class="q-fields">
-                <div class="q-field"><label>출발지</label><input type="text" placeholder="출발 항구 (예: 부산항)" /></div>
-                <div class="q-field"><label>도착지</label><input type="text" placeholder="도착 항구 (예: 상하이항)" /></div>
+                <div class="q-field"><label>출발지</label><input type="text" id="fcl-from" placeholder="출발 항구 (예: 부산항)" /></div>
+                <div class="q-field"><label>도착지</label><input type="text" id="fcl-to" placeholder="도착 항구 (예: 상하이항)" /></div>
                 <div class="q-field"><label>컨테이너</label>
-                  <select><option value="">종류 선택</option><option>20GP</option><option>40GP</option><option>40HC</option><option>45HC</option></select>
+                  <select id="fcl-container"><option value="">종류 선택</option><option>20GP</option><option>40GP</option><option>40HC</option><option>45HC</option></select>
                 </div>
               </div>
-              <a href="customer-service.html" class="q-submit">견적 문의하기 →</a>
+              <button type="button" class="q-submit" onclick="fillInquiryForm('fcl')">견적 문의하기 →</button>
             </div>
             <div class="q-pane" id="qt-lcl">
               <div class="q-fields">
-                <div class="q-field"><label>출발지</label><input type="text" placeholder="출발 항구" /></div>
-                <div class="q-field"><label>도착지</label><input type="text" placeholder="도착 항구" /></div>
-                <div class="q-field"><label>화물 중량</label><input type="text" placeholder="예: 500 kg / 2 CBM" /></div>
+                <div class="q-field"><label>출발지</label><input type="text" id="lcl-from" placeholder="출발 항구" /></div>
+                <div class="q-field"><label>도착지</label><input type="text" id="lcl-to" placeholder="도착 항구" /></div>
+                <div class="q-field"><label>화물 중량</label><input type="text" id="lcl-weight" placeholder="예: 500 kg / 2 CBM" /></div>
               </div>
-              <a href="customer-service.html" class="q-submit">견적 문의하기 →</a>
+              <button type="button" class="q-submit" onclick="fillInquiryForm('lcl')">견적 문의하기 →</button>
             </div>
             <div class="q-pane" id="qt-air">
               <div class="q-fields">
-                <div class="q-field"><label>출발 공항</label><input type="text" placeholder="예: 인천 (ICN)" /></div>
-                <div class="q-field"><label>도착 공항</label><input type="text" placeholder="예: 홍콩 (HKG)" /></div>
-                <div class="q-field"><label>화물 중량</label><input type="text" placeholder="예: 100 kg" /></div>
+                <div class="q-field"><label>출발 공항</label><input type="text" id="air-from" placeholder="예: 인천 (ICN)" /></div>
+                <div class="q-field"><label>도착 공항</label><input type="text" id="air-to" placeholder="예: 홍콩 (HKG)" /></div>
+                <div class="q-field"><label>화물 중량</label><input type="text" id="air-weight" placeholder="예: 100 kg" /></div>
               </div>
-              <a href="customer-service.html" class="q-submit">견적 문의하기 →</a>
+              <button type="button" class="q-submit" onclick="fillInquiryForm('air')">견적 문의하기 →</button>
             </div>
             <div class="q-pane" id="qt-land">
               <div class="q-fields">
-                <div class="q-field"><label>출발지</label><input type="text" placeholder="예: 서울 마포구" /></div>
-                <div class="q-field"><label>도착지</label><input type="text" placeholder="예: 부산광역시" /></div>
+                <div class="q-field"><label>출발지</label><input type="text" id="land-from" placeholder="예: 서울 마포구" /></div>
+                <div class="q-field"><label>도착지</label><input type="text" id="land-to" placeholder="예: 부산광역시" /></div>
                 <div class="q-field"><label>화물 종류</label>
-                  <select><option value="">종류 선택</option><option>일반 화물</option><option>대형 화물</option><option>냉동/냉장</option></select>
+                  <select id="land-cargo"><option value="">종류 선택</option><option>일반 화물</option><option>대형 화물</option><option>냉동/냉장</option></select>
                 </div>
               </div>
-              <a href="customer-service.html" class="q-submit">견적 문의하기 →</a>
+              <button type="button" class="q-submit" onclick="fillInquiryForm('land')">견적 문의하기 →</button>
             </div>
           </div>
         </div>
@@ -359,6 +359,59 @@
           </div>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- INLINE INQUIRY FORM -->
+  <section id="inquiry-section" class="inquiry-section">
+    <div class="container">
+      <div class="section-header">
+        <p class="section-label">INQUIRY FORM</p>
+        <h2 class="section-title">온라인 견적 문의</h2>
+        <p class="section-desc">아래 양식을 작성해 주시면 담당자가 빠르게 연락드리겠습니다.</p>
+      </div>
+      <div id="inquiry-prefill-notice" class="inquiry-notice" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+        <span id="inquiry-notice-text">견적 정보가 자동으로 입력되었습니다. 이메일 주소와 추가 문의사항만 입력해 주세요.</span>
+      </div>
+      <form class="contact-form" id="homeInquiryForm" style="max-width:720px; margin:0 auto;">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="h-name">이름/회사명 *</label>
+            <input type="text" id="h-name" name="name" placeholder="이름 또는 회사명" required />
+          </div>
+          <div class="form-group">
+            <label for="h-phone">연락처 *</label>
+            <input type="tel" id="h-phone" name="phone" placeholder="010-0000-0000" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="h-email" class="required-highlight">이메일 *</label>
+          <input type="email" id="h-email" name="email" placeholder="example@email.com" required class="input-highlight" />
+        </div>
+        <div class="form-group">
+          <label for="h-service">문의 서비스</label>
+          <select id="h-service" name="service">
+            <option value="">서비스를 선택하세요</option>
+            <option value="해상운송 (FCL)">해상운송 (FCL)</option>
+            <option value="해상운송 (LCL)">해상운송 (LCL)</option>
+            <option value="항공운송">항공운송</option>
+            <option value="육상운송">육상운송</option>
+            <option value="통관/포워딩">통관/포워딩</option>
+            <option value="물류 솔루션">물류 솔루션</option>
+            <option value="기타">기타</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="h-message">문의 내용 *</label>
+          <textarea id="h-message" name="message" rows="6" placeholder="출발지, 도착지, 화물 정보 등을 함께 입력해 주시면 빠른 견적 안내가 가능합니다." required></textarea>
+        </div>
+        <div class="form-check">
+          <input type="checkbox" id="h-agree" name="agree" required />
+          <label for="h-agree">개인정보 수집·이용에 동의합니다. <a href="#">[내용보기]</a></label>
+        </div>
+        <button type="submit" class="btn-submit">문의 보내기</button>
+      </form>
     </div>
   </section>
 
@@ -441,6 +494,84 @@
         document.getElementById(target).classList.add('active');
       });
     });
+
+    // Auto-populate inquiry form from quote section
+    function fillInquiryForm(type) {
+      var serviceMap = {
+        fcl: '해상운송 (FCL)',
+        lcl: '해상운송 (LCL)',
+        air: '항공운송',
+        land: '육상운송'
+      };
+      var labelMap = {
+        fcl: '해운 FCL',
+        lcl: '해운 LCL',
+        air: '항공운송',
+        land: '육상운송'
+      };
+
+      var from = '', to = '', detail = '';
+
+      if (type === 'fcl') {
+        from = document.getElementById('fcl-from').value.trim();
+        to = document.getElementById('fcl-to').value.trim();
+        detail = document.getElementById('fcl-container').value;
+      } else if (type === 'lcl') {
+        from = document.getElementById('lcl-from').value.trim();
+        to = document.getElementById('lcl-to').value.trim();
+        detail = document.getElementById('lcl-weight').value.trim();
+      } else if (type === 'air') {
+        from = document.getElementById('air-from').value.trim();
+        to = document.getElementById('air-to').value.trim();
+        detail = document.getElementById('air-weight').value.trim();
+      } else if (type === 'land') {
+        from = document.getElementById('land-from').value.trim();
+        to = document.getElementById('land-to').value.trim();
+        detail = document.getElementById('land-cargo').value;
+      }
+
+      // Build message
+      var lines = ['[' + labelMap[type] + ' 견적 문의]'];
+      if (from) lines.push('출발지: ' + from);
+      if (to)   lines.push('도착지: ' + to);
+      if (detail) {
+        var detailLabel = (type === 'fcl') ? '컨테이너' : (type === 'land') ? '화물 종류' : '화물 중량';
+        lines.push(detailLabel + ': ' + detail);
+      }
+      lines.push('');
+      lines.push('추가 문의사항:');
+
+      // Fill form fields
+      var svcEl = document.getElementById('h-service');
+      var msgEl = document.getElementById('h-message');
+      var noticeEl = document.getElementById('inquiry-prefill-notice');
+      var noticeTextEl = document.getElementById('inquiry-notice-text');
+
+      // Set service select
+      for (var i = 0; i < svcEl.options.length; i++) {
+        if (svcEl.options[i].value === serviceMap[type]) {
+          svcEl.selectedIndex = i;
+          break;
+        }
+      }
+
+      // Set message
+      msgEl.value = lines.join('\n');
+
+      // Show notice
+      noticeEl.style.display = 'flex';
+      var summary = labelMap[type];
+      if (from && to) summary += ' ' + from + ' → ' + to;
+      if (detail) summary += ' / ' + detail;
+      noticeTextEl.textContent = '견적 정보 (' + summary + ')가 자동 입력되었습니다. 이메일 주소와 추가 문의사항만 입력해 주세요.';
+
+      // Scroll to form and focus email
+      var section = document.getElementById('inquiry-section');
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setTimeout(function() {
+        document.getElementById('h-email').focus();
+      }, 600);
+    }
   </script>
 </body>
 </html>
