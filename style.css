@@ -657,6 +657,39 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .btn-submit:hover { background: var(--accent); transform: translateY(-2px); }
 
 /* ============================================================
+   CEO GREETING PAGE
+   ============================================================ */
+.ceo-greeting { padding: 20px 0 60px; }
+.ceo-greeting-inner {
+  display: grid; grid-template-columns: 1fr 300px; gap: 60px; align-items: start;
+}
+.ceo-message { display: flex; flex-direction: column; gap: 18px; margin: 28px 0 36px; }
+.ceo-message p { color: var(--text); line-height: 1.9; font-size: 1rem; }
+.ceo-message strong { color: var(--primary); }
+.ceo-signature {
+  padding-top: 24px; border-top: 2px solid var(--border);
+}
+.ceo-company { color: var(--text-light); font-size: 0.92rem; margin-bottom: 4px; }
+.ceo-title-name { font-size: 1.1rem; color: var(--dark); font-weight: 600; }
+.ceo-info-panel {
+  display: flex; flex-direction: column; gap: 14px;
+  background: var(--bg); border-radius: var(--radius);
+  padding: 28px 24px; position: sticky; top: 100px;
+}
+.ceo-info-card {
+  padding: 14px 16px; background: var(--white); border-radius: 6px;
+  border-left: 3px solid var(--border);
+}
+.ceo-info-card.highlight { border-left-color: var(--accent); }
+.ceo-info-label { font-size: 0.75rem; font-weight: 700; color: var(--text-light); letter-spacing: 0.05em; margin-bottom: 4px; }
+.ceo-info-value { font-size: 1rem; font-weight: 700; color: var(--dark); }
+
+@media (max-width: 768px) {
+  .ceo-greeting-inner { grid-template-columns: 1fr; gap: 32px; }
+  .ceo-info-panel { position: static; }
+}
+
+/* ============================================================
    INLINE INQUIRY SECTION (Homepage)
    ============================================================ */
 .inquiry-section { background: var(--bg); padding: 80px 0; }
@@ -872,6 +905,37 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   transition: all 0.15s;
 }
 .pp-port:hover { background: var(--primary); color: var(--white); border-color: var(--primary); }
+
+/* Port picker direct input row */
+.port-picker-direct {
+  display: flex; gap: 8px; padding: 10px 16px;
+  border-bottom: 2px solid var(--primary); background: #f8faff;
+}
+.port-direct-input {
+  flex: 1; padding: 9px 14px; border: 1px solid var(--border); border-radius: 6px;
+  font-size: 0.92rem; font-family: inherit;
+}
+.port-direct-input:focus { outline: none; border-color: var(--primary); }
+.port-direct-confirm {
+  padding: 9px 16px; background: var(--primary); color: var(--white);
+  border: none; border-radius: 6px; font-size: 0.88rem; font-weight: 700; cursor: pointer;
+  white-space: nowrap;
+}
+.port-direct-confirm:hover { background: var(--dark); }
+
+/* Map app links (directions page) */
+.office-map-wrap { margin-bottom: 24px; }
+.map-app-links {
+  display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;
+}
+.map-app-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 10px 18px; border-radius: 8px; font-size: 0.88rem; font-weight: 700;
+  text-decoration: none; transition: opacity 0.2s;
+}
+.map-app-btn:hover { opacity: 0.85; }
+.kakao-btn { background: #FEE500; color: #3C1E1E; }
+.naver-btn { background: #03C75A; color: #fff; }
 
 /* Contact simplified (3-column) */
 .contact-branches {
