@@ -14,8 +14,7 @@
   <header id="header">
     <div class="header-inner">
       <div class="logo">
-        <a href="#home">
-          <img src="assets/IMG_8145.gif" class="logo-icon" alt="태인종합물류 로고" />
+        <a href="index.html">
           <div class="logo-text">
             <span class="logo-main">태인종합물류</span>
             <span class="logo-sub">(주)</span>
@@ -24,11 +23,34 @@
       </div>
       <nav class="gnb">
         <ul>
-          <li><a href="#about">회사소개</a></li>
-          <li><a href="#services">사업영역</a></li>
-          <li><a href="#network">네트워크</a></li>
-          <li><a href="#info">공지사항</a></li>
-          <li><a href="#contact">고객센터</a></li>
+          <li class="has-dropdown">
+            <a href="#">회사소개</a>
+            <ul class="dropdown">
+              <li><a href="#ceo">대표 인사말</a></li>
+              <li><a href="philosophy.html">경영이념</a></li>
+              <li><a href="history.html">연혁</a></li>
+              <li><a href="directions.html">오시는길</a></li>
+            </ul>
+          </li>
+          <li class="has-dropdown">
+            <a href="#">사업영역</a>
+            <ul class="dropdown">
+              <li><a href="sea-transport.html">해상운송</a></li>
+              <li><a href="land-transport.html">육상운송</a></li>
+              <li><a href="air-transport.html">항공운송</a></li>
+              <li><a href="customs.html">통관 및 포워딩</a></li>
+              <li><a href="logistics-solutions.html">물류 솔루션</a></li>
+            </ul>
+          </li>
+          <li><a href="#network">글로벌 네트워크</a></li>
+          <li><a href="notice.html">공지사항</a></li>
+          <li class="has-dropdown">
+            <a href="#">고객센터</a>
+            <ul class="dropdown">
+              <li><a href="faq.html">자주 묻는 질문</a></li>
+              <li><a href="#contact">견적 문의</a></li>
+            </ul>
+          </li>
         </ul>
       </nav>
       <div class="header-right">
@@ -41,11 +63,19 @@
     <!-- Mobile Menu -->
     <nav class="mobile-menu" id="mobileMenu">
       <ul>
-        <li><a href="#about">회사소개</a></li>
-        <li><a href="#services">사업영역</a></li>
-        <li><a href="#network">네트워크</a></li>
-        <li><a href="#info">공지사항</a></li>
-        <li><a href="#contact">고객센터</a></li>
+        <li><a href="#ceo">대표 인사말</a></li>
+        <li><a href="philosophy.html">경영이념</a></li>
+        <li><a href="history.html">연혁</a></li>
+        <li><a href="directions.html">오시는길</a></li>
+        <li><a href="sea-transport.html">해상운송</a></li>
+        <li><a href="land-transport.html">육상운송</a></li>
+        <li><a href="air-transport.html">항공운송</a></li>
+        <li><a href="customs.html">통관 및 포워딩</a></li>
+        <li><a href="logistics-solutions.html">물류 솔루션</a></li>
+        <li><a href="#network">글로벌 네트워크</a></li>
+        <li><a href="notice.html">공지사항</a></li>
+        <li><a href="faq.html">자주 묻는 질문</a></li>
+        <li><a href="#contact">견적 문의</a></li>
       </ul>
     </nav>
   </header>
@@ -141,21 +171,6 @@
   <section id="ceo" class="ceo-section">
     <div class="container">
       <div class="ceo-inner">
-        <div class="ceo-photo">
-          <div class="ceo-photo-box">
-            <div class="ceo-photo-placeholder">
-              <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="60" cy="45" r="28" fill="rgba(255,255,255,0.2)"/>
-                <ellipse cx="60" cy="105" rx="42" ry="28" fill="rgba(255,255,255,0.2)"/>
-              </svg>
-            </div>
-          </div>
-          <div class="ceo-name-box">
-            <span class="ceo-label">대표이사</span>
-            <strong class="ceo-name">하 형 탁</strong>
-            <span class="ceo-eng">Ha Hyung-Tak, CEO</span>
-          </div>
-        </div>
         <div class="ceo-content">
           <p class="section-label">CEO GREETING</p>
           <h2 class="section-title">대표이사 인사말</h2>
@@ -249,31 +264,31 @@
           <div class="service-icon land"></div>
           <h3>육상운송</h3>
           <p>전국 네트워크를 활용한 당일·익일 배송 서비스. 대형화물부터 소형화물까지 안전하고 신속하게 운송합니다.</p>
-          <a href="#contact" class="service-link">자세히 보기 →</a>
+          <a href="land-transport.html" class="service-link">자세히 보기 →</a>
         </div>
         <div class="service-card">
           <div class="service-icon sea"></div>
           <h3>해상운송</h3>
           <p>국내외 해상 화물 운송 서비스. FCL/LCL 구분 없이 최적의 해상 운송 경로와 비용을 제안드립니다.</p>
-          <a href="#contact" class="service-link">자세히 보기 →</a>
+          <a href="sea-transport.html" class="service-link">자세히 보기 →</a>
         </div>
         <div class="service-card">
           <div class="service-icon air"></div>
           <h3>항공운송</h3>
           <p>긴급화물, 고가화물에 최적화된 항공 물류 서비스. 주요 글로벌 항공사와의 파트너십으로 최적가를 제공합니다.</p>
-          <a href="#contact" class="service-link">자세히 보기 →</a>
+          <a href="air-transport.html" class="service-link">자세히 보기 →</a>
         </div>
         <div class="service-card">
           <div class="service-icon customs"></div>
           <h3>통관/포워딩</h3>
           <p>수출입 통관 및 국제 포워딩 서비스. 복잡한 통관 절차를 원스톱으로 처리하여 물류 효율을 높입니다.</p>
-          <a href="#contact" class="service-link">자세히 보기 →</a>
+          <a href="customs.html" class="service-link">자세히 보기 →</a>
         </div>
         <div class="service-card">
           <div class="service-icon solution"></div>
           <h3>물류 솔루션</h3>
           <p>기업 맞춤형 3PL/4PL 아웃소싱 서비스. 물류 전반을 통합 관리하여 핵심 사업에 집중하실 수 있도록 지원합니다.</p>
-          <a href="#contact" class="service-link">자세히 보기 →</a>
+          <a href="logistics-solutions.html" class="service-link">자세히 보기 →</a>
         </div>
       </div>
     </div>
@@ -557,29 +572,27 @@
           <div class="footer-links">
             <h4>회사소개</h4>
             <ul>
-              <li><a href="#">경영이념</a></li>
-              <li><a href="#">연혁</a></li>
-              <li><a href="#">인증현황</a></li>
-              <li><a href="#">오시는 길</a></li>
+              <li><a href="philosophy.html">경영이념</a></li>
+              <li><a href="history.html">연혁</a></li>
+              <li><a href="directions.html">오시는길</a></li>
             </ul>
           </div>
           <div class="footer-links">
             <h4>사업영역</h4>
             <ul>
-              <li><a href="#">육상운송</a></li>
-              <li><a href="#">해상운송</a></li>
-              <li><a href="#">항공운송</a></li>
-              <li><a href="#">보관/창고</a></li>
-              <li><a href="#">통관/포워딩</a></li>
+              <li><a href="sea-transport.html">해상운송</a></li>
+              <li><a href="land-transport.html">육상운송</a></li>
+              <li><a href="air-transport.html">항공운송</a></li>
+              <li><a href="customs.html">통관 및 포워딩</a></li>
+              <li><a href="logistics-solutions.html">물류 솔루션</a></li>
             </ul>
           </div>
           <div class="footer-links">
             <h4>고객센터</h4>
             <ul>
-              <li><a href="#">공지사항</a></li>
-              <li><a href="#">자주 묻는 질문</a></li>
-              <li><a href="#">화물 추적</a></li>
-              <li><a href="#">온라인 견적</a></li>
+              <li><a href="notice.html">공지사항</a></li>
+              <li><a href="faq.html">자주 묻는 질문</a></li>
+              <li><a href="#contact">견적 문의</a></li>
             </ul>
           </div>
           <div class="footer-contact-info">
