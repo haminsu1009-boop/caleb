@@ -269,8 +269,20 @@
           <div class="q-panes">
             <div class="q-pane active" id="qt-fcl">
               <div class="q-fields">
-                <div class="q-field"><label>출발지</label><input type="text" id="fcl-from" placeholder="출발 항구 (예: 부산항)" /></div>
-                <div class="q-field"><label>도착지</label><input type="text" id="fcl-to" placeholder="도착 항구 (예: 상하이항)" /></div>
+                <div class="q-field">
+                  <label>출발지</label>
+                  <div class="port-select-wrap">
+                    <input type="text" id="fcl-from" placeholder="항구 선택 또는 직접 입력" readonly class="port-input" onclick="openPortPicker('fcl-from','sea')" />
+                    <button type="button" class="port-pick-btn" onclick="openPortPicker('fcl-from','sea')">목록 ▾</button>
+                  </div>
+                </div>
+                <div class="q-field">
+                  <label>도착지</label>
+                  <div class="port-select-wrap">
+                    <input type="text" id="fcl-to" placeholder="항구 선택 또는 직접 입력" readonly class="port-input" onclick="openPortPicker('fcl-to','sea')" />
+                    <button type="button" class="port-pick-btn" onclick="openPortPicker('fcl-to','sea')">목록 ▾</button>
+                  </div>
+                </div>
                 <div class="q-field"><label>컨테이너</label>
                   <select id="fcl-container"><option value="">종류 선택</option><option>20GP</option><option>40GP</option><option>40HC</option><option>45HC</option></select>
                 </div>
@@ -279,24 +291,60 @@
             </div>
             <div class="q-pane" id="qt-lcl">
               <div class="q-fields">
-                <div class="q-field"><label>출발지</label><input type="text" id="lcl-from" placeholder="출발 항구" /></div>
-                <div class="q-field"><label>도착지</label><input type="text" id="lcl-to" placeholder="도착 항구" /></div>
+                <div class="q-field">
+                  <label>출발지</label>
+                  <div class="port-select-wrap">
+                    <input type="text" id="lcl-from" placeholder="항구 선택 또는 직접 입력" readonly class="port-input" onclick="openPortPicker('lcl-from','sea')" />
+                    <button type="button" class="port-pick-btn" onclick="openPortPicker('lcl-from','sea')">목록 ▾</button>
+                  </div>
+                </div>
+                <div class="q-field">
+                  <label>도착지</label>
+                  <div class="port-select-wrap">
+                    <input type="text" id="lcl-to" placeholder="항구 선택 또는 직접 입력" readonly class="port-input" onclick="openPortPicker('lcl-to','sea')" />
+                    <button type="button" class="port-pick-btn" onclick="openPortPicker('lcl-to','sea')">목록 ▾</button>
+                  </div>
+                </div>
                 <div class="q-field"><label>화물 중량</label><input type="text" id="lcl-weight" placeholder="예: 500 kg / 2 CBM" /></div>
               </div>
               <button type="button" class="q-submit" onclick="fillInquiryForm('lcl')">견적 문의하기 →</button>
             </div>
             <div class="q-pane" id="qt-air">
               <div class="q-fields">
-                <div class="q-field"><label>출발 공항</label><input type="text" id="air-from" placeholder="예: 인천 (ICN)" /></div>
-                <div class="q-field"><label>도착 공항</label><input type="text" id="air-to" placeholder="예: 홍콩 (HKG)" /></div>
+                <div class="q-field">
+                  <label>출발 공항</label>
+                  <div class="port-select-wrap">
+                    <input type="text" id="air-from" placeholder="공항 선택 또는 직접 입력" readonly class="port-input" onclick="openPortPicker('air-from','air')" />
+                    <button type="button" class="port-pick-btn" onclick="openPortPicker('air-from','air')">목록 ▾</button>
+                  </div>
+                </div>
+                <div class="q-field">
+                  <label>도착 공항</label>
+                  <div class="port-select-wrap">
+                    <input type="text" id="air-to" placeholder="공항 선택 또는 직접 입력" readonly class="port-input" onclick="openPortPicker('air-to','air')" />
+                    <button type="button" class="port-pick-btn" onclick="openPortPicker('air-to','air')">목록 ▾</button>
+                  </div>
+                </div>
                 <div class="q-field"><label>화물 중량</label><input type="text" id="air-weight" placeholder="예: 100 kg" /></div>
               </div>
               <button type="button" class="q-submit" onclick="fillInquiryForm('air')">견적 문의하기 →</button>
             </div>
             <div class="q-pane" id="qt-land">
               <div class="q-fields">
-                <div class="q-field"><label>출발지</label><input type="text" id="land-from" placeholder="예: 서울 마포구" /></div>
-                <div class="q-field"><label>도착지</label><input type="text" id="land-to" placeholder="예: 부산광역시" /></div>
+                <div class="q-field">
+                  <label>출발지</label>
+                  <div class="port-select-wrap">
+                    <input type="text" id="land-from" placeholder="지역 선택 또는 직접 입력" readonly class="port-input" onclick="openPortPicker('land-from','land')" />
+                    <button type="button" class="port-pick-btn" onclick="openPortPicker('land-from','land')">목록 ▾</button>
+                  </div>
+                </div>
+                <div class="q-field">
+                  <label>도착지</label>
+                  <div class="port-select-wrap">
+                    <input type="text" id="land-to" placeholder="지역 선택 또는 직접 입력" readonly class="port-input" onclick="openPortPicker('land-to','land')" />
+                    <button type="button" class="port-pick-btn" onclick="openPortPicker('land-to','land')">목록 ▾</button>
+                  </div>
+                </div>
                 <div class="q-field"><label>화물 종류</label>
                   <select id="land-cargo"><option value="">종류 선택</option><option>일반 화물</option><option>대형 화물</option><option>냉동/냉장</option></select>
                 </div>
@@ -308,6 +356,19 @@
       </div>
     </div>
   </section>
+
+  <!-- PORT PICKER MODAL -->
+  <div class="port-picker-overlay" id="portPickerOverlay" onclick="closePortPicker()"></div>
+  <div class="port-picker-sheet" id="portPickerSheet">
+    <div class="port-picker-header">
+      <div>
+        <span class="port-picker-title" id="portPickerTitle">주요 도시 목록</span>
+        <a href="#" class="port-picker-more" onclick="return false;">더 많은 노선 조회 ›</a>
+      </div>
+      <button type="button" class="port-picker-close" onclick="closePortPicker()">✕</button>
+    </div>
+    <div class="port-picker-body" id="portPickerBody"></div>
+  </div>
 
   <!-- CONTACT -->
   <section id="contact" class="contact">
@@ -506,6 +567,85 @@
         document.getElementById(target).classList.add('active');
       });
     });
+
+    // ── PORT PICKER ──────────────────────────────────────────
+    var SEA_PORTS = [
+      { region: '한국', ports: ['부산항','인천항','광양항','평택항','울산항'] },
+      { region: '중국', ports: ['상하이','칭다오','닝보','텐진','다롄','광저우','선전','렌윈강','난징','옌타이','샤먼'] },
+      { region: '일본', ports: ['고베','나고야','도쿄','오사카','요코하마'] },
+      { region: '동남아', ports: ['싱가포르','방콕','호치민','자카르타','포트클랑','레마사','마닐라','하이퐁'] },
+      { region: '유럽', ports: ['함부르크','로테르담','앤트워프','바르셀로나','제노바','코페르','그단스크','펠릭스토우'] },
+      { region: '미주', ports: ['LA(롱비치)','뉴욕','시애틀','밴쿠버','사바나','휴스턴'] },
+      { region: '서남아', ports: ['뭄바이','나바세바','피파브','콜롬보','첸나이'] },
+      { region: '중동', ports: ['두바이(제벨알리)','젯다','다만','아부다비'] },
+      { region: '호주/오세아니아', ports: ['시드니','멜버른','브리즈번'] }
+    ];
+    var AIR_PORTS = [
+      { region: '한국', ports: ['인천(ICN)','김포(GMP)','김해(PUS)'] },
+      { region: '중국', ports: ['베이징(PEK)','상하이(PVG)','광저우(CAN)','칭다오(TAO)','선전(SZX)','청두(CTU)'] },
+      { region: '일본', ports: ['도쿄(NRT)','오사카(KIX)','나고야(NGO)','후쿠오카(FUK)'] },
+      { region: '홍콩/대만', ports: ['홍콩(HKG)','타이베이(TPE)'] },
+      { region: '동남아', ports: ['방콕(BKK)','싱가포르(SIN)','호치민(SGN)','쿠알라룸푸르(KUL)','마닐라(MNL)','자카르타(CGK)'] },
+      { region: '유럽', ports: ['프랑크푸르트(FRA)','암스테르담(AMS)','런던(LHR)','파리(CDG)','밀라노(MXP)'] },
+      { region: '미주', ports: ['LA(LAX)','뉴욕(JFK)','시카고(ORD)','달라스(DFW)','시애틀(SEA)'] },
+      { region: '중동', ports: ['두바이(DXB)','도하(DOH)','아부다비(AUH)'] },
+      { region: '호주', ports: ['시드니(SYD)','멜버른(MEL)'] }
+    ];
+    var LAND_AREAS = [
+      { region: '수도권', ports: ['서울','인천','수원','성남','안산','화성','평택','의정부','고양','파주'] },
+      { region: '충청권', ports: ['대전','천안','청주','아산','세종'] },
+      { region: '경상권', ports: ['부산','대구','울산','창원','포항','구미','김해'] },
+      { region: '전라권', ports: ['광주','전주','군산','여수','순천','목포'] },
+      { region: '강원/제주', ports: ['강릉','춘천','원주','제주'] }
+    ];
+
+    var _pickerTargetId = null;
+
+    function openPortPicker(inputId, type) {
+      _pickerTargetId = inputId;
+      var data = type === 'air' ? AIR_PORTS : type === 'land' ? LAND_AREAS : SEA_PORTS;
+      var title = type === 'air' ? '도착지/출발지 주요 공항 목록' : type === 'land' ? '도착지/출발지 주요 지역 목록' : '도착지/출발지 주요 항구 목록';
+      document.getElementById('portPickerTitle').textContent = title;
+
+      var body = document.getElementById('portPickerBody');
+      body.innerHTML = '';
+      data.forEach(function(group) {
+        var regionEl = document.createElement('div');
+        regionEl.className = 'pp-region';
+        regionEl.textContent = group.region;
+        body.appendChild(regionEl);
+        var row = document.createElement('div');
+        row.className = 'pp-ports';
+        group.ports.forEach(function(port) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'pp-port';
+          btn.textContent = port;
+          btn.onclick = function() { selectPort(port); };
+          row.appendChild(btn);
+        });
+        body.appendChild(row);
+      });
+
+      document.getElementById('portPickerOverlay').classList.add('active');
+      document.getElementById('portPickerSheet').classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function selectPort(value) {
+      if (_pickerTargetId) {
+        var el = document.getElementById(_pickerTargetId);
+        if (el) { el.value = value; el.readOnly = false; }
+      }
+      closePortPicker();
+    }
+
+    function closePortPicker() {
+      document.getElementById('portPickerOverlay').classList.remove('active');
+      document.getElementById('portPickerSheet').classList.remove('active');
+      document.body.style.overflow = '';
+      _pickerTargetId = null;
+    }
 
     // Auto-populate inquiry form from quote section
     function fillInquiryForm(type) {
