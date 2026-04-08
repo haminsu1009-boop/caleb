@@ -497,6 +497,102 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
    SERVICES
    ============================================================ */
 .services { padding: 100px 0; background: var(--bg-light); }
+
+/* Services Overview (homepage - screenshot 2 style) */
+.services-overview { padding: 100px 0; background: #fafbff; }
+.svc-overview-inner {
+  display: grid; grid-template-columns: 1fr 1.6fr; gap: 64px; align-items: center;
+}
+.svc-overview-desc { color: var(--text-light); line-height: 1.8; margin-top: 12px; font-size: 1.02rem; }
+.svc-overview-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+}
+.svc-ov-card {
+  background: var(--white); border-radius: 16px; padding: 28px 24px;
+  box-shadow: 0 2px 16px rgba(53,104,212,0.07);
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: block; color: var(--text);
+  border: 1px solid var(--border);
+}
+.svc-ov-card:hover { transform: translateY(-4px); box-shadow: 0 8px 32px rgba(53,104,212,0.13); }
+.svc-ov-icon {
+  width: 64px; height: 64px; background: var(--bg);
+  border-radius: 14px; display: flex; align-items: center; justify-content: center;
+  margin-bottom: 16px;
+}
+.svc-ov-icon img { width: 36px; height: 36px; object-fit: contain; }
+.svc-ov-card h3 { font-size: 1rem; font-weight: 700; color: var(--dark); margin-bottom: 8px; }
+.svc-ov-card p { font-size: 0.85rem; color: var(--text-light); line-height: 1.6; }
+
+/* Services Detail Page (services.html - screenshot 3 style) */
+.svc-detail-list { display: flex; flex-direction: column; gap: 0; margin-bottom: 80px; }
+.svc-detail-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center;
+  padding: 56px 0; border-bottom: 1px solid var(--border);
+}
+.svc-detail-row.reverse { direction: rtl; }
+.svc-detail-row.reverse > * { direction: ltr; }
+.svc-detail-img-box {
+  border-radius: 16px; aspect-ratio: 4/3; display: flex; align-items: center;
+  justify-content: center;
+}
+.svc-detail-svg { width: 100px; height: 100px; opacity: 0.9; filter: brightness(0) invert(1); }
+.sea-fcl-bg { background: linear-gradient(135deg, #1565c0, #3568d4); }
+.lcl-bg     { background: linear-gradient(135deg, #00695c, #26a69a); }
+.air-bg     { background: linear-gradient(135deg, #4527a0, #7c4dff); }
+.land-bg    { background: linear-gradient(135deg, #e65100, #ff8f00); }
+.svc-detail-tag {
+  display: inline-block; padding: 3px 10px; background: var(--accent);
+  color: var(--white); border-radius: 3px; font-size: 0.75rem; font-weight: 700;
+  letter-spacing: 0.05em; margin-bottom: 12px;
+}
+.svc-detail-content h3 { font-size: 1.6rem; font-weight: 800; color: var(--dark); margin-bottom: 14px; }
+.svc-detail-content p { color: var(--text-light); line-height: 1.8; margin-bottom: 16px; }
+.svc-detail-bullets { list-style: none; margin-bottom: 24px; display: flex; flex-direction: column; gap: 8px; }
+.svc-detail-bullets li {
+  padding-left: 20px; position: relative; color: var(--text); font-size: 0.92rem; line-height: 1.6;
+}
+.svc-detail-bullets li::before {
+  content: '·'; position: absolute; left: 6px; color: var(--accent); font-weight: 700; font-size: 1.2rem;
+}
+.svc-detail-link {
+  display: inline-block; color: var(--primary); font-weight: 700; font-size: 0.92rem;
+  border-bottom: 2px solid var(--primary); padding-bottom: 2px;
+  transition: color 0.2s, border-color 0.2s;
+}
+.svc-detail-link:hover { color: var(--accent); border-color: var(--accent); }
+
+/* Addon services grid */
+.addon-services { margin-bottom: 60px; }
+.addon-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+}
+.addon-card {
+  background: var(--white); border: 1px solid var(--border); border-radius: 12px;
+  padding: 24px 20px; text-align: center; transition: box-shadow 0.2s, transform 0.2s;
+}
+.addon-card:hover { box-shadow: var(--shadow); transform: translateY(-3px); }
+.addon-icon {
+  width: 56px; height: 56px; margin: 0 auto 14px; display: flex; align-items: center; justify-content: center;
+  background: var(--bg); border-radius: 12px;
+}
+.addon-icon img, .addon-icon svg { width: 32px; height: 32px; }
+.addon-card h4 { font-size: 0.9rem; font-weight: 700; color: var(--dark); margin-bottom: 8px; }
+.addon-card p { font-size: 0.8rem; color: var(--text-light); line-height: 1.6; margin-bottom: 12px; }
+.addon-card a { font-size: 0.82rem; color: var(--primary); font-weight: 700; }
+.addon-card a:hover { color: var(--accent); }
+
+/* Responsive overrides for services pages */
+@media (max-width: 900px) {
+  .svc-overview-inner { grid-template-columns: 1fr; gap: 36px; }
+  .svc-detail-row, .svc-detail-row.reverse { grid-template-columns: 1fr; direction: ltr; gap: 24px; }
+  .addon-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .svc-overview-grid { grid-template-columns: 1fr; }
+  .addon-grid { grid-template-columns: 1fr 1fr; }
+}
+
 .services-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
 .service-card {
   background: var(--white); border-radius: var(--radius); padding: 36px 28px;
@@ -922,6 +1018,17 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   white-space: nowrap;
 }
 .port-direct-confirm:hover { background: var(--dark); }
+
+/* Port picker hint & double-tap highlight */
+.port-picker-hint {
+  padding: 8px 16px 10px; font-size: 0.8rem; color: var(--text-light);
+  background: #fffbf0; border-bottom: 1px solid #f0e8c8;
+}
+.port-picker-hint strong { color: var(--primary); }
+.pp-port-selected {
+  background: var(--primary) !important; color: var(--white) !important;
+  border-color: var(--primary) !important; font-weight: 700 !important;
+}
 
 /* Map app links (directions page) */
 .office-map-wrap { margin-bottom: 24px; }
