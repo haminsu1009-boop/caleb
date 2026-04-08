@@ -70,6 +70,7 @@
       </nav>
       <div class="header-right">
         <a href="customer-service.html" class="btn-consult">상담 문의</a>
+        <a href="#inquiry-section" class="btn-estimate">견적 문의</a>
       </div>
       <button class="hamburger" id="hamburger" aria-label="메뉴 열기">
         <span></span><span></span><span></span>
@@ -311,7 +312,7 @@
                   </select>
                 </div>
               </div>
-              <button type="button" class="q-submit" onclick="fillInquiryForm('fcl')">견적 문의하기 →</button>
+              <button type="button" class="q-submit" onclick="event.preventDefault();fillInquiryForm('fcl')">견적 문의하기 →</button>
             </div>
             <div class="q-pane" id="qt-lcl">
               <div class="q-fields">
@@ -331,7 +332,7 @@
                 </div>
                 <div class="q-field"><label>화물 중량</label><input type="text" id="lcl-weight" placeholder="예: 500 kg / 2 CBM" /></div>
               </div>
-              <button type="button" class="q-submit" onclick="fillInquiryForm('lcl')">견적 문의하기 →</button>
+              <button type="button" class="q-submit" onclick="event.preventDefault();fillInquiryForm('lcl')">견적 문의하기 →</button>
             </div>
             <div class="q-pane" id="qt-air">
               <div class="q-fields">
@@ -351,7 +352,7 @@
                 </div>
                 <div class="q-field"><label>화물 중량</label><input type="text" id="air-weight" placeholder="예: 100 kg" /></div>
               </div>
-              <button type="button" class="q-submit" onclick="fillInquiryForm('air')">견적 문의하기 →</button>
+              <button type="button" class="q-submit" onclick="event.preventDefault();fillInquiryForm('air')">견적 문의하기 →</button>
             </div>
             <div class="q-pane" id="qt-land">
               <div class="q-fields">
@@ -381,7 +382,7 @@
                   </select>
                 </div>
               </div>
-              <button type="button" class="q-submit" onclick="fillInquiryForm('land')">견적 문의하기 →</button>
+              <button type="button" class="q-submit" onclick="event.preventDefault();fillInquiryForm('land')">견적 문의하기 →</button>
             </div>
           </div>
         </div>
@@ -544,7 +545,8 @@
           <div class="footer-links">
             <h4>회사소개</h4>
             <ul>
-              <li><a href="philosophy.html">경영이념</a></li>
+                          <li><a href="ceo.html">대표 인사말</a></li>
+            <li><a href="philosophy.html">경영이념</a></li>
               <li><a href="history.html">연혁</a></li>
               <li><a href="directions.html">오시는길</a></li>
             </ul>
@@ -638,6 +640,7 @@
     ];
 
     var _pickerTargetId = null;
+    var _savedPickerScroll = 0;
 
     function openPortPicker(inputId, type) {
       _pickerTargetId = inputId;
@@ -665,13 +668,11 @@
         body.appendChild(row);
       });
 
-      var scrollY = window.scrollY;
+      _savedPickerScroll = window.scrollY;
       document.getElementById('portPickerOverlay').classList.add('active');
       document.getElementById('portPickerSheet').classList.add('active');
+      document.documentElement.style.overflow = 'hidden';
       document.body.style.overflow = 'hidden';
-      document.body.style.position = 'fixed';
-      document.body.style.top = '-' + scrollY + 'px';
-      document.body.style.width = '100%';
       document.getElementById('portDirectInput').value = '';
     }
 
@@ -713,12 +714,9 @@
     function closePortPicker() {
       document.getElementById('portPickerOverlay').classList.remove('active');
       document.getElementById('portPickerSheet').classList.remove('active');
-      var scrollY = parseInt(document.body.style.top || '0') * -1;
+      document.documentElement.style.overflow = '';
       document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
-      window.scrollTo(0, scrollY);
+      window.scrollTo(0, _savedPickerScroll);
       _pickerTargetId = null;
       document.getElementById('portDirectInput').value = '';
     }
