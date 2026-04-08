@@ -321,6 +321,12 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   font-size: 0.88rem; font-weight: 600; transition: var(--transition);
 }
 .btn-consult:hover { background: #aa1f1f; }
+.btn-estimate {
+  display: inline-block; border: 1.5px solid rgba(255,255,255,0.55); color: var(--white);
+  background: transparent; padding: 8px 20px; border-radius: 4px;
+  font-size: 0.88rem; font-weight: 600; transition: var(--transition); margin-left: 8px;
+}
+.btn-estimate:hover { background: rgba(255,255,255,0.12); border-color: var(--white); }
 .hamburger { display: none; flex-direction: column; gap: 5px; padding: 4px; }
 .hamburger span { display: block; width: 26px; height: 2.5px; background: var(--white); border-radius: 2px; transition: var(--transition); }
 
