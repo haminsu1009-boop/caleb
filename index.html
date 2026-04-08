@@ -190,44 +190,45 @@
     </div>
   </section>
 
-  <!-- SERVICES -->
-  <section id="services" class="services">
+  <!-- SERVICES OVERVIEW -->
+  <section id="services" class="services-overview">
     <div class="container">
-      <div class="section-header">
-        <p class="section-label">OUR SERVICES</p>
-        <h2 class="section-title">다양한 물류 서비스를<br/>제공합니다</h2>
-        <p class="section-desc">태인종합물류는 고객의 모든 물류 요구를 충족시키는 통합 솔루션을 제공합니다.</p>
-      </div>
-      <div class="services-grid">
-        <div class="service-card">
-          <div class="service-icon land"></div>
-          <h3>육상운송</h3>
-          <p>전국 네트워크를 활용한 당일·익일 배송 서비스. 대형화물부터 소형화물까지 안전하고 신속하게 운송합니다.</p>
-          <a href="land-transport.html" class="service-link">자세히 보기 →</a>
+      <div class="svc-overview-inner">
+        <div class="svc-overview-left">
+          <p class="section-label">OUR SERVICES</p>
+          <h2 class="section-title">수출입 기업을 위한<br/>올인원 물류 솔루션</h2>
+          <p class="svc-overview-desc">복잡한 국제 운송, 태인종합물류로<br/>하나로 간편하게 해결하세요</p>
+          <a href="services.html" class="btn-primary" style="margin-top:24px;display:inline-block;">자세히 보기 ↗</a>
         </div>
-        <div class="service-card">
-          <div class="service-icon sea"></div>
-          <h3>해상운송</h3>
-          <p>국내외 해상 화물 운송 서비스. FCL/LCL 구분 없이 최적의 해상 운송 경로와 비용을 제안드립니다.</p>
-          <a href="sea-transport.html" class="service-link">자세히 보기 →</a>
-        </div>
-        <div class="service-card">
-          <div class="service-icon air"></div>
-          <h3>항공운송</h3>
-          <p>긴급화물, 고가화물에 최적화된 항공 물류 서비스. 주요 글로벌 항공사와의 파트너십으로 최적가를 제공합니다.</p>
-          <a href="air-transport.html" class="service-link">자세히 보기 →</a>
-        </div>
-        <div class="service-card">
-          <div class="service-icon customs"></div>
-          <h3>통관/포워딩</h3>
-          <p>수출입 통관 및 국제 포워딩 서비스. 복잡한 통관 절차를 원스톱으로 처리하여 물류 효율을 높입니다.</p>
-          <a href="customs.html" class="service-link">자세히 보기 →</a>
-        </div>
-        <div class="service-card">
-          <div class="service-icon solution"></div>
-          <h3>물류 솔루션</h3>
-          <p>기업 맞춤형 3PL/4PL 아웃소싱 서비스. 물류 전반을 통합 관리하여 핵심 사업에 집중하실 수 있도록 지원합니다.</p>
-          <a href="logistics-solutions.html" class="service-link">자세히 보기 →</a>
+        <div class="svc-overview-grid">
+          <a href="sea-transport.html" class="svc-ov-card">
+            <div class="svc-ov-icon">
+              <img src="assets/icon-ship.svg" alt="해상운송" />
+            </div>
+            <h3>다양한 운송 수단</h3>
+            <p>해운 FCL/LCL, 항공, 철도를 통해 전 세계 연결</p>
+          </a>
+          <a href="customs.html" class="svc-ov-card">
+            <div class="svc-ov-icon">
+              <img src="assets/icon-customs.svg" alt="통관" />
+            </div>
+            <h3>다양한 화물 타입</h3>
+            <p>일반 화물부터 위험물 및 냉동화물까지 안전한 운송</p>
+          </a>
+          <a href="land-transport.html" class="svc-ov-card">
+            <div class="svc-ov-icon">
+              <img src="assets/icon-truck.svg" alt="육상운송" />
+            </div>
+            <h3>출도착지 내륙 운송</h3>
+            <p>출발지 픽업 및 최종 도착지까지의 운송 서비스 제공</p>
+          </a>
+          <a href="logistics-solutions.html" class="svc-ov-card">
+            <div class="svc-ov-icon">
+              <img src="assets/icon-warehouse.svg" alt="물류솔루션" />
+            </div>
+            <h3>부가 서비스</h3>
+            <p>통관, 보험, 포장 등 국제 운송에 필요한 모든 서비스</p>
+          </a>
         </div>
       </div>
     </div>
@@ -398,8 +399,11 @@
       <button type="button" class="port-picker-close" onclick="closePortPicker()">✕</button>
     </div>
     <div class="port-picker-direct">
-      <input type="text" id="portDirectInput" class="port-direct-input" placeholder="직접 입력하려면 여기에 타이핑 후 확인 →" />
+      <input type="text" id="portDirectInput" class="port-direct-input" placeholder="직접 입력 후 확인 버튼 →" />
       <button type="button" class="port-direct-confirm" onclick="confirmDirectInput()">확인</button>
+    </div>
+    <div class="port-picker-hint">
+      💡 아래 목록에서 <strong>한 번 탭</strong>하면 강조, <strong>두 번 탭(더블탭)</strong>하면 선택됩니다. 또는 위 입력란에 직접 타이핑하세요.
     </div>
     <div class="port-picker-body" id="portPickerBody"></div>
   </div>
@@ -655,7 +659,7 @@
           btn.type = 'button';
           btn.className = 'pp-port';
           btn.textContent = port;
-          btn.onclick = function() { selectPort(port); };
+          btn.onclick = function() { selectPort(port, this); };
           row.appendChild(btn);
         });
         body.appendChild(row);
@@ -671,12 +675,30 @@
       document.getElementById('portDirectInput').value = '';
     }
 
-    function selectPort(value) {
-      if (_pickerTargetId) {
-        var el = document.getElementById(_pickerTargetId);
-        if (el) { el.value = value; el.readOnly = true; }
+    var _lastTappedPort = null;
+    var _lastTapTime = 0;
+
+    function selectPort(value, btnEl) {
+      var now = Date.now();
+      var isDoubleTap = (_lastTappedPort === value && now - _lastTapTime < 400);
+
+      if (isDoubleTap) {
+        // Double tap: confirm selection
+        if (_pickerTargetId) {
+          var el = document.getElementById(_pickerTargetId);
+          if (el) { el.value = value; el.readOnly = true; }
+        }
+        closePortPicker();
+        _lastTappedPort = null;
+      } else {
+        // Single tap: highlight only
+        document.querySelectorAll('.pp-port').forEach(function(b) { b.classList.remove('pp-port-selected'); });
+        if (btnEl) btnEl.classList.add('pp-port-selected');
+        _lastTappedPort = value;
+        _lastTapTime = now;
+        // Also update direct input to show selected value
+        document.getElementById('portDirectInput').value = value;
       }
-      closePortPicker();
     }
 
     function confirmDirectInput() {
