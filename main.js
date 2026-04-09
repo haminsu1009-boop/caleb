@@ -36,16 +36,19 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   /* ── HERO SLIDER ── */
-  const slides  = document.querySelectorAll('.slide');
-  const dots    = document.querySelectorAll('.dot');
-  let current   = 0;
+  const slides     = document.querySelectorAll('.slide');
+  const slideTexts = document.querySelectorAll('.slide-text'); // text panels (hero redesign)
+  const dots       = document.querySelectorAll('.dot');
+  let current      = 0;
   let autoPlay;
 
   const goTo = (idx) => {
     slides[current].classList.remove('active');
+    if (slideTexts.length) slideTexts[current].classList.remove('active');
     dots[current].classList.remove('active');
     current = (idx + slides.length) % slides.length;
     slides[current].classList.add('active');
+    if (slideTexts.length) slideTexts[current].classList.add('active');
     dots[current].classList.add('active');
   };
 
