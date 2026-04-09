@@ -373,21 +373,26 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   position: relative; height: 100vh; min-height: 680px;
   display: flex; align-items: center; overflow: hidden;
 }
-.hero-slides { position: absolute; inset: 0; }
+.hero-slides {
+  position: absolute; inset: 0;
+  background-image: url('assets/IMG_8162.png');
+  background-size: cover;
+  background-position: center center;
+}
 .slide {
   position: absolute; inset: 0;
   opacity: 0; transition: opacity 1s ease;
 }
 .slide.active { opacity: 1; z-index: 1; }
-.slide-1 { background: linear-gradient(135deg, #0d1f3c 0%, #1a3c6e 50%, #0d2a5e 100%); }
-.slide-2 { background: linear-gradient(135deg, #0a2040 0%, #1e4f8c 50%, #0d3568 100%); }
-.slide-3 { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
+.slide-1 { background: linear-gradient(100deg, rgba(5,20,50,0.72) 0%, rgba(10,30,70,0.60) 60%, rgba(0,0,0,0.40) 100%); }
+.slide-2 { background: linear-gradient(100deg, rgba(0,15,40,0.75) 0%, rgba(5,25,60,0.62) 60%, rgba(0,0,0,0.40) 100%); }
+.slide-3 { background: linear-gradient(100deg, rgba(10,5,35,0.75) 0%, rgba(15,30,70,0.62) 60%, rgba(0,0,0,0.40) 100%); }
 
 /* Decorative pattern overlay */
 .slide::before {
   content: ''; position: absolute; inset: 0; z-index: 0;
   background-image: repeating-linear-gradient(
-    45deg, rgba(255,255,255,0.02) 0, rgba(255,255,255,0.02) 1px,
+    45deg, rgba(255,255,255,0.015) 0, rgba(255,255,255,0.015) 1px,
     transparent 0, transparent 50%
   );
   background-size: 20px 20px;
@@ -396,7 +401,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .slide::after {
   content: ''; position: absolute; right: -50px; top: 50%; transform: translateY(-50%);
   width: 400px; height: 400px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(204,43,43,0.12) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(204,43,43,0.10) 0%, transparent 70%);
   z-index: 0;
 }
 
@@ -512,6 +517,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
    ============================================================ */
 .about { padding: 100px 0; background: var(--white); }
 .about-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
+.about-inner.about-text-only { grid-template-columns: 1fr; max-width: 760px; margin: 0 auto; }
 
 .about-img { position: relative; }
 .about-photo {
