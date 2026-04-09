@@ -801,6 +801,18 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   background: var(--bg); border-radius: var(--radius);
   padding: 28px 24px; position: sticky; top: 100px;
 }
+.ceo-profile-card {
+  text-align: center; padding: 24px 16px 20px;
+  background: var(--primary); border-radius: 10px; margin-bottom: 4px;
+}
+.ceo-avatar {
+  width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 14px;
+  overflow: hidden; border: 3px solid rgba(255,255,255,0.25);
+}
+.ceo-avatar svg { display: block; }
+.ceo-prof-title { font-size: 0.72rem; color: rgba(255,255,255,0.65); letter-spacing: 0.08em; margin-bottom: 4px; }
+.ceo-prof-name  { font-size: 1.5rem; font-weight: 900; color: var(--white); letter-spacing: 0.05em; margin-bottom: 4px; }
+.ceo-prof-en    { font-size: 0.7rem; color: rgba(255,255,255,0.5); letter-spacing: 0.06em; }
 .ceo-info-card {
   padding: 14px 16px; background: var(--white); border-radius: 6px;
   border-left: 3px solid var(--border);
@@ -894,8 +906,60 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .ceo-signature strong { color: var(--white); font-size: 1.6rem; font-weight: 900; letter-spacing: 0.15em; }
 
 /* ============================================================
-   GLOBAL NETWORK GRID
+   GLOBAL NETWORK — Redesigned
    ============================================================ */
+.network-stats-banner {
+  background: var(--primary); border-radius: 16px;
+  padding: 40px; margin-bottom: 56px;
+  display: flex; justify-content: center; gap: 0; align-items: center;
+  flex-wrap: wrap;
+}
+.nsb-item {
+  text-align: center; padding: 0 48px; flex: 1; min-width: 120px;
+}
+.nsb-num {
+  display: block; font-size: 2.6rem; font-weight: 900; color: var(--white); line-height: 1.1;
+}
+.nsb-num sup { font-size: 1.4rem; color: var(--accent2); vertical-align: super; }
+.nsb-label { font-size: 0.82rem; color: rgba(255,255,255,0.65); letter-spacing: 0.05em; margin-top: 4px; display: block; }
+.nsb-div { width: 1px; background: rgba(255,255,255,0.18); align-self: stretch; min-height: 60px; flex-shrink: 0; }
+
+.network-regions {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+}
+.nr-card {
+  background: var(--white); border-radius: 16px; padding: 28px 24px;
+  border: 1px solid var(--border); border-top: 4px solid;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.nr-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+.nr-asia        { border-top-color: #1a3c9e; }
+.nr-europe      { border-top-color: #4a90d9; }
+.nr-america     { border-top-color: #c8292a; }
+.nr-middle-east { border-top-color: #e07b00; }
+.nr-africa      { border-top-color: #2e7d32; }
+.nr-pacific     { border-top-color: #00838f; }
+.nr-card-header {
+  display: flex; gap: 14px; align-items: center;
+  margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border);
+}
+.nr-icon { font-size: 2rem; line-height: 1; flex-shrink: 0; }
+.nr-card-header h3 { font-size: 1.1rem; font-weight: 800; color: var(--dark); margin-bottom: 4px; }
+.nr-count { font-size: 0.8rem; color: var(--text-light); font-weight: 600; }
+.nr-countries { font-size: 0.82rem; color: var(--text-light); line-height: 1.9; }
+
+@media (max-width: 900px) {
+  .network-regions { grid-template-columns: 1fr 1fr; }
+  .nsb-item { padding: 16px 24px; }
+}
+@media (max-width: 600px) {
+  .network-regions { grid-template-columns: 1fr; }
+  .network-stats-banner { gap: 8px; padding: 24px; }
+  .nsb-div { display: none; }
+  .nsb-num { font-size: 2rem; }
+}
+
+/* Legacy grid (keep for backward compat) */
 .global-network-grid {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
 }
@@ -935,7 +999,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
    ============================================================ */
 .quote-section {
   background: linear-gradient(135deg, var(--primary) 0%, var(--dark) 100%);
-  padding: 80px 0;
+  padding: 136px 0 80px; /* 72px header + 64px top gap */
 }
 .quote-wrap {
   display: grid; grid-template-columns: 1fr 1.6fr; gap: 64px; align-items: center;
