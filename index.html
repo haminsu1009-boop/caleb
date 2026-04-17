@@ -122,6 +122,7 @@
       <div class="slide slide-2"></div>
       <div class="slide slide-3"></div>
     </div>
+    <div class="hero-particles" id="heroParticles"></div>
     <div class="hero-grid container">
       <!-- Left: rotating slide texts -->
       <div class="hero-left">
@@ -196,26 +197,36 @@
                   <select id="fcl-container">
                     <option value="">종류 선택</option>
                     <optgroup label="일반 (GP/HC)">
-                      <option>20GP</option>
-                      <option>40GP</option>
-                      <option>40HC</option>
+                      <option>20GP</option><option>40GP</option><option>40HC</option>
                     </optgroup>
                     <optgroup label="플랫랙 (FR)">
-                      <option>20FR</option>
-                      <option>40FR</option>
+                      <option>20FR</option><option>40FR</option>
                     </optgroup>
                     <optgroup label="오픈탑 (OT)">
-                      <option>20OT</option>
-                      <option>40OT</option>
+                      <option>20OT</option><option>40OT</option>
                     </optgroup>
                     <optgroup label="냉동 (RF)">
-                      <option>20RF</option>
-                      <option>40RF</option>
+                      <option>20RF</option><option>40RF</option>
                     </optgroup>
                     <optgroup label="특수">
-                      <option>위험물 컨테이너</option>
-                      <option>기타 특수컨</option>
+                      <option>위험물 컨테이너</option><option>기타 특수컨</option>
                     </optgroup>
+                  </select>
+                </div>
+                <div class="q-field"><label>인코텀즈</label>
+                  <select id="fcl-incoterms">
+                    <option value="">선택 (선택사항)</option>
+                    <option value="EXW">EXW – Ex Works</option>
+                    <option value="FCA">FCA – Free Carrier</option>
+                    <option value="FAS">FAS – Free Alongside Ship</option>
+                    <option value="FOB">FOB – Free On Board</option>
+                    <option value="CFR">CFR – Cost &amp; Freight</option>
+                    <option value="CIF">CIF – Cost Insurance &amp; Freight</option>
+                    <option value="CPT">CPT – Carriage Paid To</option>
+                    <option value="CIP">CIP – Carriage &amp; Insurance Paid</option>
+                    <option value="DAP">DAP – Delivered At Place</option>
+                    <option value="DPU">DPU – Delivered At Place Unloaded</option>
+                    <option value="DDP">DDP – Delivered Duty Paid</option>
                   </select>
                 </div>
               </div>
@@ -238,6 +249,22 @@
                   </div>
                 </div>
                 <div class="q-field"><label>화물 중량</label><input type="text" id="lcl-weight" placeholder="예: 500 kg / 2 CBM" /></div>
+                <div class="q-field"><label>인코텀즈</label>
+                  <select id="lcl-incoterms">
+                    <option value="">선택 (선택사항)</option>
+                    <option value="EXW">EXW – Ex Works</option>
+                    <option value="FCA">FCA – Free Carrier</option>
+                    <option value="FAS">FAS – Free Alongside Ship</option>
+                    <option value="FOB">FOB – Free On Board</option>
+                    <option value="CFR">CFR – Cost &amp; Freight</option>
+                    <option value="CIF">CIF – Cost Insurance &amp; Freight</option>
+                    <option value="CPT">CPT – Carriage Paid To</option>
+                    <option value="CIP">CIP – Carriage &amp; Insurance Paid</option>
+                    <option value="DAP">DAP – Delivered At Place</option>
+                    <option value="DPU">DPU – Delivered At Place Unloaded</option>
+                    <option value="DDP">DDP – Delivered Duty Paid</option>
+                  </select>
+                </div>
               </div>
               <button type="button" class="q-submit" onclick="event.preventDefault();fillInquiryForm('lcl')">견적 문의하기 →</button>
             </div>
@@ -258,6 +285,18 @@
                   </div>
                 </div>
                 <div class="q-field"><label>화물 중량</label><input type="text" id="air-weight" placeholder="예: 100 kg" /></div>
+                <div class="q-field"><label>인코텀즈</label>
+                  <select id="air-incoterms">
+                    <option value="">선택 (선택사항)</option>
+                    <option value="EXW">EXW – Ex Works</option>
+                    <option value="FCA">FCA – Free Carrier</option>
+                    <option value="CPT">CPT – Carriage Paid To</option>
+                    <option value="CIP">CIP – Carriage &amp; Insurance Paid</option>
+                    <option value="DAP">DAP – Delivered At Place</option>
+                    <option value="DPU">DPU – Delivered At Place Unloaded</option>
+                    <option value="DDP">DDP – Delivered Duty Paid</option>
+                  </select>
+                </div>
               </div>
               <button type="button" class="q-submit" onclick="event.preventDefault();fillInquiryForm('air')">견적 문의하기 →</button>
             </div>
@@ -280,12 +319,21 @@
                 <div class="q-field"><label>화물 종류</label>
                   <select id="land-cargo">
                     <option value="">종류 선택</option>
-                    <option>일반 화물</option>
-                    <option>대형 화물</option>
-                    <option>냉동/냉장</option>
-                    <option>위험물</option>
-                    <option>특수화물</option>
-                    <option>기타</option>
+                    <option>일반 화물</option><option>대형 화물</option>
+                    <option>냉동/냉장</option><option>위험물</option>
+                    <option>특수화물</option><option>기타</option>
+                  </select>
+                </div>
+                <div class="q-field"><label>인코텀즈</label>
+                  <select id="land-incoterms">
+                    <option value="">선택 (선택사항)</option>
+                    <option value="EXW">EXW – Ex Works</option>
+                    <option value="FCA">FCA – Free Carrier</option>
+                    <option value="CPT">CPT – Carriage Paid To</option>
+                    <option value="CIP">CIP – Carriage &amp; Insurance Paid</option>
+                    <option value="DAP">DAP – Delivered At Place</option>
+                    <option value="DPU">DPU – Delivered At Place Unloaded</option>
+                    <option value="DDP">DDP – Delivered Duty Paid</option>
                   </select>
                 </div>
               </div>

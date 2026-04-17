@@ -4,6 +4,65 @@
 
 document.addEventListener('DOMContentLoaded', () => {
 
+  /* ── HERO PARTICLES ── */
+  const particleContainer = document.getElementById('heroParticles');
+  if (particleContainer) {
+    const rand = (min, max) => Math.random() * (max - min) + min;
+
+    // Floating dots
+    for (let i = 0; i < 22; i++) {
+      const dot = document.createElement('span');
+      dot.className = 'p-dot';
+      const size = rand(3, 9);
+      dot.style.cssText = `
+        width:${size}px; height:${size}px;
+        left:${rand(2,98)}%; top:${rand(5,90)}%;
+        animation-duration:${rand(4,9)}s;
+        animation-delay:${rand(0,6)}s;
+        opacity:${rand(0.25,0.65)};
+      `;
+      particleContainer.appendChild(dot);
+    }
+
+    // Pulsing rings
+    for (let i = 0; i < 8; i++) {
+      const ring = document.createElement('span');
+      ring.className = 'p-ring';
+      const size = rand(20, 60);
+      ring.style.cssText = `
+        width:${size}px; height:${size}px;
+        left:${rand(5,90)}%; top:${rand(10,85)}%;
+        animation-duration:${rand(3,7)}s;
+        animation-delay:${rand(0,5)}s;
+      `;
+      particleContainer.appendChild(ring);
+    }
+
+    // Logistics icon SVGs (ship, plane, truck)
+    const icons = [
+      `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="white" stroke-width="1.5"><path d="M4 34l4-12h32l4 12H4z"/><path d="M10 22V14h28v8"/><path d="M4 34c0 4 8 6 20 6s20-2 20-6"/><line x1="24" y1="14" x2="24" y2="22"/></svg>`,
+      `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="white" stroke-width="1.5"><path d="M36 38l-4-14 6-6a4 4 0 0 0-6-6l-14 7-6-3a2 2 0 0 0-2 .5L6 19l13 7-2 7-4 1v3l5-2 2 5 4-3 7-2 8 4 2-3a2 2 0 0 0 .4-2z"/></svg>`,
+      `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="white" stroke-width="1.5"><rect x="2" y="8" width="28" height="24" rx="2"/><path d="M30 16h8l6 8v8H30V16z"/><circle cx="11" cy="36" r="5"/><circle cx="37" cy="36" r="5"/></svg>`
+    ];
+    icons.forEach((svg, i) => {
+      const el = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      const wrapper = document.createElement('div');
+      wrapper.className = 'p-svg';
+      wrapper.innerHTML = svg;
+      const w = wrapper.firstChild;
+      w.style.cssText = `
+        position:absolute;
+        left:${[15, 55, 75][i]}%; top:${[20, 65, 35][i]}%;
+        animation:particleFloat ease-in-out infinite;
+        animation-duration:${rand(7,12)}s;
+        animation-delay:${i * 2}s;
+        opacity:0.15;
+        pointer-events:none;
+      `;
+      particleContainer.appendChild(w);
+    });
+  }
+
   /* ── HEADER: scroll effect ── */
   const header = document.getElementById('header');
   const onScroll = () => {

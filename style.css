@@ -369,30 +369,60 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 /* ============================================================
    HERO — 2-column layout (left: slide text, right: quote card)
    ============================================================ */
+
+/* Ken Burns keyframes */
+@keyframes kenBurns {
+  0%   { transform: scale(1.00) translate(0%,   0%); }
+  25%  { transform: scale(1.07) translate(-1.5%, 1%); }
+  50%  { transform: scale(1.10) translate(1.5%,  -1%); }
+  75%  { transform: scale(1.06) translate(-1%,  1.5%); }
+  100% { transform: scale(1.00) translate(0%,   0%); }
+}
+
+/* Floating particle keyframes */
+@keyframes particleFloat {
+  0%   { transform: translateY(0)   scale(1);   opacity: 0.7; }
+  50%  { transform: translateY(-18px) scale(1.1); opacity: 1;   }
+  100% { transform: translateY(0)   scale(1);   opacity: 0.7; }
+}
+@keyframes particlePulse {
+  0%, 100% { transform: scale(1);   opacity: 0.4; }
+  50%       { transform: scale(1.6); opacity: 0.9; }
+}
+@keyframes routeLine {
+  0%   { stroke-dashoffset: 400; opacity: 0; }
+  20%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { stroke-dashoffset: 0;   opacity: 0; }
+}
+
 .hero {
   position: relative; height: 100vh; min-height: 680px;
   display: flex; align-items: center; overflow: hidden;
 }
 .hero-slides {
-  position: absolute; inset: 0;
+  position: absolute;
+  inset: -6%;          /* allow Ken Burns movement without edge gaps */
   background-image: url('assets/IMG_8162.png');
   background-size: cover;
   background-position: center center;
+  animation: kenBurns 24s ease-in-out infinite;
+  will-change: transform;
 }
 .slide {
   position: absolute; inset: 0;
   opacity: 0; transition: opacity 1s ease;
 }
 .slide.active { opacity: 1; z-index: 1; }
-.slide-1 { background: linear-gradient(100deg, rgba(5,20,50,0.72) 0%, rgba(10,30,70,0.60) 60%, rgba(0,0,0,0.40) 100%); }
-.slide-2 { background: linear-gradient(100deg, rgba(0,15,40,0.75) 0%, rgba(5,25,60,0.62) 60%, rgba(0,0,0,0.40) 100%); }
-.slide-3 { background: linear-gradient(100deg, rgba(10,5,35,0.75) 0%, rgba(15,30,70,0.62) 60%, rgba(0,0,0,0.40) 100%); }
+.slide-1 { background: linear-gradient(110deg, rgba(5,20,50,0.74) 0%, rgba(10,30,70,0.58) 55%, rgba(0,0,0,0.32) 100%); }
+.slide-2 { background: linear-gradient(110deg, rgba(0,15,40,0.78) 0%, rgba(5,25,60,0.60) 55%, rgba(0,0,0,0.32) 100%); }
+.slide-3 { background: linear-gradient(110deg, rgba(10,5,35,0.78) 0%, rgba(15,30,70,0.60) 55%, rgba(0,0,0,0.32) 100%); }
 
 /* Decorative pattern overlay */
 .slide::before {
   content: ''; position: absolute; inset: 0; z-index: 0;
   background-image: repeating-linear-gradient(
-    45deg, rgba(255,255,255,0.015) 0, rgba(255,255,255,0.015) 1px,
+    45deg, rgba(255,255,255,0.012) 0, rgba(255,255,255,0.012) 1px,
     transparent 0, transparent 50%
   );
   background-size: 20px 20px;
@@ -403,6 +433,28 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   width: 400px; height: 400px; border-radius: 50%;
   background: radial-gradient(circle, rgba(204,43,43,0.10) 0%, transparent 70%);
   z-index: 0;
+}
+
+/* Floating particles layer */
+.hero-particles {
+  position: absolute; inset: 0; z-index: 2; pointer-events: none; overflow: hidden;
+}
+.hero-particles .p-dot {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.55);
+  animation: particleFloat linear infinite;
+}
+.hero-particles .p-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.25);
+  animation: particlePulse ease-in-out infinite;
+}
+.hero-particles svg.p-svg {
+  position: absolute;
+  animation: particleFloat ease-in-out infinite;
+  opacity: 0.18;
 }
 
 /* Hero 2-col grid */
@@ -1083,7 +1135,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .q-panes { padding: 28px 28px 20px; }
 .q-pane { display: none; }
 .q-pane.active { display: block; }
-.q-fields { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.q-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
 .q-field label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-light); margin-bottom: 6px; }
 .q-field input, .q-field select {
   width: 100%; padding: 10px 12px; border: 1px solid var(--border);
