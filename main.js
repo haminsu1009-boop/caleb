@@ -4,18 +4,6 @@
 
 document.addEventListener('DOMContentLoaded', () => {
 
-  /* ── MOBILE LAYOUT: Move estimate card below hero ── */
-  if (window.innerWidth <= 768) {
-    const heroRight = document.querySelector('.hero-right');
-    const hero = document.getElementById('home');
-    if (heroRight && hero) {
-      const mobileWrap = document.createElement('div');
-      mobileWrap.className = 'hero-estimate-mobile';
-      mobileWrap.appendChild(heroRight);
-      hero.insertAdjacentElement('afterend', mobileWrap);
-    }
-  }
-
   /* ── HERO CANVAS: Global Logistics Network Animation ── */
   (function initHeroCanvas() {
     const canvas = document.getElementById('heroCanvas');
