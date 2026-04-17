@@ -454,27 +454,24 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   .hero-left h1 { font-size: clamp(1.6rem, 5vw, 2.4rem); }
 }
 
-/* Mobile-specific: full-screen text hero, estimate card below */
+/* Mobile-specific: stacked hero with estimate card visible */
 @media (max-width: 768px) {
   .hero {
-    height: 100vh;
-    min-height: 600px;
-    padding: 0;
-    display: flex;
-    align-items: center;
+    height: auto;
+    min-height: 0;
+    padding: 88px 0 40px;
   }
   .hero-grid {
     grid-template-columns: 1fr;
-    gap: 0;
-    padding: 80px 28px 60px;
-    height: 100%;
-    align-items: center;
+    gap: 24px;
+    padding-top: 0;
+    align-items: start;
   }
   .hero-left {
     text-align: center;
   }
   .hero-left h1 {
-    font-size: clamp(1.9rem, 7.5vw, 2.8rem);
+    font-size: clamp(1.9rem, 7.5vw, 2.6rem);
     line-height: 1.2;
   }
   .slide-tag {
@@ -482,36 +479,19 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
     letter-spacing: 0.14em;
   }
   .slide-desc {
-    font-size: 0.92rem;
-    line-height: 1.75;
-    margin-bottom: 28px;
+    font-size: 0.9rem;
+    line-height: 1.7;
+    margin-bottom: 24px;
   }
   .hero-btns {
     justify-content: center;
     gap: 12px;
   }
   .hero-right {
-    display: none; /* moved below hero by JS on mobile */
-  }
-}
-
-/* Container for the estimate card below hero on mobile */
-.hero-estimate-mobile {
-  display: none;
-}
-@media (max-width: 768px) {
-  .hero-estimate-mobile {
     display: block;
-    background: var(--bg);
-    padding: 36px 16px 48px;
+    max-width: 100%;
+    margin: 0;
   }
-  .hero-estimate-mobile .hero-quote-label {
-    border-radius: 8px 8px 0 0;
-  }
-  .hero-estimate-mobile .quote-card {
-    border-radius: 0 0 var(--radius) var(--radius);
-  }
-}
 }
 
 /* Slide Controls */
