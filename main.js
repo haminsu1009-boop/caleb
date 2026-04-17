@@ -4,64 +4,126 @@
 
 document.addEventListener('DOMContentLoaded', () => {
 
-  /* ── HERO PARTICLES ── */
-  const particleContainer = document.getElementById('heroParticles');
-  if (particleContainer) {
-    const rand = (min, max) => Math.random() * (max - min) + min;
+  /* ── HERO CANVAS: Global Logistics Network Animation ── */
+  (function initHeroCanvas() {
+    const canvas = document.getElementById('heroCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
 
-    // Floating dots
-    for (let i = 0; i < 22; i++) {
-      const dot = document.createElement('span');
-      dot.className = 'p-dot';
-      const size = rand(3, 9);
-      dot.style.cssText = `
-        width:${size}px; height:${size}px;
-        left:${rand(2,98)}%; top:${rand(5,90)}%;
-        animation-duration:${rand(4,9)}s;
-        animation-delay:${rand(0,6)}s;
-        opacity:${rand(0.25,0.65)};
-      `;
-      particleContainer.appendChild(dot);
+    function resize() {
+      canvas.width  = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
     }
+    resize();
+    window.addEventListener('resize', resize, { passive: true });
 
-    // Pulsing rings
-    for (let i = 0; i < 8; i++) {
-      const ring = document.createElement('span');
-      ring.className = 'p-ring';
-      const size = rand(20, 60);
-      ring.style.cssText = `
-        width:${size}px; height:${size}px;
-        left:${rand(5,90)}%; top:${rand(10,85)}%;
-        animation-duration:${rand(3,7)}s;
-        animation-delay:${rand(0,5)}s;
-      `;
-      particleContainer.appendChild(ring);
-    }
-
-    // Logistics icon SVGs (ship, plane, truck)
-    const icons = [
-      `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="white" stroke-width="1.5"><path d="M4 34l4-12h32l4 12H4z"/><path d="M10 22V14h28v8"/><path d="M4 34c0 4 8 6 20 6s20-2 20-6"/><line x1="24" y1="14" x2="24" y2="22"/></svg>`,
-      `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="white" stroke-width="1.5"><path d="M36 38l-4-14 6-6a4 4 0 0 0-6-6l-14 7-6-3a2 2 0 0 0-2 .5L6 19l13 7-2 7-4 1v3l5-2 2 5 4-3 7-2 8 4 2-3a2 2 0 0 0 .4-2z"/></svg>`,
-      `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="white" stroke-width="1.5"><rect x="2" y="8" width="28" height="24" rx="2"/><path d="M30 16h8l6 8v8H30V16z"/><circle cx="11" cy="36" r="5"/><circle cx="37" cy="36" r="5"/></svg>`
+    // Major port nodes [xRatio, yRatio, label]
+    const nodes = [
+      [0.81, 0.36, '부산'],
+      [0.79, 0.41, '상하이'],
+      [0.77, 0.54, '싱가포르'],
+      [0.47, 0.27, '로테르담'],
+      [0.13, 0.42, 'LA'],
+      [0.23, 0.31, '뉴욕'],
+      [0.60, 0.44, '두바이'],
+      [0.84, 0.71, '시드니'],
+      [0.76, 0.47, '홍콩'],
+      [0.50, 0.34, '함부르크'],
+      [0.35, 0.55, '상파울루'],
+      [0.40, 0.24, '런던'],
     ];
-    icons.forEach((svg, i) => {
-      const el = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      const wrapper = document.createElement('div');
-      wrapper.className = 'p-svg';
-      wrapper.innerHTML = svg;
-      const w = wrapper.firstChild;
-      w.style.cssText = `
-        position:absolute;
-        left:${[15, 55, 75][i]}%; top:${[20, 65, 35][i]}%;
-        animation:particleFloat ease-in-out infinite;
-        animation-duration:${rand(7,12)}s;
-        animation-delay:${i * 2}s;
-        opacity:0.15;
-        pointer-events:none;
-      `;
-      particleContainer.appendChild(w);
-    });
-  }
+
+    // Route pairs [from, to]
+    const routes = [
+      [0, 3], [0, 4], [1, 4], [2, 3],
+      [8, 5], [6, 3], [0, 6], [7, 3],
+      [1, 5], [3, 11],[2, 6], [4, 10],
+      [0, 8], [3, 9],
+    ];
+
+    // One particle per route, staggered start positions
+    const particles = routes.map((r, i) => ({
+      route: r,
+      t: (i / routes.length),
+      speed: 0.0008 + Math.random() * 0.0012,
+    }));
+    // Add a second wave
+    routes.forEach((r, i) => particles.push({
+      route: r,
+      t: (i / routes.length + 0.5) % 1,
+      speed: 0.0006 + Math.random() * 0.001,
+    }));
+
+    const bezierPt = (ax, ay, bx, by, t) => {
+      const cpx = (ax + bx) / 2;
+      const cpy = Math.min(ay, by) - canvas.height * 0.14;
+      const u = 1 - t;
+      return [u*u*ax + 2*u*t*cpx + t*t*bx, u*u*ay + 2*u*t*cpy + t*t*by];
+    };
+
+    let raf;
+    function draw() {
+      const W = canvas.width, H = canvas.height;
+      // Background
+      const bg = ctx.createLinearGradient(0, 0, W, H);
+      bg.addColorStop(0,   '#030c20');
+      bg.addColorStop(0.5, '#071833');
+      bg.addColorStop(1,   '#030c20');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, W, H);
+
+      // Draw routes
+      routes.forEach(([a, b]) => {
+        const [ax, ay] = [nodes[a][0]*W, nodes[a][1]*H];
+        const [bx, by] = [nodes[b][0]*W, nodes[b][1]*H];
+        const cpx = (ax+bx)/2, cpy = Math.min(ay,by) - H*0.14;
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        ctx.quadraticCurveTo(cpx, cpy, bx, by);
+        ctx.strokeStyle = 'rgba(53,104,212,0.22)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      });
+
+      // Draw nodes
+      nodes.forEach(([rx, ry]) => {
+        const x = rx*W, y = ry*H;
+        const grd = ctx.createRadialGradient(x,y,0, x,y,14);
+        grd.addColorStop(0, 'rgba(80,140,255,0.70)');
+        grd.addColorStop(1, 'rgba(53,104,212,0)');
+        ctx.fillStyle = grd;
+        ctx.beginPath(); ctx.arc(x,y,14,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(x,y,6,0,Math.PI*2); ctx.stroke();
+      });
+
+      // Draw particles
+      particles.forEach(p => {
+        p.t = (p.t + p.speed) % 1;
+        const [a, b] = p.route;
+        const [ax,ay] = [nodes[a][0]*W, nodes[a][1]*H];
+        const [bx,by] = [nodes[b][0]*W, nodes[b][1]*H];
+        const [px,py] = bezierPt(ax,ay,bx,by,p.t);
+        const alpha = p.t < 0.1 ? p.t/0.1 : p.t > 0.9 ? (1-p.t)/0.1 : 1;
+        ctx.fillStyle = `rgba(255,190,60,${0.85*alpha})`;
+        ctx.beginPath(); ctx.arc(px,py,2.2,0,Math.PI*2); ctx.fill();
+        // Trail
+        if (p.t > 0.02) {
+          const [px2,py2] = bezierPt(ax,ay,bx,by, Math.max(0,p.t-0.04));
+          ctx.beginPath();
+          ctx.moveTo(px2,py2); ctx.lineTo(px,py);
+          ctx.strokeStyle = `rgba(255,190,60,${0.25*alpha})`;
+          ctx.lineWidth = 1.5; ctx.stroke();
+        }
+      });
+
+      raf = requestAnimationFrame(draw);
+    }
+    draw();
+  })();
 
   /* ── HEADER: scroll effect ── */
   const header = document.getElementById('header');
