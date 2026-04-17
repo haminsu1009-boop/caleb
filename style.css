@@ -454,6 +454,66 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   .hero-left h1 { font-size: clamp(1.6rem, 5vw, 2.4rem); }
 }
 
+/* Mobile-specific: full-screen text hero, estimate card below */
+@media (max-width: 768px) {
+  .hero {
+    height: 100vh;
+    min-height: 600px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+  }
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding: 80px 28px 60px;
+    height: 100%;
+    align-items: center;
+  }
+  .hero-left {
+    text-align: center;
+  }
+  .hero-left h1 {
+    font-size: clamp(1.9rem, 7.5vw, 2.8rem);
+    line-height: 1.2;
+  }
+  .slide-tag {
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+  }
+  .slide-desc {
+    font-size: 0.92rem;
+    line-height: 1.75;
+    margin-bottom: 28px;
+  }
+  .hero-btns {
+    justify-content: center;
+    gap: 12px;
+  }
+  .hero-right {
+    display: none; /* moved below hero by JS on mobile */
+  }
+}
+
+/* Container for the estimate card below hero on mobile */
+.hero-estimate-mobile {
+  display: none;
+}
+@media (max-width: 768px) {
+  .hero-estimate-mobile {
+    display: block;
+    background: var(--bg);
+    padding: 36px 16px 48px;
+  }
+  .hero-estimate-mobile .hero-quote-label {
+    border-radius: 8px 8px 0 0;
+  }
+  .hero-estimate-mobile .quote-card {
+    border-radius: 0 0 var(--radius) var(--radius);
+  }
+}
+}
+
 /* Slide Controls */
 .slide-nav {
   position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
