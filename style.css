@@ -1213,6 +1213,8 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   padding: 7px 14px; border: 1px solid var(--border); border-radius: 20px;
   font-size: 0.88rem; color: var(--text); cursor: pointer; background: var(--white);
   transition: all 0.15s;
+  touch-action: manipulation; /* prevents double-tap zoom on mobile */
+  -webkit-user-select: none; user-select: none;
 }
 .pp-port:hover { background: var(--primary); color: var(--white); border-color: var(--primary); }
 

@@ -787,24 +787,28 @@
         land: '육상운송'
       };
 
-      var from = '', to = '', detail = '';
+      var from = '', to = '', detail = '', incoterms = '';
 
       if (type === 'fcl') {
-        from = document.getElementById('fcl-from').value.trim();
-        to = document.getElementById('fcl-to').value.trim();
-        detail = document.getElementById('fcl-container').value;
+        from      = document.getElementById('fcl-from').value.trim();
+        to        = document.getElementById('fcl-to').value.trim();
+        detail    = document.getElementById('fcl-container').value;
+        incoterms = document.getElementById('fcl-incoterms').value;
       } else if (type === 'lcl') {
-        from = document.getElementById('lcl-from').value.trim();
-        to = document.getElementById('lcl-to').value.trim();
-        detail = document.getElementById('lcl-weight').value.trim();
+        from      = document.getElementById('lcl-from').value.trim();
+        to        = document.getElementById('lcl-to').value.trim();
+        detail    = document.getElementById('lcl-weight').value.trim();
+        incoterms = document.getElementById('lcl-incoterms').value;
       } else if (type === 'air') {
-        from = document.getElementById('air-from').value.trim();
-        to = document.getElementById('air-to').value.trim();
-        detail = document.getElementById('air-weight').value.trim();
+        from      = document.getElementById('air-from').value.trim();
+        to        = document.getElementById('air-to').value.trim();
+        detail    = document.getElementById('air-weight').value.trim();
+        incoterms = document.getElementById('air-incoterms').value;
       } else if (type === 'land') {
-        from = document.getElementById('land-from').value.trim();
-        to = document.getElementById('land-to').value.trim();
-        detail = document.getElementById('land-cargo').value;
+        from      = document.getElementById('land-from').value.trim();
+        to        = document.getElementById('land-to').value.trim();
+        detail    = document.getElementById('land-cargo').value;
+        incoterms = document.getElementById('land-incoterms').value;
       }
 
       // Build message
@@ -815,6 +819,7 @@
         var detailLabel = (type === 'fcl') ? '컨테이너' : (type === 'land') ? '화물 종류' : '화물 중량';
         lines.push(detailLabel + ': ' + detail);
       }
+      if (incoterms) lines.push('인코텀즈: ' + incoterms);
       lines.push('');
       lines.push('추가 문의사항:');
 
@@ -840,6 +845,7 @@
       var summary = labelMap[type];
       if (from && to) summary += ' ' + from + ' → ' + to;
       if (detail) summary += ' / ' + detail;
+      if (incoterms) summary += ' / ' + incoterms;
       noticeTextEl.textContent = '견적 정보 (' + summary + ')가 자동 입력되었습니다. 이메일 주소와 추가 문의사항만 입력해 주세요.';
 
       // Scroll to form and focus email
