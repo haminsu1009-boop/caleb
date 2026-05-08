@@ -1003,6 +1003,44 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .nsb-label { font-size: 0.82rem; color: rgba(255,255,255,0.65); letter-spacing: 0.05em; margin-top: 4px; display: block; }
 .nsb-div { width: 1px; background: rgba(255,255,255,0.18); align-self: stretch; min-height: 60px; flex-shrink: 0; }
 
+/* World map SVG container */
+.network-map-wrap {
+  background: #f0f4fb; border-radius: 20px; padding: 32px;
+  margin-bottom: 56px; overflow: hidden;
+}
+.network-map-svg { max-width: 720px; margin: 0 auto; }
+.world-map-bg { width: 100%; height: auto; display: block; }
+
+/* Partner region cards */
+.partner-regions {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px;
+  margin-bottom: 16px;
+}
+.partner-region {
+  background: var(--white); border-radius: 16px; padding: 28px 24px;
+  border: 1px solid var(--border); border-top: 4px solid var(--primary);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.partner-region:nth-child(2) { border-top-color: #c8292a; }
+.partner-region:nth-child(3) { border-top-color: #1a9e4a; }
+.partner-region:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+.pr-header {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--border);
+}
+.pr-flag { font-size: 1.8rem; line-height: 1; }
+.pr-header h3 { font-size: 1rem; font-weight: 800; color: var(--dark); margin: 0; }
+.partner-list {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.partner-list li {
+  font-size: 0.85rem; font-weight: 600; color: var(--dark);
+  display: flex; align-items: flex-start; gap: 8px; line-height: 1.5;
+}
+.flag-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+
+/* Legacy region cards — keep for safety */
 .network-regions {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
 }
@@ -1030,6 +1068,8 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 @media (max-width: 900px) {
   .network-regions { grid-template-columns: 1fr 1fr; }
   .nsb-item { padding: 16px 24px; }
+  .partner-regions { grid-template-columns: 1fr; }
+  .network-map-wrap { padding: 20px; }
 }
 @media (max-width: 600px) {
   .network-regions { grid-template-columns: 1fr; }
