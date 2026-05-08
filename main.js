@@ -286,4 +286,102 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   window.addEventListener('scroll', highlightNav, { passive: true });
 
+  /* ── FLOATING ACTION BUTTONS + CHAT WIDGET ── */
+  (function initFAB() {
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="fab-group" id="fabGroup">
+        <a href="tel:02-3142-4051" class="fab-btn fab-phone" aria-label="전화 문의">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22" aria-hidden="true">
+            <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24
+                     1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1
+                     C9.61 21 3 14.39 3 6c0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1
+                     0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+          </svg>
+        </a>
+        <button class="fab-btn fab-chat" id="fabChat" aria-label="실시간 상담">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22" aria-hidden="true">
+            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="chat-widget" id="chatWidget" role="dialog" aria-label="실시간 상담">
+        <div class="chat-header">
+          <div class="chat-header-info">
+            <span class="chat-status-dot"></span>
+            <div>
+              <p class="chat-company-name">태인종합물류</p>
+              <p class="chat-online-text">실시간 상담 · 평일 09:00~18:00</p>
+            </div>
+          </div>
+          <button class="chat-close" id="chatClose" aria-label="닫기">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12">
+              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+            </svg>
+          </button>
+        </div>
+        <div class="chat-body">
+          <div class="chat-bubble">
+            <p>안녕하세요! 태인종합물류입니다 😊</p>
+            <p>문의사항을 남겨주시면 담당자가 빠르게 연락드리겠습니다.</p>
+            <span class="chat-time">운영시간: 평일 09:00 ~ 18:00</span>
+          </div>
+        </div>
+        <form class="chat-form" id="chatForm" novalidate>
+          <input  type="text" name="chat_name"  placeholder="성함" required class="chat-input"/>
+          <input  type="tel"  name="chat_phone" placeholder="연락처 (예: 010-1234-5678)" required class="chat-input"/>
+          <textarea name="chat_msg" placeholder="문의 내용을 입력하세요..." rows="3" required class="chat-input chat-textarea"></textarea>
+          <button type="submit" class="chat-send">상담 신청하기 →</button>
+        </form>
+        <div class="chat-success" id="chatSuccess">
+          <div class="chat-success-icon">✅</div>
+          <p class="chat-success-msg">상담 신청이 완료되었습니다!</p>
+          <p class="chat-success-sub">담당자가 빠른 시간 내에 연락드리겠습니다.</p>
+        </div>
+      </div>
+    `);
+
+    const chatWidget = document.getElementById('chatWidget');
+    const fabChat    = document.getElementById('fabChat');
+    const chatClose  = document.getElementById('chatClose');
+    const chatForm   = document.getElementById('chatForm');
+    const chatSuccess = document.getElementById('chatSuccess');
+
+    const openChat  = () => { chatWidget.classList.add('open');    fabChat.classList.add('active'); };
+    const closeChat = () => { chatWidget.classList.remove('open'); fabChat.classList.remove('active'); };
+
+    fabChat.addEventListener('click', () =>
+      chatWidget.classList.contains('open') ? closeChat() : openChat()
+    );
+    chatClose.addEventListener('click', closeChat);
+
+    // Close on outside click
+    document.addEventListener('click', (e) => {
+      if (!chatWidget.contains(e.target) && e.target !== fabChat && !fabChat.contains(e.target)) {
+        closeChat();
+      }
+    });
+
+    chatForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const btn = chatForm.querySelector('.chat-send');
+      btn.textContent = '전송 중...';
+      btn.disabled = true;
+      setTimeout(() => {
+        chatForm.style.display = 'none';
+        chatSuccess.classList.add('show');
+        setTimeout(() => {
+          closeChat();
+          setTimeout(() => {
+            chatForm.style.display = '';
+            chatSuccess.classList.remove('show');
+            chatForm.reset();
+            btn.textContent = '상담 신청하기 →';
+            btn.disabled = false;
+          }, 400);
+        }, 3000);
+      }, 800);
+    });
+  })();
+
 });
