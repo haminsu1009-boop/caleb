@@ -435,21 +435,27 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── 키보드 올라올 때 채팅창 위치 조정 (iOS visualViewport) ──
     function resetWidgetPos() {
       widget.style.top = '';
+      widget.style.left = '';
+      widget.style.right = '';
       widget.style.bottom = '';
+      widget.style.height = '';
       widget.style.maxHeight = '';
       widget.classList.remove('kb-open');
       fabGroup.style.opacity = '';
       fabGroup.style.pointerEvents = '';
     }
     if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', () => {
+      function syncWidget() {
         if (!widget.classList.contains('open')) return;
         const vvp = window.visualViewport;
         const offsetTop = vvp.offsetTop || 0;
         const kbH = window.innerHeight - vvp.height - offsetTop;
         if (kbH > 100) {
           widget.style.top    = offsetTop + 'px';
-          widget.style.bottom = kbH + 'px';
+          widget.style.left   = '8px';
+          widget.style.right  = '8px';
+          widget.style.bottom = '';
+          widget.style.height = (vvp.height - 8) + 'px';
           widget.style.maxHeight = '';
           widget.classList.add('kb-open');
           fabGroup.style.opacity = '0';
@@ -457,7 +463,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           resetWidgetPos();
         }
-      });
+      }
+      window.visualViewport.addEventListener('resize', syncWidget);
+      window.visualViewport.addEventListener('scroll', syncWidget);
     }
 
     // ── 열기/닫기 ──
