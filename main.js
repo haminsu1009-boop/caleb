@@ -432,7 +432,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 800);
     });
 
-    // ── 키보드 올라올 때 채팅창 위치 조정 (iOS visualViewport) ──
+    // ── 위젯 위치 초기화 ──
     function resetWidgetPos() {
       widget.style.top = '';
       widget.style.left = '';
@@ -444,28 +444,52 @@ document.addEventListener('DOMContentLoaded', () => {
       fabGroup.style.opacity = '';
       fabGroup.style.pointerEvents = '';
     }
+
+    // ── 모바일 풀스크린 적용 (visualViewport 기준) ──
+    function applyFullscreen() {
+      const vvp = window.visualViewport;
+      const top = vvp ? (vvp.offsetTop || 0) : 0;
+      const h   = vvp ? vvp.height : window.innerHeight;
+      widget.style.top    = top + 'px';
+      widget.style.left   = '0';
+      widget.style.right  = '0';
+      widget.style.bottom = '';
+      widget.style.height = h + 'px';
+      widget.style.maxHeight = '';
+      widget.classList.add('kb-open');
+      fabGroup.style.opacity = '0';
+      fabGroup.style.pointerEvents = 'none';
+      msgArea.scrollTop = msgArea.scrollHeight;
+    }
+
+    // ── visualViewport 이벤트: 모바일은 항상 풀스크린 유지 ──
     if (window.visualViewport) {
-      function syncWidget() {
+      function onVVP() {
         if (!widget.classList.contains('open')) return;
-        const vvp = window.visualViewport;
-        const offsetTop = vvp.offsetTop || 0;
-        const kbH = window.innerHeight - vvp.height - offsetTop;
-        if (kbH > 100) {
-          widget.style.top    = offsetTop + 'px';
-          widget.style.left   = '8px';
-          widget.style.right  = '8px';
-          widget.style.bottom = '';
-          widget.style.height = (vvp.height - 8) + 'px';
-          widget.style.maxHeight = '';
-          widget.classList.add('kb-open');
-          fabGroup.style.opacity = '0';
-          fabGroup.style.pointerEvents = 'none';
+        if (window.innerWidth <= 600) {
+          applyFullscreen();
         } else {
-          resetWidgetPos();
+          // 데스크탑: 키보드 감지 시에만
+          const vvp = window.visualViewport;
+          const offsetTop = vvp.offsetTop || 0;
+          const kbH = window.innerHeight - vvp.height - offsetTop;
+          if (kbH > 100) {
+            widget.style.top    = offsetTop + 'px';
+            widget.style.left   = '8px';
+            widget.style.right  = '8px';
+            widget.style.bottom = '';
+            widget.style.height = (vvp.height - 8) + 'px';
+            widget.style.maxHeight = '';
+            widget.classList.add('kb-open');
+            fabGroup.style.opacity = '0';
+            fabGroup.style.pointerEvents = 'none';
+          } else {
+            resetWidgetPos();
+          }
         }
       }
-      window.visualViewport.addEventListener('resize', syncWidget);
-      window.visualViewport.addEventListener('scroll', syncWidget);
+      window.visualViewport.addEventListener('resize', onVVP);
+      window.visualViewport.addEventListener('scroll', onVVP);
     }
 
     // ── 열기/닫기 ──
@@ -473,6 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
       overlay.classList.add('active');
       widget.classList.add('open');
       fabChat.classList.add('active');
+      if (window.innerWidth <= 600) applyFullscreen();
       if (!msgArea.children.length) {
         if (isBizHours()) {
           addMsg('assistant', '안녕하세요! 태인종합물류 AI 상담입니다 😊\n해상·항공·육상운송, 통관, 견적 등 무엇이든 물어보세요!\n\n상담사와 직접 연결을 원하시면 아래 버튼을 눌러주세요.');
