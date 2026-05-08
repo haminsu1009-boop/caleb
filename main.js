@@ -436,6 +436,7 @@ document.addEventListener('DOMContentLoaded', () => {
       busy = true;
       input.value = '';
       input.style.height = 'auto';
+      input.focus();          // await 전에 포커스 — iOS 키보드 유지
       sendBtn.disabled = true;
       addMsg('user', msg);
       showTyping();
@@ -444,7 +445,6 @@ document.addEventListener('DOMContentLoaded', () => {
       addMsg('assistant', getAutoReply(msg));
       busy = false;
       sendBtn.disabled = false;
-      input.focus();
     }
 
     sendBtn.addEventListener('click', send);
