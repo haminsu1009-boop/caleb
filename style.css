@@ -1475,6 +1475,18 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .chat-input-send:hover  { background: #1d4ed8; transform: scale(1.08); }
 .chat-input-send:disabled { background: #cbd5e1; cursor: default; transform: none; }
 
+/* Chat overlay (dims page behind widget) */
+.chat-overlay {
+  display: none; position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,0.35);
+}
+.chat-overlay.active { display: block; }
+
+/* Keyboard-open mode: stretch to fill visible area */
+.chat-widget.kb-open {
+  border-radius: 16px 16px 20px 20px;
+}
+
 /* Agent connection tab */
 .chat-agent-tab {
   padding: 8px 12px;
@@ -1497,7 +1509,8 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .chat-agent-btn:disabled:hover { background: #fff; color: #94a3b8; }
 
 @media (max-width: 480px) {
-  .chat-widget { width: calc(100vw - 28px); right: 14px; bottom: 100px; }
+  .chat-widget { width: calc(100vw - 24px); right: 12px; bottom: 100px; }
+  .chat-widget.kb-open { width: calc(100vw - 16px); right: 8px; left: 8px; border-radius: 14px 14px 18px 18px; }
   .fab-group   { right: 16px; bottom: 20px; }
   .scroll-top  { right: 16px; bottom: 172px; }
 }
