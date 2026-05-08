@@ -437,6 +437,7 @@ document.addEventListener('DOMContentLoaded', () => {
       widget.style.top = '';
       widget.style.left = '';
       widget.style.right = '';
+      widget.style.width = '';
       widget.style.bottom = '';
       widget.style.height = '';
       widget.style.maxHeight = '';
@@ -453,6 +454,7 @@ document.addEventListener('DOMContentLoaded', () => {
       widget.style.top    = top + 'px';
       widget.style.left   = '0';
       widget.style.right  = '0';
+      widget.style.width  = '100%';
       widget.style.bottom = '';
       widget.style.height = h + 'px';
       widget.style.maxHeight = '';
@@ -518,6 +520,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('chatClose').addEventListener('mousedown', e => e.preventDefault());
     document.getElementById('chatClose').addEventListener('click', closeChat);
     overlay.addEventListener('click', closeChat);
+
+    // ── 채팅창 터치 시 뒤 페이지 스크롤 방지 ──
+    overlay.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    widget.addEventListener('touchmove', e => e.stopPropagation(), { passive: true });
 
     // ── 메시지 전송 ──
     async function send() {
