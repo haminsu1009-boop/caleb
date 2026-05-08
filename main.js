@@ -446,50 +446,52 @@ document.addEventListener('DOMContentLoaded', () => {
       fabGroup.style.pointerEvents = '';
     }
 
-    // ── 모바일 전체 너비 적용 (높이는 내용 기준) ──
+    // ── 모바일 전체 너비 (키보드 없을 때) ──
     function setMobileWidth() {
       widget.style.left   = '0';
       widget.style.right  = '0';
       widget.style.width  = '100%';
       widget.style.top    = '';
       widget.style.height = '';
+      widget.style.bottom = '';
+      widget.style.maxHeight = '';
       widget.classList.add('kb-open');
       fabGroup.style.opacity = '0';
       fabGroup.style.pointerEvents = 'none';
     }
 
-    // ── visualViewport: 키보드 올라오면 bottom/maxHeight만 조정 ──
-    if (window.visualViewport) {
-      function onVVP() {
-        if (!widget.classList.contains('open')) return;
-        const vvp = window.visualViewport;
-        const offsetTop = vvp.offsetTop || 0;
-        const h   = vvp.height;
-        const kbH = window.innerHeight - h - offsetTop;
-        if (kbH > 50) {
-          widget.style.left     = '0';
-          widget.style.right    = '0';
-          widget.style.width    = '100%';
-          widget.style.top      = '';
-          widget.style.height   = '';        // 내용 기준, 강제 고정 안 함
-          widget.style.bottom   = kbH + 'px';
-          widget.style.maxHeight = (h - 4) + 'px';
-          widget.classList.add('kb-open');
-          fabGroup.style.opacity = '0';
-          fabGroup.style.pointerEvents = 'none';
-        } else {
-          if (window.innerWidth <= 600) {
-            setMobileWidth();
-            widget.style.bottom = '';
-            widget.style.maxHeight = '';
-          } else {
-            resetWidgetPos();
-          }
-        }
+    // ── 키보드 높이 계산 후 위젯 위치 맞춤 ──
+    function adjustForKeyboard() {
+      if (!widget.classList.contains('open')) return;
+      if (window.innerWidth > 600) return;
+      const vvp = window.visualViewport || null;
+      // position:fixed는 layout viewport 기준 → offsetTop 제외
+      const kbH = vvp ? Math.round(window.innerHeight - vvp.height) : 0;
+      if (kbH > 80) {
+        widget.style.left     = '0';
+        widget.style.right    = '0';
+        widget.style.width    = '100%';
+        widget.style.top      = '';
+        widget.style.height   = '';
+        widget.style.bottom   = kbH + 'px';
+        widget.style.maxHeight = (vvp.height - 4) + 'px';
+        widget.classList.add('kb-open');
+        fabGroup.style.opacity = '0';
+        fabGroup.style.pointerEvents = 'none';
+        msgArea.scrollTop = msgArea.scrollHeight;
+      } else {
+        setMobileWidth();
       }
-      window.visualViewport.addEventListener('resize', onVVP);
-      window.visualViewport.addEventListener('scroll', onVVP);
     }
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', adjustForKeyboard);
+      window.visualViewport.addEventListener('scroll', adjustForKeyboard);
+    }
+    // focus 이벤트 폴백: iOS에서 resize 이벤트가 늦게 오는 경우 대비
+    input.addEventListener('focus', () => setTimeout(adjustForKeyboard, 100));
+    input.addEventListener('focus', () => setTimeout(adjustForKeyboard, 350));
+    input.addEventListener('blur',  () => setTimeout(setMobileWidth, 150));
 
     // ── 열기/닫기 ──
     const openChat  = () => {
@@ -503,6 +505,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           addMsg('assistant', '안녕하세요! 태인종합물류 AI 상담입니다 😊\n\n⚠️ 현재 영업시간(평일 09:00~18:00)이 아닙니다.\n실시간 상담사 연결은 불가하며, AI가 기본 정보를 안내해드립니다.\n\n해상·항공·육상운송, 통관, 견적 등 궁금한 점을 물어보세요!');
         }
+        msgArea.scrollTop = 0;
       }
       setTimeout(() => input.focus(), 300);
     };
