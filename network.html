@@ -116,97 +116,107 @@
     <div class="section-header">
       <p class="section-label">WCA MEMBER</p>
       <h2 class="section-title">40여 개국, 120여 개 해외파트너</h2>
-      <p class="section-desc">WCA(World Cargo Association) 정식 회원사로서 세계 네트워크망을 통해 고객에게 신속·정확·안전한 물류 서비스를 제공합니다.</p>
+      <p class="section-desc">미주/유럽/동남아/중국 등 현지 지사 및 파트너사를 통한 전세계 네트워킹</p>
     </div>
 
-    <div class="network-stats-banner">
-      <div class="nsb-item">
-        <strong class="nsb-num">40<sup>+</sup></strong>
-        <span class="nsb-label">서비스 국가</span>
-      </div>
-      <div class="nsb-div"></div>
-      <div class="nsb-item">
-        <strong class="nsb-num">120<sup>+</sup></strong>
-        <span class="nsb-label">해외 파트너사</span>
-      </div>
-      <div class="nsb-div"></div>
-      <div class="nsb-item">
-        <strong class="nsb-num">16<sup>년</sup></strong>
-        <span class="nsb-label">물류 전문 기업</span>
-      </div>
-      <div class="nsb-div"></div>
-      <div class="nsb-item">
-        <strong class="nsb-num">WCA</strong>
-        <span class="nsb-label">정식 회원사</span>
+    <!-- World Map Visual -->
+    <div class="network-map-wrap">
+      <div class="network-map-svg">
+        <!-- SVG world map dots -->
+        <svg viewBox="0 0 800 380" xmlns="http://www.w3.org/2000/svg" class="world-map-bg">
+          <!-- Simple stylized world map outline -->
+          <!-- North America -->
+          <path d="M80,80 Q100,60 140,65 Q170,60 185,80 Q200,100 195,130 Q180,160 160,170 Q130,175 110,160 Q85,140 75,115 Z" fill="#e8edf5" stroke="#c5cfe0" stroke-width="1"/>
+          <!-- South America -->
+          <path d="M145,185 Q170,175 185,190 Q200,210 195,250 Q185,290 165,305 Q145,310 130,295 Q115,270 120,240 Q125,205 145,185 Z" fill="#e8edf5" stroke="#c5cfe0" stroke-width="1"/>
+          <!-- Europe -->
+          <path d="M340,55 Q370,45 395,55 Q415,65 420,85 Q415,105 395,110 Q370,115 345,105 Q325,95 330,75 Z" fill="#e8edf5" stroke="#c5cfe0" stroke-width="1"/>
+          <!-- Africa -->
+          <path d="M350,120 Q385,110 405,125 Q425,145 425,185 Q420,225 405,255 Q385,275 360,270 Q335,260 325,230 Q315,195 320,160 Q328,130 350,120 Z" fill="#e8edf5" stroke="#c5cfe0" stroke-width="1"/>
+          <!-- Asia -->
+          <path d="M430,45 Q500,35 560,50 Q610,60 640,85 Q660,110 650,140 Q630,165 590,170 Q540,175 490,160 Q450,145 430,120 Q415,95 420,70 Z" fill="#e8edf5" stroke="#c5cfe0" stroke-width="1"/>
+          <!-- Southeast Asia -->
+          <path d="M550,155 Q590,150 615,165 Q630,180 625,200 Q610,215 585,215 Q560,210 548,195 Q540,178 550,155 Z" fill="#e8edf5" stroke="#c5cfe0" stroke-width="1"/>
+          <!-- Australia -->
+          <path d="M610,230 Q650,220 680,235 Q700,255 695,285 Q680,310 650,315 Q620,315 605,295 Q592,272 598,250 Z" fill="#e8edf5" stroke="#c5cfe0" stroke-width="1"/>
+
+          <!-- Partner dots - Europe -->
+          <circle cx="365" cy="72" r="5" fill="#2563eb" opacity="0.9"/>
+          <circle cx="380" cy="65" r="5" fill="#2563eb" opacity="0.9"/>
+          <circle cx="395" cy="78" r="5" fill="#2563eb" opacity="0.9"/>
+          <circle cx="350" cy="85" r="5" fill="#2563eb" opacity="0.9"/>
+          <circle cx="405" cy="90" r="5" fill="#2563eb" opacity="0.9"/>
+          <!-- Americas dots -->
+          <circle cx="110" cy="105" r="5" fill="#2563eb" opacity="0.9"/>
+          <circle cx="130" cy="125" r="5" fill="#2563eb" opacity="0.9"/>
+          <circle cx="155" cy="240" r="5" fill="#2563eb" opacity="0.9"/>
+          <!-- Asia dots -->
+          <circle cx="480" cy="90" r="5" fill="#2563eb" opacity="0.9"/>
+          <circle cx="530" cy="75" r="5" fill="#2563eb" opacity="0.9"/>
+          <circle cx="565" cy="95" r="5" fill="#2563eb" opacity="0.9"/>
+          <circle cx="590" cy="80" r="5" fill="#2563eb" opacity="0.9"/>
+          <circle cx="570" cy="175" r="5" fill="#2563eb" opacity="0.9"/>
+          <circle cx="555" cy="190" r="5" fill="#2563eb" opacity="0.9"/>
+          <!-- Australia dot -->
+          <circle cx="648" cy="268" r="5" fill="#2563eb" opacity="0.9"/>
+
+          <!-- Connecting lines -->
+          <line x1="365" y1="72" x2="480" y2="90" stroke="#2563eb" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.3"/>
+          <line x1="110" y1="105" x2="365" y2="72" stroke="#2563eb" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.3"/>
+          <line x1="480" y1="90" x2="570" y2="175" stroke="#2563eb" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.3"/>
+          <line x1="565" y1="95" x2="648" y2="268" stroke="#2563eb" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.3"/>
+        </svg>
       </div>
     </div>
 
-    <div class="network-regions">
-      <div class="nr-card nr-asia">
-        <div class="nr-card-header">
-          <span class="nr-icon">🌏</span>
-          <div>
-            <h3>아시아</h3>
-            <span class="nr-count">15개국</span>
-          </div>
+    <!-- Partner Companies by Region -->
+    <div class="partner-regions">
+
+      <div class="partner-region">
+        <div class="pr-header">
+          <span class="pr-flag">🌍</span>
+          <h3>유럽 Europe</h3>
         </div>
-        <p class="nr-countries">China, Hong Kong, Japan, Singapore, Malaysia, Bangladesh, Indonesia, Taiwan, Thailand, India, Pakistan, Vietnam, Sri Lanka, Cambodia, Bangkok</p>
+        <ul class="partner-list">
+          <li><span class="flag-icon">🇬🇧</span> ENI SHIPPING(UK) LTD</li>
+          <li><span class="flag-icon">🇳🇱</span> VABIX SHIPPING B.V</li>
+          <li><span class="flag-icon">🇩🇪</span> ELEMENT LOGISTIC</li>
+          <li><span class="flag-icon">🇩🇪</span> H&amp;FRIENDS</li>
+          <li><span class="flag-icon">🇮🇹</span> WORLD ASIA LOGISTICS S.R.L</li>
+          <li><span class="flag-icon">🇫🇷</span> F.C.LOGISTIQUE</li>
+        </ul>
       </div>
 
-      <div class="nr-card nr-europe">
-        <div class="nr-card-header">
-          <span class="nr-icon">🌍</span>
-          <div>
-            <h3>유럽</h3>
-            <span class="nr-count">21개국</span>
-          </div>
+      <div class="partner-region">
+        <div class="pr-header">
+          <span class="pr-flag">🌎</span>
+          <h3>미주 Americas</h3>
         </div>
-        <p class="nr-countries">Turkey, Ukraine, Poland, Croatia, Italy, France, Germany, Spain, Belgium, United Kingdom, Netherlands, Switzerland, Austria, Greece, Denmark, Cyprus, Romania, Hungary, Bulgaria, Finland, Georgia</p>
+        <ul class="partner-list">
+          <li><span class="flag-icon">🇨🇦</span> BNX SHIPPING INC, TORONTO</li>
+          <li><span class="flag-icon">🇺🇸</span> H&amp;FRIENDS<br/><small style="color:#666;font-size:0.78rem;">(LA / CHICAGO / NY / AILUS HOUSTON / AILUS ATLANTA)</small></li>
+          <li><span class="flag-icon">🇨🇴</span> GAVA COLOMBIA</li>
+        </ul>
       </div>
 
-      <div class="nr-card nr-america">
-        <div class="nr-card-header">
-          <span class="nr-icon">🌎</span>
-          <div>
-            <h3>미주</h3>
-            <span class="nr-count">18개국</span>
-          </div>
+      <div class="partner-region">
+        <div class="pr-header">
+          <span class="pr-flag">🌏</span>
+          <h3>아시아 Asia</h3>
         </div>
-        <p class="nr-countries">Canada, U.S.A, Mexico, El Salvador, Costa Rica, Nicaragua, Honduras, Guatemala, Ecuador, Colombia, Peru, Chile, Brazil, Uruguay, Argentina, Paraguay, Venezuela, Panama</p>
+        <ul class="partner-list">
+          <li><span class="flag-icon">🇨🇳</span> TOTAL WORLD (SH/QD/SZ/HK)</li>
+          <li><span class="flag-icon">🇨🇳</span> PANDA LOGISTICS</li>
+          <li><span class="flag-icon">🌐</span> WORLDLINK</li>
+          <li><span class="flag-icon">🇰🇷</span> LOTOS CORPORATION</li>
+          <li><span class="flag-icon">🇰🇷</span> KORNET EXPRESS INC</li>
+          <li><span class="flag-icon">🇻🇳</span> PHUONG NAM CO., LTD</li>
+          <li><span class="flag-icon">🌐</span> GNL LOGISTICS WORLDWIDE</li>
+          <li><span class="flag-icon">🇱🇰</span> EXPLOLANKA FREIGHT (PVT) LTD</li>
+          <li><span class="flag-icon">🇦🇺</span> ACE CARGO INTERNATIONAL PTY LTD</li>
+        </ul>
       </div>
 
-      <div class="nr-card nr-middle-east">
-        <div class="nr-card-header">
-          <span class="nr-icon">🕌</span>
-          <div>
-            <h3>중동</h3>
-            <span class="nr-count">4개국</span>
-          </div>
-        </div>
-        <p class="nr-countries">Saudi Arabia, Iran, Kuwait, Syria</p>
-      </div>
-
-      <div class="nr-card nr-africa">
-        <div class="nr-card-header">
-          <span class="nr-icon">🌍</span>
-          <div>
-            <h3>아프리카</h3>
-            <span class="nr-count">8개국</span>
-          </div>
-        </div>
-        <p class="nr-countries">Algeria, South Africa, Nigeria, Tanzania (Dar es Salaam), Kenya, Ghana, Oman</p>
-      </div>
-
-      <div class="nr-card nr-pacific">
-        <div class="nr-card-header">
-          <span class="nr-icon">🌏</span>
-          <div>
-            <h3>호주 / 오세아니아</h3>
-            <span class="nr-count">2개국</span>
-          </div>
-        </div>
-        <p class="nr-countries">Australia, New Zealand</p>
-      </div>
     </div>
 
     <div style="text-align:center;margin-top:56px;">
