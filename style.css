@@ -1479,7 +1479,10 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   .chat-widget { width: calc(100vw - 28px); right: 14px; bottom: 100px; }
   .fab-group   { right: 16px; bottom: 20px; }
   .scroll-top  { right: 16px; bottom: 172px; }
-  .chat-input-field { font-size: 16px; } /* iOS auto-zoom 방지 */
+}
+/* iOS Safari auto-zoom 방지 — 입력 요소 font-size 16px 미만이면 확대됨 */
+@media (max-width: 768px) {
+  input, textarea, select { font-size: 16px !important; }
 }
 
 /* ============================================================
