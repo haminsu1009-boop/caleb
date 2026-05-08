@@ -432,30 +432,40 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 800);
     });
 
+    let _closeMobileTimer = null;
+
     // ── 위젯 위치 초기화 ──
     function resetWidgetPos() {
-      widget.style.cssText = ''; // 모든 인라인 스타일 한번에 제거
+      widget.style.position      = '';
+      widget.style.top           = '';
+      widget.style.left          = '';
+      widget.style.right         = '';
+      widget.style.bottom        = '';
+      widget.style.width         = '';
+      widget.style.height        = '';
+      widget.style.maxHeight     = '';
+      widget.style.paddingBottom = '';
+      widget.style.boxSizing     = '';
+      widget.style.borderRadius  = '';
       widget.classList.remove('kb-open');
       fabGroup.style.opacity = '';
       fabGroup.style.pointerEvents = '';
     }
 
-    // ── 모바일: padding-bottom으로 키보드 공간 확보 (bottom 계산 불필요) ──
+    // ── 모바일: 전체화면, padding-bottom으로 키보드 공간 확보 ──
     function setMobileLayout(kbH) {
-      widget.style.position     = 'fixed';
-      widget.style.top          = '0';
-      widget.style.left         = '0';
-      widget.style.right        = '0';
-      widget.style.bottom       = '0';
-      widget.style.width        = '100%';
-      widget.style.height       = '100%';
-      widget.style.maxHeight    = 'none';
+      widget.style.position      = 'fixed';
+      widget.style.top           = '0';
+      widget.style.left          = '0';
+      widget.style.right         = '0';
+      widget.style.bottom        = '';
+      widget.style.width         = '100%';
+      widget.style.height        = window.innerHeight + 'px';
+      widget.style.maxHeight     = 'none';
       widget.style.paddingBottom = kbH + 'px';
-      widget.style.boxSizing    = 'border-box';
-      widget.style.borderRadius = kbH > 0 ? '0' : '20px';
-      widget.style.transform    = 'none';
-      widget.style.opacity      = '1';
-      widget.style.pointerEvents = 'all';
+      widget.style.boxSizing     = 'border-box';
+      widget.style.borderRadius  = kbH > 0 ? '0' : '20px';
+      // transform / opacity / pointerEvents → CSS가 담당
       widget.classList.add('kb-open');
       fabGroup.style.opacity = '0';
       fabGroup.style.pointerEvents = 'none';
@@ -483,9 +493,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ── 열기/닫기 ──
-    const openChat  = () => {
+    const openChat = () => {
+      if (_closeMobileTimer) { clearTimeout(_closeMobileTimer); _closeMobileTimer = null; }
       overlay.classList.add('active');
-      if (window.innerWidth <= 600) setMobileLayout(0);
+      if (window.innerWidth <= 600) {
+        resetWidgetPos();
+        setMobileLayout(0);
+      }
       widget.classList.add('open');
       fabChat.classList.add('active');
       if (!msgArea.children.length) {
@@ -502,7 +516,11 @@ document.addEventListener('DOMContentLoaded', () => {
       overlay.classList.remove('active');
       widget.classList.remove('open');
       fabChat.classList.remove('active');
-      resetWidgetPos();
+      if (window.innerWidth <= 600) {
+        _closeMobileTimer = setTimeout(() => { _closeMobileTimer = null; resetWidgetPos(); }, 350);
+      } else {
+        resetWidgetPos();
+      }
     };
 
     fabChat.addEventListener('click', () => widget.classList.contains('open') ? closeChat() : openChat());
