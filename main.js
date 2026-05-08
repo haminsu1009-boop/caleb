@@ -289,19 +289,13 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ── FLOATING ACTION BUTTONS + AI CHAT WIDGET ── */
   (function initFAB() {
 
-    // ── 영업시간 판단 (평일 09:00~18:00) ──
-    function isBizHours() {
-      const d = new Date(), day = d.getDay(), h = d.getHours();
-      return day >= 1 && day <= 5 && h >= 9 && h < 18;
-    }
-
-    // ── 규칙 기반 AI 응답 ──
+    // ── AI 응답 (항상 AI) ──
     function getAutoReply(msg) {
       const m = msg.toLowerCase();
       if (/안녕|hello|hi|반가|처음/.test(m))
         return '안녕하세요! 태인종합물류 AI 상담입니다 😊\n해상·항공·육상 운송, 통관, 견적 등 무엇이든 물어보세요!';
       if (/해상|fcl|lcl|컨테이너|선박|배편/.test(m))
-        return '해상운송 서비스를 제공합니다.\n\n• FCL (Full Container Load) — 컨테이너 단위\n• LCL (Less Container Load) — 소량 혼재 화물\n\n주요 항로: 중국·동남아·미주·유럽 전세계\n정확한 견적은 화물 정보(품목·중량·출발지·목적지)를 알려주시면 빠르게 안내해드립니다.';
+        return '해상운송 서비스를 제공합니다.\n\n• FCL (Full Container Load) — 컨테이너 단위\n• LCL (Less Container Load) — 소량 혼재 화물\n\n주요 항로: 중국·동남아·미주·유럽 전세계\n견적은 품목·중량·출발지·목적지를 알려주시면 빠르게 안내드립니다.';
       if (/항공|에어|air|빠른 배송|긴급/.test(m))
         return '항공운송 서비스를 제공합니다.\n\n• 일반 항공화물\n• 긴급·특수화물 (당일/익일 처리 가능)\n\n빠른 글로벌 항공 네트워크로 신속 배송이 가능합니다.';
       if (/육상|내륙|트럭|차량|배달/.test(m))
@@ -313,15 +307,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (/전화|연락처|주소|이메일|위치|어디|찾아/.test(m))
         return '📞 대표전화: 02-3142-4051\n📠 팩스: 02-3142-4055\n📧 이메일: op@ttt3.co.kr\n📍 주소: 서울 마포구 월드컵로 112, 4층\n\n영업시간: 평일 09:00 ~ 18:00';
       if (/영업시간|운영시간|몇시|시간|언제/.test(m))
-        return '영업시간은 평일 09:00 ~ 18:00입니다.\n(토·일·공휴일 휴무)\n\n영업시간 외에는 이 채팅으로 문의 남겨주시면 다음 영업일에 연락드립니다.';
+        return '영업시간은 평일 09:00 ~ 18:00입니다.\n(토·일·공휴일 휴무)\n\n영업시간 중에도 AI 상담을 이용하시거나,\n상담사 연결 버튼으로 직접 문의하실 수 있습니다.';
       if (/wca|네트워크|해외|파트너|나라|국가/.test(m))
         return 'WCA(World Cargo Association) 정식 회원사로서\n40여 개국, 120여 개 해외 파트너 네트워크를 보유합니다.\n\n🌏 아시아 (중국·일본·동남아 등)\n🌍 유럽 (영국·독일·프랑스 등)\n🌎 미주 (미국·캐나다·중남미)\n🦘 호주·오세아니아';
       if (/3pl|4pl|창고|물류 솔루션|풀필먼트|아웃소싱/.test(m))
         return '종합 물류 솔루션을 제공합니다.\n\n• 3PL/4PL 물류 아웃소싱\n• 창고 관리(WMS)\n• SCM 컨설팅\n• ONE-STOP 통합 물류 관리\n\n기업 맞춤형 솔루션 상담: 02-3142-4051';
       if (/감사|고마|수고|잘됐|해결/.test(m))
         return '감사합니다! 더 궁금하신 점이 있으면 언제든지 문의해 주세요 😊';
-      // 기본 응답
-      return '문의해 주셔서 감사합니다.\n\n현재 ' + (isBizHours() ? '상담원 연결을 도와드리겠습니다.\n📞 02-3142-4051' : '영업시간(평일 09:00~18:00) 외 시간으로 AI가 답변드립니다.\n\n해상·항공·육상 운송, 통관, 견적, 연락처 등을 물어보시면 바로 안내해드릴게요!');
+      return '문의해 주셔서 감사합니다.\n\n해상·항공·육상운송, 통관, 견적, 연락처 등 구체적인 내용을 알려주시면 바로 안내해드리겠습니다!\n\n직접 통화를 원하시면 📞 02-3142-4051';
     }
 
     // ── HTML 주입 ──
@@ -339,25 +332,31 @@ document.addEventListener('DOMContentLoaded', () => {
         </button>
       </div>
 
-      <div class="chat-widget" id="chatWidget" role="dialog" aria-label="실시간 상담">
+      <div class="chat-widget" id="chatWidget" role="dialog" aria-label="AI 상담">
         <div class="chat-header">
           <div class="chat-header-info">
-            <span class="chat-status-dot" id="chatDot"></span>
+            <span class="chat-status-dot"></span>
             <div>
               <p class="chat-company-name">태인종합물류</p>
-              <p class="chat-online-text" id="chatStatusText">불러오는 중...</p>
+              <p class="chat-online-text">AI 자동 상담</p>
             </div>
           </div>
-          <button class="chat-close" id="chatClose" aria-label="닫기">
+          <button class="chat-close" id="chatClose" tabindex="-1" aria-label="닫기">
             <svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11">
               <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
             </svg>
           </button>
         </div>
         <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-agent-tab" id="chatAgentTab">
+          <button class="chat-agent-btn" id="chatAgentBtn">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+            상담사 직접 연결 요청
+          </button>
+        </div>
         <div class="chat-input-area">
           <textarea class="chat-input-field" id="chatInput" placeholder="메시지를 입력하세요..." rows="1"></textarea>
-          <button class="chat-input-send" id="chatSend" aria-label="전송">
+          <button class="chat-input-send" id="chatSend" tabindex="-1" aria-label="전송">
             <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
               <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
             </svg>
@@ -367,22 +366,12 @@ document.addEventListener('DOMContentLoaded', () => {
     `);
 
     // ── 요소 참조 ──
-    const widget   = document.getElementById('chatWidget');
-    const fabChat  = document.getElementById('fabChat');
-    const msgArea  = document.getElementById('chatMessages');
-    const input    = document.getElementById('chatInput');
-    const sendBtn  = document.getElementById('chatSend');
-    const statusTxt = document.getElementById('chatStatusText');
-    const statusDot = document.getElementById('chatDot');
-
-    // ── 상태 표시 ──
-    if (isBizHours()) {
-      statusTxt.textContent = '상담원 연결 가능';
-      statusDot.style.background = '#4ade80';
-    } else {
-      statusTxt.textContent = 'AI 자동 응답 중';
-      statusDot.style.background = '#facc15';
-    }
+    const widget    = document.getElementById('chatWidget');
+    const fabChat   = document.getElementById('fabChat');
+    const msgArea   = document.getElementById('chatMessages');
+    const input     = document.getElementById('chatInput');
+    const sendBtn   = document.getElementById('chatSend');
+    const agentBtn  = document.getElementById('chatAgentBtn');
 
     // ── 말풍선 추가 ──
     let busy = false;
@@ -409,21 +398,54 @@ document.addEventListener('DOMContentLoaded', () => {
       if (el) el.remove();
     }
 
+    // ── 상담사 연결 탭 ──
+    agentBtn.addEventListener('mousedown', e => e.preventDefault());
+    agentBtn.addEventListener('click', () => {
+      addMsg('user', '상담사 연결을 요청합니다.');
+      showTyping();
+      setTimeout(() => {
+        hideTyping();
+        addMsg('assistant', '상담사 연결 요청이 접수되었습니다!\n\n담당자가 빠른 시간 내에 연락드리겠습니다.\n\n📞 즉시 연결: 02-3142-4051\n📧 이메일: op@ttt3.co.kr\n⏰ 영업시간: 평일 09:00 ~ 18:00');
+      }, 800);
+    });
+
+    // ── 키보드 올라올 때 채팅창 위치 조정 (iOS visualViewport) ──
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', () => {
+        if (!widget.classList.contains('open')) return;
+        const kbH = window.innerHeight - window.visualViewport.height;
+        if (kbH > 100) {
+          widget.style.bottom  = (kbH + 6) + 'px';
+          widget.style.maxHeight = (window.visualViewport.height - 80) + 'px';
+          document.getElementById('fabGroup').style.opacity = '0';
+          document.getElementById('fabGroup').style.pointerEvents = 'none';
+        } else {
+          widget.style.bottom  = '';
+          widget.style.maxHeight = '';
+          document.getElementById('fabGroup').style.opacity = '';
+          document.getElementById('fabGroup').style.pointerEvents = '';
+        }
+      });
+    }
+
     // ── 열기/닫기 ──
     const openChat  = () => {
       widget.classList.add('open');
       fabChat.classList.add('active');
       if (!msgArea.children.length) {
-        const greeting = isBizHours()
-          ? '안녕하세요! 태인종합물류입니다 😊\n상담원이 곧 답변드립니다.\n해상·항공·육상운송, 통관, 견적 등 무엇이든 물어보세요!'
-          : '안녕하세요! 태인종합물류입니다 😊\n현재 영업시간 외 시간으로 AI가 답변드립니다.\n해상·항공·육상운송, 통관, 견적 등 자유롭게 물어보세요!';
-        addMsg('assistant', greeting);
+        addMsg('assistant', '안녕하세요! 태인종합물류 AI 상담입니다 😊\n해상·항공·육상운송, 통관, 견적 등 무엇이든 물어보세요!\n\n상담사와 직접 연결을 원하시면 아래 버튼을 눌러주세요.');
       }
       setTimeout(() => input.focus(), 300);
     };
-    const closeChat = () => { widget.classList.remove('open'); fabChat.classList.remove('active'); };
+    const closeChat = () => {
+      widget.classList.remove('open');
+      fabChat.classList.remove('active');
+      widget.style.bottom = '';
+      widget.style.maxHeight = '';
+    };
 
     fabChat.addEventListener('click', () => widget.classList.contains('open') ? closeChat() : openChat());
+    document.getElementById('chatClose').addEventListener('mousedown', e => e.preventDefault());
     document.getElementById('chatClose').addEventListener('click', closeChat);
     document.addEventListener('click', (e) => {
       if (!widget.contains(e.target) && !fabChat.contains(e.target)) closeChat();
@@ -436,7 +458,7 @@ document.addEventListener('DOMContentLoaded', () => {
       busy = true;
       input.value = '';
       input.style.height = 'auto';
-      input.focus();          // await 전에 포커스 — iOS 키보드 유지
+      input.focus();
       sendBtn.disabled = true;
       addMsg('user', msg);
       showTyping();
@@ -447,11 +469,15 @@ document.addEventListener('DOMContentLoaded', () => {
       sendBtn.disabled = false;
     }
 
+    // mousedown preventDefault → 버튼 탭 시 input 포커스(키보드) 유지
+    sendBtn.addEventListener('mousedown', e => e.preventDefault());
+    sendBtn.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+    sendBtn.addEventListener('touchend', (e) => { e.preventDefault(); send(); });
     sendBtn.addEventListener('click', send);
+
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
     });
-    // 자동 높이 조절
     input.addEventListener('input', () => {
       input.style.height = 'auto';
       input.style.height = Math.min(input.scrollHeight, 80) + 'px';
