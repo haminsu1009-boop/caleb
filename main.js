@@ -327,6 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── HTML 주입 ──
     document.body.insertAdjacentHTML('beforeend', `
+      <div class="chat-overlay" id="chatOverlay"></div>
       <div class="fab-group" id="fabGroup">
         <a href="tel:02-3142-4051" class="fab-btn fab-phone" aria-label="전화 문의">
           <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
@@ -375,6 +376,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── 요소 참조 ──
     const widget    = document.getElementById('chatWidget');
+    const fabGroup  = document.getElementById('fabGroup');
+    const overlay   = document.getElementById('chatOverlay');
     const fabChat   = document.getElementById('fabChat');
     const msgArea   = document.getElementById('chatMessages');
     const input     = document.getElementById('chatInput');
@@ -430,26 +433,36 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ── 키보드 올라올 때 채팅창 위치 조정 (iOS visualViewport) ──
+    function resetWidgetPos() {
+      widget.style.top = '';
+      widget.style.bottom = '';
+      widget.style.maxHeight = '';
+      widget.classList.remove('kb-open');
+      fabGroup.style.opacity = '';
+      fabGroup.style.pointerEvents = '';
+    }
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', () => {
         if (!widget.classList.contains('open')) return;
-        const kbH = window.innerHeight - window.visualViewport.height;
+        const vvp = window.visualViewport;
+        const offsetTop = vvp.offsetTop || 0;
+        const kbH = window.innerHeight - vvp.height - offsetTop;
         if (kbH > 100) {
-          widget.style.bottom  = (kbH + 6) + 'px';
-          widget.style.maxHeight = (window.visualViewport.height - 80) + 'px';
-          document.getElementById('fabGroup').style.opacity = '0';
-          document.getElementById('fabGroup').style.pointerEvents = 'none';
-        } else {
-          widget.style.bottom  = '';
+          widget.style.top    = offsetTop + 'px';
+          widget.style.bottom = kbH + 'px';
           widget.style.maxHeight = '';
-          document.getElementById('fabGroup').style.opacity = '';
-          document.getElementById('fabGroup').style.pointerEvents = '';
+          widget.classList.add('kb-open');
+          fabGroup.style.opacity = '0';
+          fabGroup.style.pointerEvents = 'none';
+        } else {
+          resetWidgetPos();
         }
       });
     }
 
     // ── 열기/닫기 ──
     const openChat  = () => {
+      overlay.classList.add('active');
       widget.classList.add('open');
       fabChat.classList.add('active');
       if (!msgArea.children.length) {
@@ -462,18 +475,16 @@ document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => input.focus(), 300);
     };
     const closeChat = () => {
+      overlay.classList.remove('active');
       widget.classList.remove('open');
       fabChat.classList.remove('active');
-      widget.style.bottom = '';
-      widget.style.maxHeight = '';
+      resetWidgetPos();
     };
 
     fabChat.addEventListener('click', () => widget.classList.contains('open') ? closeChat() : openChat());
     document.getElementById('chatClose').addEventListener('mousedown', e => e.preventDefault());
     document.getElementById('chatClose').addEventListener('click', closeChat);
-    document.addEventListener('click', (e) => {
-      if (!widget.contains(e.target) && !fabChat.contains(e.target)) closeChat();
-    });
+    overlay.addEventListener('click', closeChat);
 
     // ── 메시지 전송 ──
     async function send() {
