@@ -119,101 +119,196 @@
       <p class="section-desc">미주/유럽/동남아/중국 등 현지 지사 및 파트너사를 통한 전세계 네트워킹</p>
     </div>
 
-    <!-- World Map Visual -->
+    <!-- World Map Visual (dot-matrix style) -->
     <div class="network-map-wrap">
-      <div class="network-map-svg">
-        <!-- SVG world map dots -->
-        <svg viewBox="0 0 800 380" xmlns="http://www.w3.org/2000/svg" class="world-map-bg">
-          <!-- Simple stylized world map outline -->
-          <!-- North America -->
-          <path d="M80,80 Q100,60 140,65 Q170,60 185,80 Q200,100 195,130 Q180,160 160,170 Q130,175 110,160 Q85,140 75,115 Z" fill="#e8edf5" stroke="#c5cfe0" stroke-width="1"/>
-          <!-- South America -->
-          <path d="M145,185 Q170,175 185,190 Q200,210 195,250 Q185,290 165,305 Q145,310 130,295 Q115,270 120,240 Q125,205 145,185 Z" fill="#e8edf5" stroke="#c5cfe0" stroke-width="1"/>
-          <!-- Europe -->
-          <path d="M340,55 Q370,45 395,55 Q415,65 420,85 Q415,105 395,110 Q370,115 345,105 Q325,95 330,75 Z" fill="#e8edf5" stroke="#c5cfe0" stroke-width="1"/>
-          <!-- Africa -->
-          <path d="M350,120 Q385,110 405,125 Q425,145 425,185 Q420,225 405,255 Q385,275 360,270 Q335,260 325,230 Q315,195 320,160 Q328,130 350,120 Z" fill="#e8edf5" stroke="#c5cfe0" stroke-width="1"/>
-          <!-- Asia -->
-          <path d="M430,45 Q500,35 560,50 Q610,60 640,85 Q660,110 650,140 Q630,165 590,170 Q540,175 490,160 Q450,145 430,120 Q415,95 420,70 Z" fill="#e8edf5" stroke="#c5cfe0" stroke-width="1"/>
-          <!-- Southeast Asia -->
-          <path d="M550,155 Q590,150 615,165 Q630,180 625,200 Q610,215 585,215 Q560,210 548,195 Q540,178 550,155 Z" fill="#e8edf5" stroke="#c5cfe0" stroke-width="1"/>
-          <!-- Australia -->
-          <path d="M610,230 Q650,220 680,235 Q700,255 695,285 Q680,310 650,315 Q620,315 605,295 Q592,272 598,250 Z" fill="#e8edf5" stroke="#c5cfe0" stroke-width="1"/>
+      <svg viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg" class="world-map-bg">
+        <defs>
+          <pattern id="dotGrid" x="0" y="0" width="7" height="7" patternUnits="userSpaceOnUse">
+            <circle cx="2.5" cy="2.5" r="1.5" fill="#b8cde8"/>
+          </pattern>
+          <pattern id="dotGridHL" x="0" y="0" width="7" height="7" patternUnits="userSpaceOnUse">
+            <circle cx="2.5" cy="2.5" r="1.5" fill="#5b8fda"/>
+          </pattern>
+        </defs>
 
-          <!-- Partner dots - Europe -->
-          <circle cx="365" cy="72" r="5" fill="#2563eb" opacity="0.9"/>
-          <circle cx="380" cy="65" r="5" fill="#2563eb" opacity="0.9"/>
-          <circle cx="395" cy="78" r="5" fill="#2563eb" opacity="0.9"/>
-          <circle cx="350" cy="85" r="5" fill="#2563eb" opacity="0.9"/>
-          <circle cx="405" cy="90" r="5" fill="#2563eb" opacity="0.9"/>
-          <!-- Americas dots -->
-          <circle cx="110" cy="105" r="5" fill="#2563eb" opacity="0.9"/>
-          <circle cx="130" cy="125" r="5" fill="#2563eb" opacity="0.9"/>
-          <circle cx="155" cy="240" r="5" fill="#2563eb" opacity="0.9"/>
-          <!-- Asia dots -->
-          <circle cx="480" cy="90" r="5" fill="#2563eb" opacity="0.9"/>
-          <circle cx="530" cy="75" r="5" fill="#2563eb" opacity="0.9"/>
-          <circle cx="565" cy="95" r="5" fill="#2563eb" opacity="0.9"/>
-          <circle cx="590" cy="80" r="5" fill="#2563eb" opacity="0.9"/>
-          <circle cx="570" cy="175" r="5" fill="#2563eb" opacity="0.9"/>
-          <circle cx="555" cy="190" r="5" fill="#2563eb" opacity="0.9"/>
-          <!-- Australia dot -->
-          <circle cx="648" cy="268" r="5" fill="#2563eb" opacity="0.9"/>
+        <!-- ── North America ── -->
+        <path d="M95,52 Q140,38 195,45 Q245,52 268,78 Q282,102 272,140
+                 Q258,170 238,186 Q218,200 210,218 Q226,228 222,248
+                 Q212,262 194,256 Q172,244 158,216 Q146,188 136,162
+                 Q108,146 84,118 Q66,92 95,52Z"
+              fill="url(#dotGrid)"/>
 
-          <!-- Connecting lines -->
-          <line x1="365" y1="72" x2="480" y2="90" stroke="#2563eb" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.3"/>
-          <line x1="110" y1="105" x2="365" y2="72" stroke="#2563eb" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.3"/>
-          <line x1="480" y1="90" x2="570" y2="175" stroke="#2563eb" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.3"/>
-          <line x1="565" y1="95" x2="648" y2="268" stroke="#2563eb" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.3"/>
-        </svg>
-      </div>
+        <!-- ── South America ── -->
+        <path d="M208,272 Q246,260 272,272 Q295,288 290,330
+                 Q278,372 252,406 Q226,426 198,420 Q172,408 160,374
+                 Q152,338 165,298 Q182,274 208,272Z"
+              fill="url(#dotGrid)"/>
+
+        <!-- ── Europe ── -->
+        <path d="M432,62 Q460,50 492,54 Q524,60 540,78
+                 Q548,96 534,112 Q514,124 486,124 Q456,120 438,104
+                 Q424,88 432,62Z"
+              fill="url(#dotGridHL)"/>
+
+        <!-- ── Africa ── -->
+        <path d="M436,130 Q484,118 526,126 Q558,138 562,176
+                 Q564,218 548,262 Q528,304 500,322 Q470,334 440,324
+                 Q408,310 396,272 Q386,230 396,184 Q406,146 436,130Z"
+              fill="url(#dotGrid)"/>
+
+        <!-- ── Russia / North Asia ── -->
+        <path d="M538,38 Q638,22 740,28 Q812,34 858,52
+                 Q880,66 868,86 Q848,104 812,108 Q776,110 742,102
+                 Q706,94 672,96 Q640,98 612,86 Q578,72 554,56Z"
+              fill="url(#dotGrid)"/>
+
+        <!-- ── Middle East ── -->
+        <path d="M538,112 Q572,104 604,112 Q626,122 628,148
+                 Q624,168 604,176 Q580,182 558,170 Q538,156 536,134Z"
+              fill="url(#dotGrid)"/>
+
+        <!-- ── South Asia (India) ── -->
+        <path d="M604,130 Q638,118 668,128 Q692,142 692,168
+                 Q688,192 668,208 Q644,220 618,214
+                 Q594,204 586,180 Q580,154 604,130Z"
+              fill="url(#dotGridHL)"/>
+        <!-- India subcontinent tip -->
+        <path d="M618,214 Q638,212 650,226 Q656,244 642,258
+                 Q624,266 608,256 Q596,242 602,226Z"
+              fill="url(#dotGridHL)"/>
+
+        <!-- ── East Asia ── -->
+        <path d="M712,72 Q758,64 802,76 Q832,90 832,116
+                 Q830,138 810,150 Q786,162 756,164 Q724,164 706,150
+                 Q690,136 694,108 Q698,84 712,72Z"
+              fill="url(#dotGridHL)"/>
+
+        <!-- ── Southeast Asia peninsula ── -->
+        <path d="M706,158 Q732,150 752,162 Q764,178 756,200
+                 Q742,216 720,218 Q698,214 690,196 Q684,178 706,158Z"
+              fill="url(#dotGridHL)"/>
+
+        <!-- ── SE Asia islands (Sumatra/Java/Borneo) ── -->
+        <path d="M692,228 Q720,218 746,224 Q764,236 758,254
+                 Q742,266 716,264 Q692,256 686,240Z"
+              fill="url(#dotGridHL)"/>
+
+        <!-- ── Japan ── -->
+        <path d="M840,86 Q858,78 872,90 Q878,104 864,116
+                 Q850,122 838,112 Q830,100 840,86Z"
+              fill="url(#dotGridHL)"/>
+
+        <!-- ── Australia ── -->
+        <path d="M718,296 Q778,278 836,290 Q868,308 860,350
+                 Q848,386 810,400 Q768,410 730,396 Q694,378 682,344
+                 Q674,310 698,298Z"
+              fill="url(#dotGrid)"/>
+
+        <!-- ── New Zealand ── -->
+        <path d="M872,340 Q886,330 896,344 Q900,360 888,372
+                 Q874,376 866,364 Q860,350 872,340Z"
+              fill="url(#dotGrid)"/>
+
+        <!-- Service location dots (blue) -->
+        <!-- East Asia -->
+        <circle cx="762" cy="118" r="6" fill="#1d4ed8"/><!-- Seoul/China -->
+        <circle cx="812" cy="100" r="5" fill="#1d4ed8"/><!-- Tokyo -->
+        <circle cx="740" cy="128" r="5" fill="#1d4ed8"/><!-- Shanghai -->
+        <!-- SE Asia -->
+        <circle cx="726" cy="178" r="5" fill="#1d4ed8"/><!-- Bangkok -->
+        <circle cx="718" cy="200" r="5" fill="#1d4ed8"/><!-- Singapore -->
+        <!-- South Asia -->
+        <circle cx="634" cy="172" r="5" fill="#1d4ed8"/><!-- India -->
+        <circle cx="650" cy="238" r="5" fill="#1d4ed8"/><!-- Sri Lanka -->
+        <!-- Middle East -->
+        <circle cx="576" cy="140" r="5" fill="#1d4ed8"/><!-- Middle East -->
+        <!-- Europe -->
+        <circle cx="486" cy="78" r="6" fill="#1d4ed8"/><!-- London -->
+        <circle cx="510" cy="72" r="5" fill="#1d4ed8"/><!-- Germany -->
+        <circle cx="462" cy="84" r="5" fill="#1d4ed8"/><!-- France -->
+        <circle cx="502" cy="92" r="5" fill="#1d4ed8"/><!-- Italy -->
+        <!-- Americas -->
+        <circle cx="180" cy="98" r="6" fill="#1d4ed8"/><!-- USA/Canada -->
+        <circle cx="205" cy="126" r="5" fill="#1d4ed8"/><!-- SE USA -->
+        <circle cx="244" cy="282" r="5" fill="#1d4ed8"/><!-- Colombia -->
+        <!-- Australia -->
+        <circle cx="794" cy="344" r="5" fill="#1d4ed8"/><!-- Sydney -->
+
+        <!-- Connection lines -->
+        <line x1="486" y1="78" x2="694" y2="108" stroke="#1d4ed8" stroke-width="0.8" stroke-dasharray="5,4" opacity="0.25"/>
+        <line x1="180" y1="98" x2="486" y2="78"  stroke="#1d4ed8" stroke-width="0.8" stroke-dasharray="5,4" opacity="0.25"/>
+        <line x1="694" y1="108" x2="726" y2="178" stroke="#1d4ed8" stroke-width="0.8" stroke-dasharray="5,4" opacity="0.25"/>
+        <line x1="762" y1="118" x2="794" y2="344" stroke="#1d4ed8" stroke-width="0.8" stroke-dasharray="5,4" opacity="0.25"/>
+      </svg>
     </div>
 
-    <!-- Partner Companies by Region -->
+    <!-- Service Countries by Region -->
     <div class="partner-regions">
 
       <div class="partner-region">
         <div class="pr-header">
-          <span class="pr-flag">🌍</span>
-          <h3>유럽 Europe</h3>
+          <span class="pr-flag">🌏</span>
+          <h3>아시아</h3>
         </div>
-        <ul class="partner-list">
-          <li><span class="flag-icon">🇬🇧</span> ENI SHIPPING(UK) LTD</li>
-          <li><span class="flag-icon">🇳🇱</span> VABIX SHIPPING B.V</li>
-          <li><span class="flag-icon">🇩🇪</span> ELEMENT LOGISTIC</li>
-          <li><span class="flag-icon">🇩🇪</span> H&amp;FRIENDS</li>
-          <li><span class="flag-icon">🇮🇹</span> WORLD ASIA LOGISTICS S.R.L</li>
-          <li><span class="flag-icon">🇫🇷</span> F.C.LOGISTIQUE</li>
+        <ul class="partner-list country-list">
+          <li>🇨🇳 중국 (상하이·칭다오·선전·홍콩)</li>
+          <li>🇯🇵 일본</li>
+          <li>🇸🇬 싱가포르</li>
+          <li>🇲🇾 말레이시아</li>
+          <li>🇹🇭 태국</li>
+          <li>🇻🇳 베트남</li>
+          <li>🇮🇩 인도네시아</li>
+          <li>🇵🇭 필리핀</li>
+          <li>🇹🇼 대만</li>
+          <li>🇧🇩 방글라데시</li>
+          <li>🇮🇳 인도</li>
+          <li>🇵🇰 파키스탄</li>
+          <li>🇱🇰 스리랑카</li>
+          <li>🇰🇭 캄보디아</li>
+        </ul>
+      </div>
+
+      <div class="partner-region">
+        <div class="pr-header">
+          <span class="pr-flag">🌍</span>
+          <h3>유럽 / 중동 / 아프리카</h3>
+        </div>
+        <ul class="partner-list country-list">
+          <li>🇬🇧 영국</li>
+          <li>🇩🇪 독일</li>
+          <li>🇫🇷 프랑스</li>
+          <li>🇮🇹 이탈리아</li>
+          <li>🇳🇱 네덜란드</li>
+          <li>🇧🇪 벨기에</li>
+          <li>🇪🇸 스페인</li>
+          <li>🇵🇱 폴란드</li>
+          <li>🇹🇷 튀르키예</li>
+          <li>🇸🇦 사우디아라비아</li>
+          <li>🇮🇷 이란</li>
+          <li>🇰🇼 쿠웨이트</li>
+          <li>🇿🇦 남아프리카공화국</li>
+          <li>🇳🇬 나이지리아 외 다수</li>
         </ul>
       </div>
 
       <div class="partner-region">
         <div class="pr-header">
           <span class="pr-flag">🌎</span>
-          <h3>미주 Americas</h3>
+          <h3>미주 / 호주·오세아니아</h3>
         </div>
-        <ul class="partner-list">
-          <li><span class="flag-icon">🇨🇦</span> BNX SHIPPING INC, TORONTO</li>
-          <li><span class="flag-icon">🇺🇸</span> H&amp;FRIENDS<br/><small style="color:#666;font-size:0.78rem;">(LA / CHICAGO / NY / AILUS HOUSTON / AILUS ATLANTA)</small></li>
-          <li><span class="flag-icon">🇨🇴</span> GAVA COLOMBIA</li>
-        </ul>
-      </div>
-
-      <div class="partner-region">
-        <div class="pr-header">
-          <span class="pr-flag">🌏</span>
-          <h3>아시아 Asia</h3>
-        </div>
-        <ul class="partner-list">
-          <li><span class="flag-icon">🇨🇳</span> TOTAL WORLD (SH/QD/SZ/HK)</li>
-          <li><span class="flag-icon">🇨🇳</span> PANDA LOGISTICS</li>
-          <li><span class="flag-icon">🌐</span> WORLDLINK</li>
-          <li><span class="flag-icon">🇰🇷</span> LOTOS CORPORATION</li>
-          <li><span class="flag-icon">🇰🇷</span> KORNET EXPRESS INC</li>
-          <li><span class="flag-icon">🇻🇳</span> PHUONG NAM CO., LTD</li>
-          <li><span class="flag-icon">🌐</span> GNL LOGISTICS WORLDWIDE</li>
-          <li><span class="flag-icon">🇱🇰</span> EXPLOLANKA FREIGHT (PVT) LTD</li>
-          <li><span class="flag-icon">🇦🇺</span> ACE CARGO INTERNATIONAL PTY LTD</li>
+        <ul class="partner-list country-list">
+          <li>🇺🇸 미국 (LA·시카고·뉴욕·휴스턴·애틀랜타)</li>
+          <li>🇨🇦 캐나다 (토론토)</li>
+          <li>🇲🇽 멕시코</li>
+          <li>🇨🇴 콜롬비아</li>
+          <li>🇧🇷 브라질</li>
+          <li>🇦🇷 아르헨티나</li>
+          <li>🇨🇱 칠레</li>
+          <li>🇵🇪 페루</li>
+          <li>🇵🇦 파나마</li>
+          <li>🇬🇹 과테말라 외 중미 다수</li>
+          <li>🇦🇺 호주</li>
+          <li>🇳🇿 뉴질랜드</li>
         </ul>
       </div>
 
