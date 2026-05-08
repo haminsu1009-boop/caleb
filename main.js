@@ -434,71 +434,60 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── 위젯 위치 초기화 ──
     function resetWidgetPos() {
-      widget.style.top = '';
-      widget.style.left = '';
-      widget.style.right = '';
-      widget.style.width = '';
-      widget.style.bottom = '';
-      widget.style.height = '';
-      widget.style.maxHeight = '';
+      widget.style.cssText = ''; // 모든 인라인 스타일 한번에 제거
       widget.classList.remove('kb-open');
       fabGroup.style.opacity = '';
       fabGroup.style.pointerEvents = '';
     }
 
-    // ── 모바일 전체 너비 (키보드 없을 때) ──
-    function setMobileWidth() {
-      widget.style.left   = '0';
-      widget.style.right  = '0';
-      widget.style.width  = '100%';
-      widget.style.top    = '';
-      widget.style.height = '';
-      widget.style.bottom = '';
-      widget.style.maxHeight = '';
+    // ── 모바일: padding-bottom으로 키보드 공간 확보 (bottom 계산 불필요) ──
+    function setMobileLayout(kbH) {
+      widget.style.position     = 'fixed';
+      widget.style.top          = '0';
+      widget.style.left         = '0';
+      widget.style.right        = '0';
+      widget.style.bottom       = '0';
+      widget.style.width        = '100%';
+      widget.style.height       = '100%';
+      widget.style.maxHeight    = 'none';
+      widget.style.paddingBottom = kbH + 'px';
+      widget.style.boxSizing    = 'border-box';
+      widget.style.borderRadius = kbH > 0 ? '0' : '20px';
+      widget.style.transform    = 'none';
+      widget.style.opacity      = '1';
+      widget.style.pointerEvents = 'all';
       widget.classList.add('kb-open');
       fabGroup.style.opacity = '0';
       fabGroup.style.pointerEvents = 'none';
     }
 
-    // ── 키보드 높이 계산 후 위젯 위치 맞춤 ──
+    // ── 키보드 높이 감지 후 레이아웃 갱신 ──
     function adjustForKeyboard() {
-      if (!widget.classList.contains('open')) return;
-      if (window.innerWidth > 600) return;
-      const vvp = window.visualViewport || null;
-      // position:fixed는 layout viewport 기준 → offsetTop 제외
-      const kbH = vvp ? Math.round(window.innerHeight - vvp.height) : 0;
-      if (kbH > 80) {
-        widget.style.left     = '0';
-        widget.style.right    = '0';
-        widget.style.width    = '100%';
-        widget.style.top      = '';
-        widget.style.height   = '';
-        widget.style.bottom   = kbH + 'px';
-        widget.style.maxHeight = (vvp.height - 4) + 'px';
-        widget.classList.add('kb-open');
-        fabGroup.style.opacity = '0';
-        fabGroup.style.pointerEvents = 'none';
-        msgArea.scrollTop = msgArea.scrollHeight;
-      } else {
-        setMobileWidth();
-      }
+      if (!widget.classList.contains('open') || window.innerWidth > 600) return;
+      const vvp = window.visualViewport;
+      const kbH = vvp ? Math.max(0, Math.round(window.innerHeight - vvp.height)) : 0;
+      setMobileLayout(kbH);
+      if (kbH > 0) msgArea.scrollTop = msgArea.scrollHeight;
     }
 
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', adjustForKeyboard);
       window.visualViewport.addEventListener('scroll', adjustForKeyboard);
     }
-    // focus 이벤트 폴백: iOS에서 resize 이벤트가 늦게 오는 경우 대비
-    input.addEventListener('focus', () => setTimeout(adjustForKeyboard, 100));
-    input.addEventListener('focus', () => setTimeout(adjustForKeyboard, 350));
-    input.addEventListener('blur',  () => setTimeout(setMobileWidth, 150));
+    input.addEventListener('focus', () => setTimeout(adjustForKeyboard, 80));
+    input.addEventListener('focus', () => setTimeout(adjustForKeyboard, 300));
+    input.addEventListener('blur',  () => {
+      setTimeout(() => {
+        if (widget.classList.contains('open') && window.innerWidth <= 600) setMobileLayout(0);
+      }, 100);
+    });
 
     // ── 열기/닫기 ──
     const openChat  = () => {
       overlay.classList.add('active');
+      if (window.innerWidth <= 600) setMobileLayout(0);
       widget.classList.add('open');
       fabChat.classList.add('active');
-      if (window.innerWidth <= 600) setMobileWidth();
       if (!msgArea.children.length) {
         if (isBizHours()) {
           addMsg('assistant', '안녕하세요! 태인종합물류 AI 상담입니다 😊\n해상·항공·육상운송, 통관, 견적 등 무엇이든 물어보세요!\n\n상담사와 직접 연결을 원하시면 아래 버튼을 눌러주세요.');
