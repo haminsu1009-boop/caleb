@@ -1475,6 +1475,23 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .chat-input-send:hover  { background: #1d4ed8; transform: scale(1.08); }
 .chat-input-send:disabled { background: #cbd5e1; cursor: default; transform: none; }
 
+/* Agent connection tab */
+.chat-agent-tab {
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-top: 1px solid #e9ecf0;
+  border-bottom: 1px solid #e9ecf0;
+  flex-shrink: 0;
+}
+.chat-agent-btn {
+  width: 100%; padding: 8px 12px;
+  background: #fff; border: 1.5px solid #2563eb; border-radius: 10px;
+  color: #2563eb; font-size: 0.78rem; font-weight: 600; font-family: inherit;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+.chat-agent-btn:hover { background: #2563eb; color: #fff; }
+
 @media (max-width: 480px) {
   .chat-widget { width: calc(100vw - 28px); right: 14px; bottom: 100px; }
   .fab-group   { right: 16px; bottom: 20px; }
