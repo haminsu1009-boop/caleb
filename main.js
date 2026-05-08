@@ -289,7 +289,15 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ── FLOATING ACTION BUTTONS + AI CHAT WIDGET ── */
   (function initFAB() {
 
-    // ── AI 응답 (항상 AI) ──
+    // ── 영업시간 체크 (평일 09:00~18:00) ──
+    function isBizHours() {
+      const now = new Date();
+      const day = now.getDay();
+      const h = now.getHours();
+      return day >= 1 && day <= 5 && h >= 9 && h < 18;
+    }
+
+    // ── AI 자동 응답 (사전 설정 키워드만) ──
     function getAutoReply(msg) {
       const m = msg.toLowerCase();
       if (/안녕|hello|hi|반가|처음/.test(m))
@@ -372,6 +380,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const input     = document.getElementById('chatInput');
     const sendBtn   = document.getElementById('chatSend');
     const agentBtn  = document.getElementById('chatAgentBtn');
+    const onlineText = widget.querySelector('.chat-online-text');
+    const statusDot  = widget.querySelector('.chat-status-dot');
+
+    // ── 영업시간에 따라 UI 초기 상태 설정 ──
+    if (!isBizHours()) {
+      onlineText.textContent = '영업시간 외 (AI 상담)';
+      statusDot.style.background = '#fbbf24';
+      statusDot.style.boxShadow = '0 0 0 3px rgba(251,191,36,0.25)';
+      agentBtn.disabled = true;
+      agentBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg> 영업시간 외 — 상담사 연결 불가`;
+    }
 
     // ── 말풍선 추가 ──
     let busy = false;
@@ -401,6 +420,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── 상담사 연결 탭 ──
     agentBtn.addEventListener('mousedown', e => e.preventDefault());
     agentBtn.addEventListener('click', () => {
+      if (!isBizHours()) return;
       addMsg('user', '상담사 연결을 요청합니다.');
       showTyping();
       setTimeout(() => {
@@ -433,7 +453,11 @@ document.addEventListener('DOMContentLoaded', () => {
       widget.classList.add('open');
       fabChat.classList.add('active');
       if (!msgArea.children.length) {
-        addMsg('assistant', '안녕하세요! 태인종합물류 AI 상담입니다 😊\n해상·항공·육상운송, 통관, 견적 등 무엇이든 물어보세요!\n\n상담사와 직접 연결을 원하시면 아래 버튼을 눌러주세요.');
+        if (isBizHours()) {
+          addMsg('assistant', '안녕하세요! 태인종합물류 AI 상담입니다 😊\n해상·항공·육상운송, 통관, 견적 등 무엇이든 물어보세요!\n\n상담사와 직접 연결을 원하시면 아래 버튼을 눌러주세요.');
+        } else {
+          addMsg('assistant', '안녕하세요! 태인종합물류 AI 상담입니다 😊\n\n⚠️ 현재 영업시간(평일 09:00~18:00)이 아닙니다.\n실시간 상담사 연결은 불가하며, AI가 기본 정보를 안내해드립니다.\n\n해상·항공·육상운송, 통관, 견적 등 궁금한 점을 물어보세요!');
+        }
       }
       setTimeout(() => input.focus(), 300);
     };
