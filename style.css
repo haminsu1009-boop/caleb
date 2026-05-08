@@ -875,6 +875,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 }
 .ceo-company { color: var(--text-light); font-size: 0.92rem; margin-bottom: 4px; }
 .ceo-title-name { font-size: 1.1rem; color: var(--dark); font-weight: 600; }
+.ceo-title-name strong { color: var(--primary) !important; font-size: 1.2rem; }
 .ceo-info-panel {
   display: flex; flex-direction: column; gap: 14px;
   background: var(--bg); border-radius: var(--radius);
