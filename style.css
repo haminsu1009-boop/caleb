@@ -1378,7 +1378,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 
 /* ── Chat Widget Panel ── */
 .chat-widget {
-  position: fixed; bottom: 96px; right: 24px; z-index: 1001;
+  position: fixed; bottom: 96px; right: 24px; z-index: 1002;
   width: 320px; max-height: 480px;
   background: #fff; border-radius: 20px;
   box-shadow: 0 8px 40px rgba(0,0,0,0.18);
@@ -1477,14 +1477,14 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 
 /* Chat overlay (dims page behind widget) */
 .chat-overlay {
-  display: none; position: fixed; inset: 0; z-index: 1000;
-  background: rgba(0,0,0,0.35);
+  display: none; position: fixed; inset: 0; z-index: 1001;
+  background: rgba(0,0,0,0.45);
 }
 .chat-overlay.active { display: block; }
 
-/* Keyboard-open mode: stretch to fill visible area */
+/* Keyboard / mobile fullscreen mode */
 .chat-widget.kb-open {
-  border-radius: 16px 16px 20px 20px;
+  border-radius: 0 0 20px 20px;
 }
 
 /* Agent connection tab */
@@ -1508,9 +1508,10 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 }
 .chat-agent-btn:disabled:hover { background: #fff; color: #94a3b8; }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
   .chat-widget { width: calc(100vw - 24px); right: 12px; bottom: 100px; }
-  .chat-widget.kb-open { width: calc(100vw - 16px); right: 8px; left: 8px; border-radius: 14px 14px 18px 18px; }
+  /* 풀스크린 모드: left:0 right:0 은 JS inline으로 설정 */
+  .chat-widget.kb-open { border-radius: 0; }
   .fab-group   { right: 16px; bottom: 20px; }
   .scroll-top  { right: 16px; bottom: 172px; }
 }
