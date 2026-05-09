@@ -312,7 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return '통관 및 포워딩 서비스를 제공합니다.\n\n• 수출통관 / 수입통관\n• HS코드 분류 컨설팅\n• 관세 절감 방안 제시\n\n복잡한 통관 절차를 전문가가 처리합니다.';
       if (/견적|가격|비용|요금|얼마|단가/.test(m))
         return '견적은 화물 정보에 따라 달라집니다.\n\n빠른 견적을 위해 아래 정보를 알려주세요:\n① 품목\n② 중량 / 용적\n③ 출발지 → 목적지\n\n📞 02-3142-4051\n📧 op@ttt3.co.kr';
-      if (/전화|연락처|주소|이메일|위치|어디|찾아/.test(m))
+      if (/전화|연락처|주소|이메일|위치|어디|창아/.test(m))
         return '📞 대표전화: 02-3142-4051\n📠 팩스: 02-3142-4055\n📧 이메일: op@ttt3.co.kr\n📍 주소: 서울 마포구 월드컵로 112, 4층\n\n영업시간: 평일 09:00 ~ 18:00';
       if (/영업시간|운영시간|몇시|시간|언제/.test(m))
         return '영업시간은 평일 09:00 ~ 18:00입니다.\n(토·일·공휴일 휴무)\n\n영업시간 중에도 AI 상담을 이용하시거나,\n상담사 연결 버튼으로 직접 문의하실 수 있습니다.';
@@ -452,32 +452,37 @@ document.addEventListener('DOMContentLoaded', () => {
       fabGroup.style.pointerEvents = '';
     }
 
-    // ── 모바일: 전체화면, padding-bottom으로 키보드 공간 확보 ──
-    function setMobileLayout(kbH) {
+    // ── 모바일: 시각적 뷰포트(visual viewport)에 정확히 맞춰 전체화면 ──
+    // iOS Safari에서 키보드가 올라오면 vvp.offsetTop이 양수가 되며
+    // 헤더가 화면 위로 밀려나는 버그를 top: vvp.offsetTop으로 방지
+    function setMobileLayout() {
+      const vvp = window.visualViewport;
+      const top = vvp ? Math.round(vvp.offsetTop) : 0;
+      const h   = vvp ? Math.round(vvp.height)    : window.innerHeight;
+
       widget.style.position      = 'fixed';
-      widget.style.top           = '0';
+      widget.style.top           = top + 'px';
       widget.style.left          = '0';
       widget.style.right         = '0';
       widget.style.bottom        = '';
       widget.style.width         = '100%';
-      widget.style.height        = window.innerHeight + 'px';
+      widget.style.height        = h + 'px';
       widget.style.maxHeight     = 'none';
-      widget.style.paddingBottom = kbH + 'px';
+      widget.style.paddingBottom = '';
       widget.style.boxSizing     = 'border-box';
-      widget.style.borderRadius  = kbH > 0 ? '0' : '20px';
+      widget.style.borderRadius  = (top > 0 || h < window.innerHeight) ? '0' : '20px';
       // transform / opacity / pointerEvents → CSS가 담당
       widget.classList.add('kb-open');
       fabGroup.style.opacity = '0';
       fabGroup.style.pointerEvents = 'none';
     }
 
-    // ── 키보드 높이 감지 후 레이아웃 갱신 ──
+    // ── 키보드/뷰포트 변화 시 레이아웃 갱신 ──
     function adjustForKeyboard() {
       if (!widget.classList.contains('open') || window.innerWidth > 600) return;
       const vvp = window.visualViewport;
-      const kbH = vvp ? Math.max(0, Math.round(window.innerHeight - vvp.height)) : 0;
-      setMobileLayout(kbH);
-      if (kbH > 0) msgArea.scrollTop = msgArea.scrollHeight;
+      setMobileLayout();
+      if (vvp && vvp.height < window.innerHeight) msgArea.scrollTop = msgArea.scrollHeight;
     }
 
     if (window.visualViewport) {
@@ -488,7 +493,7 @@ document.addEventListener('DOMContentLoaded', () => {
     input.addEventListener('focus', () => setTimeout(adjustForKeyboard, 300));
     input.addEventListener('blur',  () => {
       setTimeout(() => {
-        if (widget.classList.contains('open') && window.innerWidth <= 600) setMobileLayout(0);
+        if (widget.classList.contains('open') && window.innerWidth <= 600) setMobileLayout();
       }, 100);
     });
 
@@ -498,7 +503,7 @@ document.addEventListener('DOMContentLoaded', () => {
       overlay.classList.add('active');
       if (window.innerWidth <= 600) {
         resetWidgetPos();
-        setMobileLayout(0);
+        setMobileLayout();
       }
       widget.classList.add('open');
       fabChat.classList.add('active');
