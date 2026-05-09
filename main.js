@@ -250,25 +250,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
   statNums.forEach(el => countObserver.observe(el));
 
-  /* ── CONTACT FORM ── */
-  const form = document.getElementById('contactForm');
+  /* ── CONTACT FORM (Formspree) ── */
+  const form = document.getElementById('homeInquiryForm');
   if (form) {
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = form.querySelector('.btn-submit');
+      const origText = btn.textContent;
       btn.textContent = '전송 중...';
       btn.disabled = true;
-      // Simulate async submit
-      setTimeout(() => {
-        btn.textContent = '문의가 접수되었습니다 ✓';
-        btn.style.background = '#2e7d32';
+      try {
+        const resp = await fetch('https://formspree.io/f/xpwrjvrd', {
+          method: 'POST',
+          body: new FormData(form),
+          headers: { 'Accept': 'application/json' }
+        });
+        if (resp.ok) {
+          btn.textContent = '문의가 접수되었습니다 ✓';
+          btn.style.background = '#2e7d32';
+          setTimeout(() => {
+            form.reset();
+            btn.textContent = origText;
+            btn.style.background = '';
+            btn.disabled = false;
+          }, 3000);
+        } else {
+          throw new Error('submit failed');
+        }
+      } catch {
+        btn.textContent = '전송 실패 — 다시 시도해주세요';
+        btn.style.background = '#c62828';
         setTimeout(() => {
-          form.reset();
-          btn.textContent = '문의 보내기';
+          btn.textContent = origText;
           btn.style.background = '';
           btn.disabled = false;
         }, 3000);
-      }, 1000);
+      }
     });
   }
 
@@ -332,6 +349,11 @@ document.addEventListener('DOMContentLoaded', () => {
         <a href="tel:02-3142-4051" class="fab-btn fab-phone" aria-label="전화 문의">
           <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
             <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1C9.61 21 3 14.39 3 6c0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+          </svg>
+        </a>
+        <a href="https://pf.kakao.com/_taeinlogistics" target="_blank" rel="noopener" class="fab-btn fab-kakao" aria-label="카카오톡 상담">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
+            <path d="M12 2C6.48 2 2 5.86 2 10.6c0 3.04 1.87 5.72 4.72 7.29L5.6 22l5.02-2.64c.45.06.9.09 1.38.09 5.52 0 10-3.86 10-8.6S17.52 2 12 2z"/>
           </svg>
         </a>
         <button class="fab-btn fab-chat" id="fabChat" aria-label="실시간 상담">
@@ -509,10 +531,11 @@ document.addEventListener('DOMContentLoaded', () => {
       fabChat.classList.add('active');
       if (!msgArea.children.length) {
         if (isBizHours()) {
-          addMsg('assistant', '안녕하세요! 태인종합물류 AI 상담입니다 😊\n해상·항공·육상운송, 통관, 견적 등 무엇이든 물어보세요!\n\n상담사와 직접 연결을 원하시면 아래 버튼을 눌러주세요.');
+          addMsg('assistant', '안녕하세요! 태인종합물류 AI 상담입니다 😊\n무엇을 도와드릴까요?');
         } else {
-          addMsg('assistant', '안녕하세요! 태인종합물류 AI 상담입니다 😊\n\n⚠️ 현재 영업시간(평일 09:00~18:00)이 아닙니다.\n실시간 상담사 연결은 불가하며, AI가 기본 정보를 안내해드립니다.\n\n해상·항공·육상운송, 통관, 견적 등 궁금한 점을 물어보세요!');
+          addMsg('assistant', '안녕하세요! 태인종합물류 AI 상담입니다 😊\n⚠️ 현재 영업시간 외입니다. AI가 기본 정보를 안내해드립니다.');
         }
+        addQuickBtns();
         msgArea.scrollTop = 0;
       }
       setTimeout(() => input.focus(), 300);
@@ -537,13 +560,28 @@ document.addEventListener('DOMContentLoaded', () => {
     overlay.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
     widget.addEventListener('touchmove', e => e.stopPropagation(), { passive: true });
 
+    // ── 빠른 답변 버튼 ──
+    function addQuickBtns() {
+      const wrap = document.createElement('div');
+      wrap.className = 'chat-quick-btns';
+      ['해상운송', '항공운송', '견적문의'].forEach(label => {
+        const btn = document.createElement('button');
+        btn.className = 'chat-quick-btn';
+        btn.textContent = label;
+        btn.addEventListener('mousedown', e => e.preventDefault());
+        btn.addEventListener('click', () => { wrap.remove(); send(label); });
+        wrap.appendChild(btn);
+      });
+      msgArea.appendChild(wrap);
+      msgArea.scrollTop = msgArea.scrollHeight;
+    }
+
     // ── 메시지 전송 ──
-    async function send() {
-      const msg = input.value.trim();
+    async function send(preset) {
+      const msg = preset || input.value.trim();
       if (!msg || busy) return;
       busy = true;
-      input.value = '';
-      input.style.height = 'auto';
+      if (!preset) { input.value = ''; input.style.height = 'auto'; }
       input.focus();
       sendBtn.disabled = true;
       addMsg('user', msg);
@@ -569,6 +607,95 @@ document.addEventListener('DOMContentLoaded', () => {
       input.style.height = Math.min(input.scrollHeight, 80) + 'px';
     });
 
+  })();
+
+  /* ── LANGUAGE TOGGLE ── */
+  (function initLang() {
+    const LANGS = {
+      ko: {
+        'nav.company': '회사소개', 'nav.services': '사업영역',
+        'nav.network': '글로벌 네트워크', 'nav.notice': '공지사항',
+        'nav.support': '고객센터', 'nav.estimate': '빠른 견적', 'nav.consult': '상담 문의',
+        'hero1.h1': '신뢰와 열정으로<br/>세계를 연결합니다',
+        'hero1.desc': 'TAEIN TOTAL TRANSPORTATION CO.,LTD<br/>해상·항공 수출입, 통관, 운송의 글로벌 종합물류 기업',
+        'hero1.btn': '서비스 알아보기', 'hero.consult': '상담 문의',
+        'hero2.h1': '글로벌 물류 네트워크로<br/>세계를 연결합니다',
+        'hero2.desc': '해운·항공·육로의 복합운송 서비스로<br/>전 세계 어디든 안전하게 운송합니다.',
+        'hero2.btn': '네트워크 보기',
+        'hero3.h1': '고객 맞춤<br/>원스톱 물류 서비스',
+        'hero3.desc': 'WCA(World Cargo Association) 회원사로서<br/>40여 개국 120여 해외 파트너와 함께합니다',
+        'hero3.btn': '더 알아보기',
+        'about.title': '(주)태인종합물류를<br/>소개합니다',
+        'about.desc': '2010년 설립 이래, 해상·항공 수출입, 통관, 운송을 아우르는 종합 물류 서비스를 제공합니다. WCA 정식 회원사로 40여 개국 120여 해외파트너와 협력하며 고객의 성공적인 비즈니스를 지원합니다.',
+        'about.btn': '회사 소개 더보기',
+        'stat1.label': '년 설립', 'stat2.label': '개국 네트워크',
+        'stat3.label': '해외 파트너', 'stat4.label': '원 화물보험',
+        'svc.title': '수출입 기업을 위한<br/>올인원 물류 솔루션',
+        'svc.desc': '복잡한 국제 운송, 태인종합물류로<br/>하나로 간편하게 해결하세요',
+        'svc.more': '자세히 보기 ↗',
+        'svc.card1.title': '다양한 운송 수단', 'svc.card1.desc': '해운 FCL/LCL, 항공, 철도를 통해 전 세계 연결',
+        'svc.card2.title': '다양한 화물 타입', 'svc.card2.desc': '일반 화물부터 위험물 및 냉동화물까지 안전한 운송',
+        'svc.card3.title': '출도착지 내륙 운송', 'svc.card3.desc': '출발지 픽업 및 최종 도착지까지의 운송 서비스 제공',
+        'svc.card4.title': '부가 서비스', 'svc.card4.desc': '통관, 보험, 포장 등 국제 운송에 필요한 모든 서비스',
+        'contact.title': '언제든지 문의하세요',
+        'contact.desc': '물류 관련 궁금한 사항이나 견적 문의는 전화 또는 온라인으로 남겨주시면 빠르게 연락드리겠습니다.',
+        'form.title': '견적 및 상담 문의', 'form.subtitle': '아래 양식을 작성해 주시면 담당자가 빠르게 연락드리겠습니다.',
+        'form.name': '이름/회사명 *', 'form.phone': '연락처 *', 'form.email': '이메일 *',
+        'form.service': '문의 서비스', 'form.message': '문의 내용 *', 'form.submit': '문의 보내기',
+      },
+      en: {
+        'nav.company': 'About Us', 'nav.services': 'Services',
+        'nav.network': 'Global Network', 'nav.notice': 'Notice',
+        'nav.support': 'Support', 'nav.estimate': 'Quick Quote', 'nav.consult': 'Contact Us',
+        'hero1.h1': 'Connecting the World<br/>with Trust & Passion',
+        'hero1.desc': 'TAEIN TOTAL TRANSPORTATION CO.,LTD<br/>Your Global Partner for Sea, Air & Customs',
+        'hero1.btn': 'Our Services', 'hero.consult': 'Contact Us',
+        'hero2.h1': 'Global Logistics Network<br/>Connecting the World',
+        'hero2.desc': 'Multi-modal transport via sea, air & land—<br/>safe delivery anywhere in the world.',
+        'hero2.btn': 'View Network',
+        'hero3.h1': 'Customer-Tailored<br/>One-Stop Logistics',
+        'hero3.desc': 'As a WCA (World Cargo Alliance) member,<br/>partnering with 120+ agents in 40+ countries',
+        'hero3.btn': 'Learn More',
+        'about.title': 'About TAEIN<br/>Total Logistics',
+        'about.desc': 'Since 2010, we have provided comprehensive logistics services covering sea/air import-export, customs clearance, and transportation. As an official WCA member, we collaborate with 120+ partners across 40+ countries to support your business success.',
+        'about.btn': 'Learn More',
+        'stat1.label': 'Year Founded', 'stat2.label': 'Countries',
+        'stat3.label': 'Partners', 'stat4.label': 'Cargo Insurance',
+        'svc.title': 'All-in-One Logistics<br/>for Import/Export Companies',
+        'svc.desc': 'Simplify complex international shipping<br/>with TAEIN Total Logistics',
+        'svc.more': 'Learn More ↗',
+        'svc.card1.title': 'Multiple Transport Modes', 'svc.card1.desc': 'Global connectivity via FCL/LCL, air, and rail',
+        'svc.card2.title': 'All Cargo Types', 'svc.card2.desc': 'From general freight to hazmat and refrigerated goods',
+        'svc.card3.title': 'Inland Transport', 'svc.card3.desc': 'Door-to-door pickup and final delivery services',
+        'svc.card4.title': 'Value-Added Services', 'svc.card4.desc': 'Customs, insurance, packaging — everything you need',
+        'contact.title': 'Contact Us Anytime',
+        'contact.desc': 'For logistics inquiries or quotation requests, contact us by phone or online and we will respond promptly.',
+        'form.title': 'Inquiry & Consultation', 'form.subtitle': 'Fill in the form below and our team will get back to you quickly.',
+        'form.name': 'Name / Company *', 'form.phone': 'Phone *', 'form.email': 'Email *',
+        'form.service': 'Service Type', 'form.message': 'Message *', 'form.submit': 'Send Inquiry',
+      }
+    };
+
+    const toggleBtn = document.getElementById('langToggle');
+    if (!toggleBtn) return;
+    let lang = localStorage.getItem('lang') || 'ko';
+
+    function applyLang(l) {
+      lang = l;
+      localStorage.setItem('lang', l);
+      toggleBtn.textContent = l === 'ko' ? 'EN' : 'KO';
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const v = LANGS[l][el.dataset.i18n];
+        if (v !== undefined) el.textContent = v;
+      });
+      document.querySelectorAll('[data-i18n-html]').forEach(el => {
+        const v = LANGS[l][el.dataset.i18nHtml];
+        if (v !== undefined) el.innerHTML = v;
+      });
+    }
+
+    toggleBtn.addEventListener('click', () => applyLang(lang === 'ko' ? 'en' : 'ko'));
+    if (lang !== 'ko') applyLang(lang);
   })();
 
 });

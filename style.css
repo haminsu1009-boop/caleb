@@ -1957,3 +1957,54 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   .benefits-grid { grid-template-columns: 1fr; }
   .process-steps { flex-direction: column; align-items: center; gap: 20px; }
 }
+
+/* ============================================================
+   개선 기능 추가 (언어토글 · 카카오FAB · 채팅빠른버튼 · 서비스카드)
+   ============================================================ */
+
+/* ── 언어 토글 버튼 ── */
+.lang-toggle {
+  background: rgba(255,255,255,0.14);
+  border: 1.5px solid rgba(255,255,255,0.42);
+  color: #fff; border-radius: 14px;
+  padding: 4px 12px; font-size: 0.78rem; font-weight: 700;
+  letter-spacing: 0.05em; cursor: pointer;
+  transition: background 0.18s; flex-shrink: 0;
+  font-family: inherit;
+}
+.lang-toggle:hover { background: rgba(255,255,255,0.28); }
+@media (max-width: 900px) { .lang-toggle { display: none; } }
+
+/* ── 카카오톡 FAB ── */
+.fab-kakao {
+  background: #FEE500; color: #3C1E1E;
+  box-shadow: 0 4px 18px rgba(254,229,0,0.5);
+  animation: none;
+}
+.fab-kakao:hover { box-shadow: 0 6px 24px rgba(254,229,0,0.72); }
+
+/* ── 채팅 빠른 답변 버튼 ── */
+.chat-quick-btns {
+  display: flex; flex-wrap: wrap; gap: 6px; padding: 0 0 4px;
+}
+.chat-quick-btn {
+  background: #fff; border: 1.5px solid #3568d4; color: #3568d4;
+  border-radius: 16px; padding: 5px 13px;
+  font-size: 0.74rem; font-weight: 600;
+  cursor: pointer; transition: background 0.15s, color 0.15s;
+  white-space: nowrap; font-family: inherit;
+}
+.chat-quick-btn:hover, .chat-quick-btn:active {
+  background: #3568d4; color: #fff;
+}
+
+/* ── 서비스 카드 아이콘 영역 강화 ── */
+.svc-ov-icon {
+  width: 64px; height: 64px; border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #eef2ff 0%, #dbeafe 100%);
+  transition: transform 0.22s;
+}
+.svc-ov-card:hover .svc-ov-icon { transform: scale(1.08); }
+.svc-ov-icon img { width: 32px; height: 32px; }
