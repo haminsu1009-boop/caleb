@@ -497,7 +497,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 /* Slide Controls */
 .slide-nav {
   position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
-  display: flex; gap: 10px; z-index: 10;
+  display: none; gap: 10px; z-index: 10;
 }
 .dot {
   width: 10px; height: 10px; border-radius: 50%;
@@ -1974,6 +1974,21 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 }
 .lang-toggle:hover { background: rgba(255,255,255,0.28); }
 @media (max-width: 900px) { .lang-toggle { display: none; } }
+
+/* ── 모바일 메뉴 언어 토글 ── */
+.mobile-lang-wrap {
+  padding: 12px 20px 16px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+.mobile-lang-btn {
+  background: rgba(255,255,255,0.12);
+  border: 1.5px solid rgba(255,255,255,0.35);
+  color: #fff; border-radius: 14px;
+  padding: 7px 20px; font-size: 0.85rem; font-weight: 700;
+  cursor: pointer; font-family: inherit;
+  transition: background 0.18s;
+}
+.mobile-lang-btn:hover { background: rgba(255,255,255,0.25); }
 
 /* ── 카카오톡 FAB ── */
 .fab-kakao {

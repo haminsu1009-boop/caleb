@@ -677,13 +677,14 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const toggleBtn = document.getElementById('langToggle');
-    if (!toggleBtn) return;
+    const mobileToggleBtn = document.getElementById('mobileLangToggle');
     let lang = localStorage.getItem('lang') || 'ko';
 
     function applyLang(l) {
       lang = l;
       localStorage.setItem('lang', l);
-      toggleBtn.textContent = l === 'ko' ? 'EN' : 'KO';
+      if (toggleBtn) toggleBtn.textContent = l === 'ko' ? 'EN' : 'KO';
+      if (mobileToggleBtn) mobileToggleBtn.textContent = l === 'ko' ? '🌐 English' : '🌐 한국어';
       document.querySelectorAll('[data-i18n]').forEach(el => {
         const v = LANGS[l][el.dataset.i18n];
         if (v !== undefined) el.textContent = v;
@@ -694,7 +695,8 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    toggleBtn.addEventListener('click', () => applyLang(lang === 'ko' ? 'en' : 'ko'));
+    if (toggleBtn) toggleBtn.addEventListener('click', () => applyLang(lang === 'ko' ? 'en' : 'ko'));
+    if (mobileToggleBtn) mobileToggleBtn.addEventListener('click', () => applyLang(lang === 'ko' ? 'en' : 'ko'));
     if (lang !== 'ko') applyLang(lang);
   })();
 
