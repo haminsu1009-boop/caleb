@@ -23,11 +23,11 @@
       </div>
             <nav class="gnb">
         <ul>
-          <li><a href="ceo.html">회사소개</a></li>
-          <li><a href="services.html">사업영역</a></li>
-          <li><a href="network.html">글로벌 네트워크</a></li>
-          <li><a href="notice.html">공지사항</a></li>
-          <li><a href="customer-service.html">고객센터</a></li>
+          <li><a href="ceo.html" data-i18n="nav.company">회사소개</a></li>
+          <li><a href="services.html" data-i18n="nav.services">사업영역</a></li>
+          <li><a href="network.html" data-i18n="nav.network">글로벌 네트워크</a></li>
+          <li><a href="notice.html" data-i18n="nav.notice">공지사항</a></li>
+          <li><a href="customer-service.html" data-i18n="nav.support">고객센터</a></li>
         </ul>
         <div class="mega-panel">
           <div class="mega-inner">
@@ -73,8 +73,9 @@
         </div>
       </nav>
       <div class="header-right">
-        <a href="#home" class="btn-estimate">빠른 견적</a>
-        <a href="#inquiry-section" class="btn-consult">상담 문의</a>
+        <button class="lang-toggle" id="langToggle">EN</button>
+        <a href="#home" class="btn-estimate" data-i18n="nav.estimate">빠른 견적</a>
+        <a href="#inquiry-section" class="btn-consult" data-i18n="nav.consult">상담 문의</a>
       </div>
       <button class="hamburger" id="hamburger" aria-label="메뉴 열기">
         <span></span><span></span><span></span>
@@ -112,6 +113,9 @@
           </ul>
         </li>
       </ul>
+      <div class="mobile-lang-wrap">
+        <button class="mobile-lang-btn" id="mobileLangToggle">🌐 English</button>
+      </div>
     </nav>
   </header>
 
@@ -128,29 +132,29 @@
       <div class="hero-left">
         <div class="slide-text active">
           <p class="slide-tag">TRUST &amp; INNOVATION</p>
-          <h1>신뢰와 열정으로<br/>세계를 연결합니다</h1>
-          <p class="slide-desc">TAEIN TOTAL TRANSPORTATION CO.,LTD<br/>해상·항공 수출입, 통관, 운송의 글로벌 종합물류 기업</p>
+          <h1 data-i18n-html="hero1.h1">신뢰와 열정으로<br/>세계를 연결합니다</h1>
+          <p class="slide-desc" data-i18n-html="hero1.desc">TAEIN TOTAL TRANSPORTATION CO.,LTD<br/>해상·항공 수출입, 통관, 운송의 글로벌 종합물류 기업</p>
           <div class="hero-btns">
-            <a href="#services" class="btn-primary">서비스 알아보기</a>
-            <a href="customer-service.html" class="btn-outline">상담 문의</a>
+            <a href="#services" class="btn-primary" data-i18n="hero1.btn">서비스 알아보기</a>
+            <a href="customer-service.html" class="btn-outline" data-i18n="hero.consult">상담 문의</a>
           </div>
         </div>
         <div class="slide-text">
           <p class="slide-tag">GLOBAL LOGISTICS</p>
-          <h1>글로벌 물류 네트워크로<br/>세계를 연결합니다</h1>
-          <p class="slide-desc">해운·항공·육로의 복합운송 서비스로<br/>전 세계 어디든 안전하게 운송합니다.</p>
+          <h1 data-i18n-html="hero2.h1">글로벌 물류 네트워크로<br/>세계를 연결합니다</h1>
+          <p class="slide-desc" data-i18n-html="hero2.desc">해운·항공·육로의 복합운송 서비스로<br/>전 세계 어디든 안전하게 운송합니다.</p>
           <div class="hero-btns">
-            <a href="network.html" class="btn-primary">네트워크 보기</a>
-            <a href="customer-service.html" class="btn-outline">상담 문의</a>
+            <a href="network.html" class="btn-primary" data-i18n="hero2.btn">네트워크 보기</a>
+            <a href="customer-service.html" class="btn-outline" data-i18n="hero.consult">상담 문의</a>
           </div>
         </div>
         <div class="slide-text">
           <p class="slide-tag">WCA MEMBER · ONE-STOP SERVICE</p>
-          <h1>고객 맞춤<br/>원스톱 물류 서비스</h1>
-          <p class="slide-desc">WCA(World Cargo Association) 회원사로서<br/>40여 개국 120여 해외 파트너와 함께합니다</p>
+          <h1 data-i18n-html="hero3.h1">고객 맞춤<br/>원스톱 물류 서비스</h1>
+          <p class="slide-desc" data-i18n-html="hero3.desc">WCA(World Cargo Association) 회원사로서<br/>40여 개국 120여 해외 파트너와 함께합니다</p>
           <div class="hero-btns">
-            <a href="#services" class="btn-primary">더 알아보기</a>
-            <a href="customer-service.html" class="btn-outline">상담 문의</a>
+            <a href="#services" class="btn-primary" data-i18n="hero3.btn">더 알아보기</a>
+            <a href="customer-service.html" class="btn-outline" data-i18n="hero.consult">상담 문의</a>
           </div>
         </div>
       </div>
@@ -362,30 +366,27 @@
       <div class="about-inner about-text-only">
         <div class="about-content">
           <p class="section-label">ABOUT US</p>
-          <h2 class="section-title">(주)태인종합물류를<br/>소개합니다</h2>
-          <p class="about-desc">
-            2010년 설립 이래, 해상·항공 수출입, 통관, 운송을 아우르는 종합 물류 서비스를 제공합니다.
-            WCA 정식 회원사로 40여 개국 120여 해외파트너와 협력하며 고객의 성공적인 비즈니스를 지원합니다.
-          </p>
+          <h2 class="section-title" data-i18n-html="about.title">(주)태인종합물류를<br/>소개합니다</h2>
+          <p class="about-desc" data-i18n="about.desc">2010년 설립 이래, 해상·항공 수출입, 통관, 운송을 아우르는 종합 물류 서비스를 제공합니다. WCA 정식 회원사로 40여 개국 120여 해외파트너와 협력하며 고객의 성공적인 비즈니스를 지원합니다.</p>
           <div class="about-stats-row">
             <div class="ast-item">
               <strong>2010</strong>
-              <span>년 설립</span>
+              <span data-i18n="stat1.label">년 설립</span>
             </div>
             <div class="ast-item">
               <strong>40<sup>+</sup></strong>
-              <span>개국 네트워크</span>
+              <span data-i18n="stat2.label">개국 네트워크</span>
             </div>
             <div class="ast-item">
               <strong>120<sup>+</sup></strong>
-              <span>해외 파트너</span>
+              <span data-i18n="stat3.label">해외 파트너</span>
             </div>
             <div class="ast-item">
               <strong>10억</strong>
-              <span>원 화물보험</span>
+              <span data-i18n="stat4.label">원 화물보험</span>
             </div>
           </div>
-          <a href="philosophy.html" class="btn-primary">회사 소개 더보기</a>
+          <a href="philosophy.html" class="btn-primary" data-i18n="about.btn">회사 소개 더보기</a>
         </div>
       </div>
     </div>
@@ -397,38 +398,38 @@
       <div class="svc-overview-inner">
         <div class="svc-overview-left">
           <p class="section-label">OUR SERVICES</p>
-          <h2 class="section-title">수출입 기업을 위한<br/>올인원 물류 솔루션</h2>
-          <p class="svc-overview-desc">복잡한 국제 운송, 태인종합물류로<br/>하나로 간편하게 해결하세요</p>
-          <a href="services.html" class="btn-primary" style="margin-top:24px;display:inline-block;">자세히 보기 ↗</a>
+          <h2 class="section-title" data-i18n-html="svc.title">수출입 기업을 위한<br/>올인원 물류 솔루션</h2>
+          <p class="svc-overview-desc" data-i18n-html="svc.desc">복잡한 국제 운송, 태인종합물류로<br/>하나로 간편하게 해결하세요</p>
+          <a href="services.html" class="btn-primary" style="margin-top:24px;display:inline-block;" data-i18n="svc.more">자세히 보기 ↗</a>
         </div>
         <div class="svc-overview-grid">
           <a href="sea-transport.html" class="svc-ov-card">
             <div class="svc-ov-icon">
               <img src="assets/icon-ship.svg" alt="해상운송" />
             </div>
-            <h3>다양한 운송 수단</h3>
-            <p>해운 FCL/LCL, 항공, 철도를 통해 전 세계 연결</p>
+            <h3 data-i18n="svc.card1.title">다양한 운송 수단</h3>
+            <p data-i18n="svc.card1.desc">해운 FCL/LCL, 항공, 철도를 통해 전 세계 연결</p>
           </a>
           <a href="customs.html" class="svc-ov-card">
             <div class="svc-ov-icon">
               <img src="assets/icon-customs.svg" alt="통관" />
             </div>
-            <h3>다양한 화물 타입</h3>
-            <p>일반 화물부터 위험물 및 냉동화물까지 안전한 운송</p>
+            <h3 data-i18n="svc.card2.title">다양한 화물 타입</h3>
+            <p data-i18n="svc.card2.desc">일반 화물부터 위험물 및 냉동화물까지 안전한 운송</p>
           </a>
           <a href="land-transport.html" class="svc-ov-card">
             <div class="svc-ov-icon">
               <img src="assets/icon-truck.svg" alt="육상운송" />
             </div>
-            <h3>출도착지 내륙 운송</h3>
-            <p>출발지 픽업 및 최종 도착지까지의 운송 서비스 제공</p>
+            <h3 data-i18n="svc.card3.title">출도착지 내륙 운송</h3>
+            <p data-i18n="svc.card3.desc">출발지 픽업 및 최종 도착지까지의 운송 서비스 제공</p>
           </a>
           <a href="logistics-solutions.html" class="svc-ov-card">
             <div class="svc-ov-icon">
               <img src="assets/icon-warehouse.svg" alt="물류솔루션" />
             </div>
-            <h3>부가 서비스</h3>
-            <p>통관, 보험, 포장 등 국제 운송에 필요한 모든 서비스</p>
+            <h3 data-i18n="svc.card4.title">부가 서비스</h3>
+            <p data-i18n="svc.card4.desc">통관, 보험, 포장 등 국제 운송에 필요한 모든 서비스</p>
           </a>
         </div>
       </div>
@@ -460,8 +461,8 @@
     <div class="container">
       <div class="section-header">
         <p class="section-label">CONTACT US</p>
-        <h2 class="section-title">언제든지 문의하세요</h2>
-        <p class="section-desc">물류 관련 궁금한 사항이나 견적 문의는 전화 또는 온라인으로 남겨주시면 빠르게 연락드리겠습니다.</p>
+        <h2 class="section-title" data-i18n="contact.title">언제든지 문의하세요</h2>
+        <p class="section-desc" data-i18n="contact.desc">물류 관련 궁금한 사항이나 견적 문의는 전화 또는 온라인으로 남겨주시면 빠르게 연락드리겠습니다.</p>
       </div>
       <div class="contact-branches">
         <div class="branch-box hq">
@@ -525,8 +526,8 @@
     <div class="container">
       <div class="section-header">
         <p class="section-label">INQUIRY &amp; CONSULT</p>
-        <h2 class="section-title">견적 및 상담 문의</h2>
-        <p class="section-desc">아래 양식을 작성해 주시면 담당자가 빠르게 연락드리겠습니다.</p>
+        <h2 class="section-title" data-i18n="form.title">견적 및 상담 문의</h2>
+        <p class="section-desc" data-i18n="form.subtitle">아래 양식을 작성해 주시면 담당자가 빠르게 연락드리겠습니다.</p>
       </div>
       <div id="inquiry-prefill-notice" class="inquiry-notice" style="display:none;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
@@ -535,20 +536,20 @@
       <form class="contact-form" id="homeInquiryForm" style="max-width:720px; margin:0 auto;">
         <div class="form-row">
           <div class="form-group">
-            <label for="h-name">이름/회사명 *</label>
+            <label for="h-name" data-i18n="form.name">이름/회사명 *</label>
             <input type="text" id="h-name" name="name" placeholder="이름 또는 회사명" required />
           </div>
           <div class="form-group">
-            <label for="h-phone">연락처 *</label>
+            <label for="h-phone" data-i18n="form.phone">연락처 *</label>
             <input type="tel" id="h-phone" name="phone" placeholder="010-0000-0000" required />
           </div>
         </div>
         <div class="form-group">
-          <label for="h-email">이메일 *</label>
+          <label for="h-email" data-i18n="form.email">이메일 *</label>
           <input type="email" id="h-email" name="email" placeholder="example@email.com" required />
         </div>
         <div class="form-group">
-          <label for="h-service">문의 서비스</label>
+          <label for="h-service" data-i18n="form.service">문의 서비스</label>
           <select id="h-service" name="service">
             <option value="">서비스를 선택하세요</option>
             <option value="해상운송 (FCL)">해상운송 (FCL)</option>
@@ -561,14 +562,14 @@
           </select>
         </div>
         <div class="form-group">
-          <label for="h-message">문의 내용 *</label>
+          <label for="h-message" data-i18n="form.message">문의 내용 *</label>
           <textarea id="h-message" name="message" rows="6" placeholder="출발지, 도착지, 화물 정보 등을 함께 입력해 주시면 빠른 견적 안내가 가능합니다." required></textarea>
         </div>
         <div class="form-check">
           <input type="checkbox" id="h-agree" name="agree" required />
           <label for="h-agree">개인정보 수집·이용에 동의합니다. <a href="#">[내용보기]</a></label>
         </div>
-        <button type="submit" class="btn-submit">문의 보내기</button>
+        <button type="submit" class="btn-submit" data-i18n="form.submit">문의 보내기</button>
       </form>
     </div>
   </section>
@@ -641,7 +642,7 @@
 
   <button class="scroll-top" id="scrollTop" aria-label="맨 위로">▲</button>
 
-  <script src="main.js?v=2"></script>
+  <script src="main.js?v=3"></script>
   <script>
     // Quote tab switcher
     document.querySelectorAll('.q-tab').forEach(function(btn) {
