@@ -335,16 +335,31 @@ document.addEventListener('DOMContentLoaded', () => {
             <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1C9.61 21 3 14.39 3 6c0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
           </svg>
         </a>
-        <a href="https://pf.kakao.com/_taeinlogistics" target="_blank" rel="noopener" class="fab-btn fab-kakao" aria-label="카카오톡 상담">
-          <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
-            <path d="M12 2C6.48 2 2 5.86 2 10.6c0 3.04 1.87 5.72 4.72 7.29L5.6 22l5.02-2.64c.45.06.9.09 1.38.09 5.52 0 10-3.86 10-8.6S17.52 2 12 2z"/>
-          </svg>
-        </a>
         <button class="fab-btn fab-chat" id="fabChat" aria-label="실시간 상담">
           <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
             <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
           </svg>
         </button>
+      </div>
+
+      <div class="chat-choice-panel" id="chatChoicePanel" aria-hidden="true">
+        <button class="chat-choice-item" id="choiceAI">
+          <span class="chat-choice-icon">💬</span>
+          <span class="chat-choice-text">
+            <strong>AI 상담</strong>
+            <small>24시간 자동 응답</small>
+          </span>
+        </button>
+        <div class="chat-choice-divider"></div>
+        <a href="https://pf.kakao.com/_taeinlogistics" target="_blank" rel="noopener" class="chat-choice-item" id="choiceKakao">
+          <span class="chat-choice-icon chat-choice-kakao-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M12 2C6.48 2 2 5.86 2 10.6c0 3.04 1.87 5.72 4.72 7.29L5.6 22l5.02-2.64c.45.06.9.09 1.38.09 5.52 0 10-3.86 10-8.6S17.52 2 12 2z"/></svg>
+          </span>
+          <span class="chat-choice-text">
+            <strong>카카오톡 상담</strong>
+            <small>전문 상담사 연결</small>
+          </span>
+        </a>
       </div>
 
       <div class="chat-widget" id="chatWidget" role="dialog" aria-label="AI 상담">
@@ -524,10 +539,31 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
 
-    fabChat.addEventListener('click', () => widget.classList.contains('open') ? closeChat() : openChat());
+    const choicePanel = document.getElementById('chatChoicePanel');
+    const openChoice = () => {
+      choicePanel.classList.add('open');
+      fabChat.classList.add('active');
+    };
+    const closeChoice = () => {
+      choicePanel.classList.remove('open');
+      if (!widget.classList.contains('open')) fabChat.classList.remove('active');
+    };
+
+    fabChat.addEventListener('click', () => {
+      if (widget.classList.contains('open')) { closeChat(); return; }
+      if (choicePanel.classList.contains('open')) { closeChoice(); return; }
+      openChoice();
+    });
+
+    document.getElementById('choiceAI').addEventListener('click', () => {
+      closeChoice();
+      openChat();
+    });
+
+    overlay.addEventListener('click', () => { closeChat(); closeChoice(); });
+
     document.getElementById('chatClose').addEventListener('mousedown', e => e.preventDefault());
     document.getElementById('chatClose').addEventListener('click', closeChat);
-    overlay.addEventListener('click', closeChat);
 
     overlay.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
     widget.addEventListener('touchmove', e => e.stopPropagation(), { passive: true });
@@ -647,6 +683,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const toggleBtn = document.getElementById('langToggle');
     const mobileToggleBtn = document.getElementById('mobileLangToggle');
+    const mobLangHdr = document.getElementById('mobLangHdr');
     let lang = localStorage.getItem('lang') || 'ko';
 
     function applyLang(l) {
@@ -654,6 +691,7 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('lang', l);
       if (toggleBtn) toggleBtn.textContent = l === 'ko' ? 'EN' : 'KO';
       if (mobileToggleBtn) mobileToggleBtn.textContent = l === 'ko' ? '🌐 English' : '🌐 한국어';
+      if (mobLangHdr) mobLangHdr.textContent = l === 'ko' ? 'EN' : 'KO';
       document.querySelectorAll('[data-i18n]').forEach(el => {
         const v = LANGS[l][el.dataset.i18n];
         if (v !== undefined) el.textContent = v;
@@ -666,6 +704,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (toggleBtn) toggleBtn.addEventListener('click', () => applyLang(lang === 'ko' ? 'en' : 'ko'));
     if (mobileToggleBtn) mobileToggleBtn.addEventListener('click', () => applyLang(lang === 'ko' ? 'en' : 'ko'));
+    if (mobLangHdr) mobLangHdr.addEventListener('click', () => applyLang(lang === 'ko' ? 'en' : 'ko'));
     if (lang !== 'ko') applyLang(lang);
   })();
 
