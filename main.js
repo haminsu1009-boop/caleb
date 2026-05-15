@@ -154,11 +154,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const goTo = (idx) => {
     slides[current].classList.remove('active');
     if (slideTexts.length) slideTexts[current].classList.remove('active');
-    dots[current].classList.remove('active');
+    if (dots.length) dots[current].classList.remove('active');
     current = (idx + slides.length) % slides.length;
     slides[current].classList.add('active');
     if (slideTexts.length) slideTexts[current].classList.add('active');
-    dots[current].classList.add('active');
+    if (dots.length) dots[current].classList.add('active');
   };
 
   const startAuto = () => {
@@ -210,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fadeObserver.unobserve(entry.target);
       }
     });
-  }, { threshold: 0.12 });
+  }, { threshold: 0.08, rootMargin: '0px 0px -5% 0px' });
 
   fadeEls.forEach(el => fadeObserver.observe(el));
 
@@ -691,7 +691,10 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('lang', l);
       if (toggleBtn) toggleBtn.textContent = l === 'ko' ? 'EN' : 'KO';
       if (mobileToggleBtn) mobileToggleBtn.textContent = l === 'ko' ? '🌐 English' : '🌐 한국어';
-      if (mobLangHdr) mobLangHdr.textContent = l === 'ko' ? 'EN' : 'KO';
+      if (mobLangHdr) {
+        const span = mobLangHdr.querySelector('.mob-lang-text');
+        if (span) span.textContent = l === 'ko' ? 'EN' : 'KO';
+      }
       document.querySelectorAll('[data-i18n]').forEach(el => {
         const v = LANGS[l][el.dataset.i18n];
         if (v !== undefined) el.textContent = v;
