@@ -684,11 +684,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const toggleBtn = document.getElementById('langToggle');
     const mobileToggleBtn = document.getElementById('mobileLangToggle');
     const mobLangHdr = document.getElementById('mobLangHdr');
-    let lang = localStorage.getItem('lang') || 'ko';
+    let lang = sessionStorage.getItem('lang') || 'ko';
 
     function applyLang(l) {
       lang = l;
-      localStorage.setItem('lang', l);
+      sessionStorage.setItem('lang', l);
       if (toggleBtn) toggleBtn.textContent = l === 'ko' ? 'EN' : 'KO';
       if (mobileToggleBtn) mobileToggleBtn.textContent = l === 'ko' ? '🌐 English' : '🌐 한국어';
       if (mobLangHdr) {
