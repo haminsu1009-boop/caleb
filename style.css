@@ -497,7 +497,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 /* Slide Controls */
 .slide-nav {
   position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
-  display: flex; gap: 10px; z-index: 10;
+  display: none; gap: 10px; z-index: 10;
 }
 .dot {
   width: 10px; height: 10px; border-radius: 50%;
@@ -1956,4 +1956,126 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 @media (max-width: 480px) {
   .benefits-grid { grid-template-columns: 1fr; }
   .process-steps { flex-direction: column; align-items: center; gap: 20px; }
+}
+
+/* ============================================================
+   개선 기능 추가 (언어토글 · 카카오FAB · 채팅빠른버튼 · 서비스카드)
+   ============================================================ */
+
+/* ── 언어 토글 버튼 ── */
+.lang-toggle {
+  background: rgba(255,255,255,0.14);
+  border: 1.5px solid rgba(255,255,255,0.42);
+  color: #fff; border-radius: 14px;
+  padding: 4px 12px; font-size: 0.78rem; font-weight: 700;
+  letter-spacing: 0.05em; cursor: pointer;
+  transition: background 0.18s; flex-shrink: 0;
+  font-family: inherit;
+}
+.lang-toggle:hover { background: rgba(255,255,255,0.28); }
+@media (max-width: 900px) { .lang-toggle { display: none; } }
+
+/* ── 모바일 메뉴 언어 토글 ── */
+.mobile-lang-wrap {
+  padding: 12px 20px 16px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+.mobile-lang-btn {
+  background: rgba(255,255,255,0.12);
+  border: 1.5px solid rgba(255,255,255,0.35);
+  color: #fff; border-radius: 14px;
+  padding: 7px 20px; font-size: 0.85rem; font-weight: 700;
+  cursor: pointer; font-family: inherit;
+  transition: background 0.18s;
+}
+.mobile-lang-btn:hover { background: rgba(255,255,255,0.25); }
+
+/* ── 카카오톡 FAB ── */
+.fab-kakao {
+  background: #FEE500; color: #3C1E1E;
+  box-shadow: 0 4px 18px rgba(254,229,0,0.5);
+  animation: none;
+}
+.fab-kakao:hover { box-shadow: 0 6px 24px rgba(254,229,0,0.72); }
+
+/* ── 채팅 빠른 답변 버튼 ── */
+.chat-quick-btns {
+  display: flex; flex-wrap: wrap; gap: 6px; padding: 0 0 4px;
+}
+.chat-quick-btn {
+  background: #fff; border: 1.5px solid #3568d4; color: #3568d4;
+  border-radius: 16px; padding: 5px 13px;
+  font-size: 0.74rem; font-weight: 600;
+  cursor: pointer; transition: background 0.15s, color 0.15s;
+  white-space: nowrap; font-family: inherit;
+}
+.chat-quick-btn:hover, .chat-quick-btn:active {
+  background: #3568d4; color: #fff;
+}
+
+/* ── 서비스 카드 아이콘 영역 강화 ── */
+.svc-ov-icon {
+  width: 64px; height: 64px; border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #eef2ff 0%, #dbeafe 100%);
+  transition: transform 0.22s;
+}
+.svc-ov-card:hover .svc-ov-icon { transform: scale(1.08); }
+.svc-ov-icon img { width: 32px; height: 32px; }
+
+/* ── 모바일 헤더 언어 버튼 (햄버거 옆) ── */
+.mob-lang-hdr {
+  display: none;
+  align-items: center; gap: 4px;
+  background: rgba(255,255,255,0.15);
+  border: 1.5px solid rgba(255,255,255,0.55);
+  color: #fff; border-radius: 20px;
+  padding: 5px 11px; font-size: 0.78rem; font-weight: 800;
+  cursor: pointer; font-family: inherit;
+  letter-spacing: 0.04em;
+  transition: background 0.18s, border-color 0.18s;
+  margin-right: 4px; flex-shrink: 0;
+}
+.mob-lang-hdr svg { opacity: 0.9; flex-shrink: 0; }
+.mob-lang-hdr:hover { background: rgba(255,255,255,0.3); border-color: rgba(255,255,255,0.8); }
+@media (max-width: 768px) { .mob-lang-hdr { display: inline-flex; } }
+
+/* ── 채팅 선택 패널 ── */
+.chat-choice-panel {
+  position: fixed; bottom: 86px; right: 24px; z-index: 1003;
+  background: #fff; border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  overflow: hidden; width: 200px;
+  transform: scale(0.88) translateY(12px); opacity: 0; pointer-events: none;
+  transform-origin: bottom right;
+  transition: transform 0.22s cubic-bezier(.34,1.56,.64,1), opacity 0.18s;
+}
+.chat-choice-panel.open {
+  transform: scale(1) translateY(0); opacity: 1; pointer-events: all;
+}
+.chat-choice-item {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; padding: 14px 16px;
+  background: none; border: none; cursor: pointer;
+  text-align: left; text-decoration: none; color: #333;
+  transition: background 0.15s; font-family: inherit;
+}
+.chat-choice-item:hover { background: #f4f6fb; }
+.chat-choice-icon {
+  font-size: 1.35rem; flex-shrink: 0; line-height: 1;
+  width: 28px; text-align: center;
+}
+.chat-choice-kakao-icon {
+  background: #FEE500; color: #3C1E1E;
+  border-radius: 50%; width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0; padding: 4px;
+}
+.chat-choice-text { display: flex; flex-direction: column; }
+.chat-choice-text strong { font-size: 0.85rem; font-weight: 700; color: #222; }
+.chat-choice-text small { font-size: 0.72rem; color: #888; margin-top: 1px; }
+.chat-choice-divider { height: 1px; background: #eee; margin: 0 12px; }
+@media (max-width: 600px) {
+  .chat-choice-panel { right: 16px; bottom: 88px; }
 }
