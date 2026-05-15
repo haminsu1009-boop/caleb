@@ -708,7 +708,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (toggleBtn) toggleBtn.addEventListener('click', () => applyLang(lang === 'ko' ? 'en' : 'ko'));
     if (mobileToggleBtn) mobileToggleBtn.addEventListener('click', () => applyLang(lang === 'ko' ? 'en' : 'ko'));
     if (mobLangHdr) mobLangHdr.addEventListener('click', () => applyLang(lang === 'ko' ? 'en' : 'ko'));
-    if (lang !== 'ko') applyLang(lang);
+    applyLang(lang);
   })();
 
 });
