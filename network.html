@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>글로벌 네트워크 - (주)태인종합물류</title>
-  <link rel="stylesheet" href="style.css?v=2" />
+  <link rel="stylesheet" href="style.css?v=4" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
 </head>
@@ -119,126 +119,123 @@
       <p class="section-desc">미주/유럽/동남아/중국 등 현지 지사 및 파트너사를 통한 전세계 네트워킹</p>
     </div>
 
-    <!-- World Map Visual (dot-matrix style) -->
+    <!-- World Map Visual -->
     <div class="network-map-wrap">
       <svg viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg" class="world-map-bg">
         <defs>
-          <pattern id="dotGrid" x="0" y="0" width="7" height="7" patternUnits="userSpaceOnUse">
-            <circle cx="2.5" cy="2.5" r="1.5" fill="#b8cde8"/>
-          </pattern>
-          <pattern id="dotGridHL" x="0" y="0" width="7" height="7" patternUnits="userSpaceOnUse">
-            <circle cx="2.5" cy="2.5" r="1.5" fill="#5b8fda"/>
-          </pattern>
+          <linearGradient id="oceanBg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#dbeafe"/>
+            <stop offset="100%" stop-color="#bfdbfe"/>
+          </linearGradient>
+          <style>
+            @keyframes pulse{0%,100%{r:10;opacity:.15}50%{r:16;opacity:.28}}
+            .cpulse{animation:pulse 2.4s ease-in-out infinite}
+            @keyframes dash{to{stroke-dashoffset:-28}}
+            .rline{animation:dash 3s linear infinite}
+          </style>
         </defs>
 
-        <!-- ── North America ── -->
-        <path d="M95,52 Q140,38 195,45 Q245,52 268,78 Q282,102 272,140
-                 Q258,170 238,186 Q218,200 210,218 Q226,228 222,248
-                 Q212,262 194,256 Q172,244 158,216 Q146,188 136,162
-                 Q108,146 84,118 Q66,92 95,52Z"
-              fill="url(#dotGrid)"/>
+        <!-- 바다 -->
+        <rect width="900" height="420" fill="url(#oceanBg)" rx="14"/>
 
-        <!-- ── South America ── -->
-        <path d="M208,272 Q246,260 272,272 Q295,288 290,330
-                 Q278,372 252,406 Q226,426 198,420 Q172,408 160,374
-                 Q152,338 165,298 Q182,274 208,272Z"
-              fill="url(#dotGrid)"/>
+        <!-- 위·경도선 -->
+        <line x1="0" y1="70"  x2="900" y2="70"  stroke="#93c5fd" stroke-width="0.6" opacity="0.45"/>
+        <line x1="0" y1="140" x2="900" y2="140" stroke="#93c5fd" stroke-width="0.6" opacity="0.45"/>
+        <line x1="0" y1="210" x2="900" y2="210" stroke="#3b82f6" stroke-width="1" opacity="0.35" stroke-dasharray="4,6"/>
+        <line x1="0" y1="280" x2="900" y2="280" stroke="#93c5fd" stroke-width="0.6" opacity="0.45"/>
+        <line x1="0" y1="350" x2="900" y2="350" stroke="#93c5fd" stroke-width="0.6" opacity="0.45"/>
+        <line x1="150" y1="0" x2="150" y2="420" stroke="#93c5fd" stroke-width="0.6" opacity="0.35"/>
+        <line x1="300" y1="0" x2="300" y2="420" stroke="#93c5fd" stroke-width="0.6" opacity="0.35"/>
+        <line x1="450" y1="0" x2="450" y2="420" stroke="#93c5fd" stroke-width="0.6" opacity="0.35"/>
+        <line x1="600" y1="0" x2="600" y2="420" stroke="#93c5fd" stroke-width="0.6" opacity="0.35"/>
+        <line x1="750" y1="0" x2="750" y2="420" stroke="#93c5fd" stroke-width="0.6" opacity="0.35"/>
+        <text x="8" y="214" fill="#3b82f6" font-size="8" font-family="sans-serif" opacity="0.55">적도</text>
 
-        <!-- ── Europe ── -->
-        <path d="M432,62 Q460,50 492,54 Q524,60 540,78
-                 Q548,96 534,112 Q514,124 486,124 Q456,120 438,104
-                 Q424,88 432,62Z"
-              fill="url(#dotGridHL)"/>
+        <!-- 북미 -->
+        <path d="M95,52 Q140,38 195,45 Q245,52 268,78 Q282,102 272,140 Q258,170 238,186 Q218,200 210,218 Q226,228 222,248 Q212,262 194,256 Q172,244 158,216 Q146,188 136,162 Q108,146 84,118 Q66,92 95,52Z" fill="#3568d4" opacity="0.72" stroke="#fff" stroke-width="0.9" stroke-opacity="0.5"/>
+        <path d="M215,14 Q242,8 264,18 Q280,30 278,50 Q272,66 254,72 Q234,76 218,64 Q202,50 206,30Z" fill="#3568d4" opacity="0.5" stroke="#fff" stroke-width="0.6" stroke-opacity="0.4"/>
 
-        <!-- ── Africa ── -->
-        <path d="M436,130 Q484,118 526,126 Q558,138 562,176
-                 Q564,218 548,262 Q528,304 500,322 Q470,334 440,324
-                 Q408,310 396,272 Q386,230 396,184 Q406,146 436,130Z"
-              fill="url(#dotGrid)"/>
+        <!-- 남미 -->
+        <path d="M208,272 Q246,260 272,272 Q295,288 290,330 Q278,372 252,406 Q226,420 198,416 Q172,404 160,374 Q152,338 165,298 Q182,274 208,272Z" fill="#3568d4" opacity="0.68" stroke="#fff" stroke-width="0.9" stroke-opacity="0.5"/>
 
-        <!-- ── Russia / North Asia ── -->
-        <path d="M538,38 Q638,22 740,28 Q812,34 858,52
-                 Q880,66 868,86 Q848,104 812,108 Q776,110 742,102
-                 Q706,94 672,96 Q640,98 612,86 Q578,72 554,56Z"
-              fill="url(#dotGrid)"/>
+        <!-- 유럽 -->
+        <path d="M430,52 Q460,42 498,46 Q530,52 548,72 Q558,92 546,114 Q528,132 500,138 Q470,142 446,126 Q422,110 422,88 Q422,66 430,52Z" fill="#3568d4" opacity="0.82" stroke="#fff" stroke-width="0.9" stroke-opacity="0.5"/>
+        <path d="M422,100 Q434,92 448,102 Q456,114 446,124 Q434,130 424,118Z" fill="#3568d4" opacity="0.82"/>
+        <path d="M440,26 Q454,18 466,28 Q474,42 466,56 Q454,64 442,56 Q432,46 440,26Z" fill="#3568d4" opacity="0.6"/>
 
-        <!-- ── Middle East ── -->
-        <path d="M538,112 Q572,104 604,112 Q626,122 628,148
-                 Q624,168 604,176 Q580,182 558,170 Q538,156 536,134Z"
-              fill="url(#dotGrid)"/>
+        <!-- 아프리카 -->
+        <path d="M430,132 Q470,118 514,126 Q550,136 564,174 Q568,216 554,260 Q538,306 510,330 Q480,348 448,340 Q412,326 396,286 Q382,246 390,198 Q398,158 430,132Z" fill="#3568d4" opacity="0.68" stroke="#fff" stroke-width="0.9" stroke-opacity="0.5"/>
 
-        <!-- ── South Asia (India) ── -->
-        <path d="M604,130 Q638,118 668,128 Q692,142 692,168
-                 Q688,192 668,208 Q644,220 618,214
-                 Q594,204 586,180 Q580,154 604,130Z"
-              fill="url(#dotGridHL)"/>
-        <!-- India subcontinent tip -->
-        <path d="M618,214 Q638,212 650,226 Q656,244 642,258
-                 Q624,266 608,256 Q596,242 602,226Z"
-              fill="url(#dotGridHL)"/>
+        <!-- 러시아·북아시아 -->
+        <path d="M520,18 Q602,8 688,14 Q760,18 818,28 Q860,38 878,56 Q888,74 874,90 Q852,108 814,114 Q772,118 728,108 Q686,100 646,98 Q610,96 572,84 Q542,72 526,52 Q512,36 520,18Z" fill="#3568d4" opacity="0.62" stroke="#fff" stroke-width="0.9" stroke-opacity="0.5"/>
 
-        <!-- ── East Asia ── -->
-        <path d="M712,72 Q758,64 802,76 Q832,90 832,116
-                 Q830,138 810,150 Q786,162 756,164 Q724,164 706,150
-                 Q690,136 694,108 Q698,84 712,72Z"
-              fill="url(#dotGridHL)"/>
+        <!-- 중동 -->
+        <path d="M522,106 Q560,96 602,104 Q630,114 636,140 Q636,164 616,178 Q590,188 562,180 Q532,168 522,146 Q516,126 522,106Z" fill="#3568d4" opacity="0.7" stroke="#fff" stroke-width="0.8"/>
 
-        <!-- ── Southeast Asia peninsula ── -->
-        <path d="M706,158 Q732,150 752,162 Q764,178 756,200
-                 Q742,216 720,218 Q698,214 690,196 Q684,178 706,158Z"
-              fill="url(#dotGridHL)"/>
+        <!-- 인도 -->
+        <path d="M598,126 Q634,114 664,124 Q692,138 698,166 Q704,196 688,222 Q670,246 644,256 Q616,262 594,246 Q570,228 564,200 Q558,168 576,146Z" fill="#4a7de8" opacity="0.88" stroke="#fff" stroke-width="0.8"/>
+        <path d="M638,254 Q654,250 662,266 Q666,282 650,290 Q632,294 622,278 Q616,262 638,254Z" fill="#4a7de8" opacity="0.85"/>
 
-        <!-- ── SE Asia islands (Sumatra/Java/Borneo) ── -->
-        <path d="M692,228 Q720,218 746,224 Q764,236 758,254
-                 Q742,266 716,264 Q692,256 686,240Z"
-              fill="url(#dotGridHL)"/>
+        <!-- 동아시아 -->
+        <path d="M646,64 Q700,52 750,60 Q798,70 826,92 Q850,114 844,142 Q834,166 808,180 Q780,194 750,194 Q718,192 696,178 Q666,162 652,136 Q638,108 646,64Z" fill="#4a7de8" opacity="0.92" stroke="#fff" stroke-width="0.9"/>
 
-        <!-- ── Japan ── -->
-        <path d="M840,86 Q858,78 872,90 Q878,104 864,116
-                 Q850,122 838,112 Q830,100 840,86Z"
-              fill="url(#dotGridHL)"/>
+        <!-- 동남아 -->
+        <path d="M700,164 Q728,154 756,166 Q772,182 764,208 Q752,228 730,234 Q706,238 690,222 Q676,204 686,182Z" fill="#4a7de8" opacity="0.85" stroke="#fff" stroke-width="0.8"/>
+        <path d="M686,242 Q714,232 742,240 Q762,252 756,270 Q742,284 718,282 Q692,274 686,258Z" fill="#4a7de8" opacity="0.75"/>
+        <path d="M762,254 Q778,248 792,258 Q800,272 790,282 Q778,288 764,278 Q754,268 762,254Z" fill="#4a7de8" opacity="0.7"/>
 
-        <!-- ── Australia ── -->
-        <path d="M718,296 Q778,278 836,290 Q868,308 860,350
-                 Q848,386 810,400 Q768,410 730,396 Q694,378 682,344
-                 Q674,310 698,298Z"
-              fill="url(#dotGrid)"/>
+        <!-- 일본 -->
+        <path d="M834,82 Q852,74 866,86 Q876,100 866,114 Q852,124 838,118 Q826,108 834,82Z" fill="#4a7de8" opacity="0.9"/>
 
-        <!-- ── New Zealand ── -->
-        <path d="M872,340 Q886,330 896,344 Q900,360 888,372
-                 Q874,376 866,364 Q860,350 872,340Z"
-              fill="url(#dotGrid)"/>
+        <!-- 호주 -->
+        <path d="M708,290 Q764,274 824,284 Q866,296 876,332 Q886,368 864,400 Q840,420 804,422 Q766,422 732,408 Q694,390 678,356 Q664,322 680,302Z" fill="#3568d4" opacity="0.68" stroke="#fff" stroke-width="0.9" stroke-opacity="0.5"/>
+        <path d="M866,334 Q882,326 892,340 Q898,356 886,368 Q872,374 862,360 Q854,346 866,334Z" fill="#3568d4" opacity="0.6"/>
 
-        <!-- Service location dots (blue) -->
-        <!-- East Asia -->
-        <circle cx="762" cy="118" r="6" fill="#1d4ed8"/><!-- Seoul/China -->
-        <circle cx="812" cy="100" r="5" fill="#1d4ed8"/><!-- Tokyo -->
-        <circle cx="740" cy="128" r="5" fill="#1d4ed8"/><!-- Shanghai -->
-        <!-- SE Asia -->
-        <circle cx="726" cy="178" r="5" fill="#1d4ed8"/><!-- Bangkok -->
-        <circle cx="718" cy="200" r="5" fill="#1d4ed8"/><!-- Singapore -->
-        <!-- South Asia -->
-        <circle cx="634" cy="172" r="5" fill="#1d4ed8"/><!-- India -->
-        <circle cx="650" cy="238" r="5" fill="#1d4ed8"/><!-- Sri Lanka -->
-        <!-- Middle East -->
-        <circle cx="576" cy="140" r="5" fill="#1d4ed8"/><!-- Middle East -->
-        <!-- Europe -->
-        <circle cx="486" cy="78" r="6" fill="#1d4ed8"/><!-- London -->
-        <circle cx="510" cy="72" r="5" fill="#1d4ed8"/><!-- Germany -->
-        <circle cx="462" cy="84" r="5" fill="#1d4ed8"/><!-- France -->
-        <circle cx="502" cy="92" r="5" fill="#1d4ed8"/><!-- Italy -->
-        <!-- Americas -->
-        <circle cx="180" cy="98" r="6" fill="#1d4ed8"/><!-- USA/Canada -->
-        <circle cx="205" cy="126" r="5" fill="#1d4ed8"/><!-- SE USA -->
-        <circle cx="244" cy="282" r="5" fill="#1d4ed8"/><!-- Colombia -->
-        <!-- Australia -->
-        <circle cx="794" cy="344" r="5" fill="#1d4ed8"/><!-- Sydney -->
+        <!-- 항로 (애니메이션) -->
+        <path d="M798,130 Q680,72 560,90 Q510,98 478,96" stroke="#dc2626" stroke-width="1.8" fill="none" stroke-dasharray="7,5" class="rline" opacity="0.52"/>
+        <path d="M798,130 Q660,88 480,106 Q340,118 168,130" stroke="#dc2626" stroke-width="1.5" fill="none" stroke-dasharray="7,5" class="rline" opacity="0.42" style="animation-delay:.8s"/>
+        <path d="M798,130 Q772,162 734,214" stroke="#dc2626" stroke-width="1.3" fill="none" stroke-dasharray="5,5" class="rline" opacity="0.38" style="animation-delay:1.4s"/>
+        <path d="M798,130 Q822,224 832,344" stroke="#dc2626" stroke-width="1.2" fill="none" stroke-dasharray="5,5" class="rline" opacity="0.34" style="animation-delay:2s"/>
+        <path d="M478,96 Q330,58 168,130" stroke="#dc2626" stroke-width="1.2" fill="none" stroke-dasharray="5,5" class="rline" opacity="0.32" style="animation-delay:.4s"/>
 
-        <!-- Connection lines -->
-        <line x1="486" y1="78" x2="694" y2="108" stroke="#1d4ed8" stroke-width="0.8" stroke-dasharray="5,4" opacity="0.25"/>
-        <line x1="180" y1="98" x2="486" y2="78"  stroke="#1d4ed8" stroke-width="0.8" stroke-dasharray="5,4" opacity="0.25"/>
-        <line x1="694" y1="108" x2="726" y2="178" stroke="#1d4ed8" stroke-width="0.8" stroke-dasharray="5,4" opacity="0.25"/>
-        <line x1="762" y1="118" x2="794" y2="344" stroke="#1d4ed8" stroke-width="0.8" stroke-dasharray="5,4" opacity="0.25"/>
+        <!-- 부산 (메인 허브) -->
+        <circle class="cpulse" cx="798" cy="130" r="10" fill="#dc2626"/>
+        <circle cx="798" cy="130" r="7" fill="#dc2626" opacity="0.92"/>
+        <circle cx="798" cy="130" r="3" fill="#fff"/>
+        <!-- 상하이 -->
+        <circle cx="758" cy="150" r="5.5" fill="#1d4ed8" opacity="0.9"/><circle cx="758" cy="150" r="2.2" fill="#fff"/>
+        <!-- 홍콩 -->
+        <circle cx="746" cy="170" r="5" fill="#1d4ed8" opacity="0.88"/><circle cx="746" cy="170" r="2" fill="#fff"/>
+        <!-- 싱가포르 -->
+        <circle cx="734" cy="214" r="5.5" fill="#1d4ed8" opacity="0.9"/><circle cx="734" cy="214" r="2.2" fill="#fff"/>
+        <!-- 로테르담 -->
+        <circle cx="478" cy="96" r="5.5" fill="#1d4ed8" opacity="0.9"/><circle cx="478" cy="96" r="2.2" fill="#fff"/>
+        <!-- 두바이 -->
+        <circle cx="574" cy="150" r="5" fill="#1d4ed8" opacity="0.88"/><circle cx="574" cy="150" r="2" fill="#fff"/>
+        <!-- LA -->
+        <circle cx="168" cy="130" r="5.5" fill="#1d4ed8" opacity="0.9"/><circle cx="168" cy="130" r="2.2" fill="#fff"/>
+        <!-- 시드니 -->
+        <circle cx="832" cy="344" r="5" fill="#1d4ed8" opacity="0.88"/><circle cx="832" cy="344" r="2" fill="#fff"/>
+        <!-- 뭄바이 -->
+        <circle cx="620" cy="198" r="4.5" fill="#1d4ed8" opacity="0.82"/><circle cx="620" cy="198" r="1.8" fill="#fff"/>
+
+        <!-- 도시 레이블 -->
+        <text x="810" y="127" fill="#1e3a8a" font-size="10" font-weight="800" font-family="sans-serif">부산</text>
+        <text x="766" y="148" fill="#1e3a8a" font-size="8.5" font-family="sans-serif">상하이</text>
+        <text x="752" y="168" fill="#1e3a8a" font-size="8.5" font-family="sans-serif">홍콩</text>
+        <text x="742" y="228" fill="#1e3a8a" font-size="8.5" font-family="sans-serif">싱가포르</text>
+        <text x="486" y="93"  fill="#1e3a8a" font-size="8.5" font-family="sans-serif">로테르담</text>
+        <text x="580" y="147" fill="#1e3a8a" font-size="8.5" font-family="sans-serif">두바이</text>
+        <text x="108" y="128" fill="#1e3a8a" font-size="8.5" font-family="sans-serif">LA</text>
+        <text x="840" y="342" fill="#1e3a8a" font-size="8.5" font-family="sans-serif">시드니</text>
+
+        <!-- 대륙 워터마크 -->
+        <text x="166" y="142" fill="#1e3a8a" font-size="13" font-weight="700" font-family="sans-serif" opacity="0.16" text-anchor="middle">북미</text>
+        <text x="234" y="355" fill="#1e3a8a" font-size="12" font-weight="700" font-family="sans-serif" opacity="0.14" text-anchor="middle">남미</text>
+        <text x="472" y="96"  fill="#1e3a8a" font-size="11" font-weight="700" font-family="sans-serif" opacity="0.14" text-anchor="middle">유럽</text>
+        <text x="468" y="244" fill="#1e3a8a" font-size="13" font-weight="700" font-family="sans-serif" opacity="0.14" text-anchor="middle">아프리카</text>
+        <text x="706" y="56"  fill="#1e3a8a" font-size="14" font-weight="700" font-family="sans-serif" opacity="0.16" text-anchor="middle">아시아</text>
+        <text x="790" y="372" fill="#1e3a8a" font-size="12" font-weight="700" font-family="sans-serif" opacity="0.14" text-anchor="middle">호주</text>
       </svg>
     </div>
 
@@ -336,6 +333,6 @@
   </div></div></div>
 </footer>
 <button class="scroll-top" id="scrollTop" aria-label="맨 위로">▲</button>
-<script src="main.js?v=2"></script>
+<script src="main.js?v=4"></script>
 </body>
 </html>
