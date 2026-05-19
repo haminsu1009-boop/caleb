@@ -2079,3 +2079,131 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 @media (max-width: 600px) {
   .chat-choice-panel { right: 16px; bottom: 88px; }
 }
+
+/* ============================================================
+   공지사항 (Notice Board)
+   ============================================================ */
+.notice-search-wrap {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 20px; padding-bottom: 16px;
+  border-bottom: 2px solid var(--primary);
+  flex-wrap: wrap; gap: 12px;
+}
+.notice-total { color: var(--text); font-size: 0.92rem; }
+.notice-total strong { color: var(--primary); font-size: 1rem; font-weight: 700; }
+.notice-search {
+  display: flex; align-items: center;
+  border: 1.5px solid var(--border); border-radius: 6px;
+  overflow: hidden; background: var(--white);
+  transition: border-color 0.15s;
+}
+.notice-search:focus-within { border-color: var(--primary); }
+.notice-search-input {
+  padding: 9px 14px; border: none; outline: none; font-size: 0.9rem;
+  width: 220px; font-family: inherit; background: transparent; color: var(--text);
+}
+.notice-search-btn {
+  padding: 8px 12px; background: var(--primary); border: none; cursor: pointer;
+  color: var(--white); display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.notice-search-btn:hover { background: var(--dark); }
+
+/* Notice grid table */
+.notice-table {
+  width: 100%; border: 1px solid var(--border); border-radius: 10px;
+  overflow: hidden; margin-top: 0;
+  border-collapse: unset; /* reset old table style */
+}
+/* Override old <table> style if present */
+.notice-table th, .notice-table td { padding: 0; border: none; background: none; }
+.notice-row {
+  display: grid;
+  grid-template-columns: 64px 76px 1fr 110px 72px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+.notice-row:last-child { border-bottom: none; }
+.notice-header { background: var(--primary); pointer-events: none; }
+.notice-header .notice-col {
+  color: var(--white); font-size: 0.8rem; font-weight: 700;
+  padding: 13px 14px; letter-spacing: 0.03em;
+}
+.notice-col {
+  padding: 15px 14px; font-size: 0.88rem; color: var(--text);
+  display: flex; align-items: center;
+}
+.notice-row:not(.notice-header) { cursor: pointer; }
+.notice-row:not(.notice-header):hover { background: var(--bg); }
+.notice-pinned { background: #f0f5ff; }
+.notice-pinned:hover { background: #e6eeff !important; }
+.col-num  { justify-content: center; color: var(--text-light); font-size: 0.82rem; }
+.col-category { justify-content: center; }
+.col-title { gap: 8px; font-weight: 500; }
+.col-title a { color: var(--text); transition: color 0.15s; }
+.col-title a:hover { color: var(--primary); }
+.col-date  { color: var(--text-light); font-size: 0.82rem; }
+.col-views { justify-content: center; color: var(--text-light); font-size: 0.82rem; }
+.pin-icon  { color: var(--accent); display: flex; flex-shrink: 0; }
+.notice-tag {
+  display: inline-block; padding: 3px 9px; border-radius: 3px;
+  font-size: 0.71rem; font-weight: 700; white-space: nowrap;
+}
+.tag-notice  { background: var(--primary); color: var(--white); }
+.tag-general { background: var(--bg); color: var(--text-light); border: 1px solid var(--border); }
+.new-badge {
+  display: inline-block; background: var(--accent); color: var(--white);
+  font-size: 0.62rem; font-weight: 800; padding: 2px 6px; border-radius: 2px;
+  vertical-align: middle; margin-left: 6px; letter-spacing: 0.04em;
+}
+
+/* Pagination */
+.pagination {
+  display: flex; align-items: center; justify-content: center;
+  gap: 6px; margin-top: 32px; flex-wrap: wrap;
+}
+.page-btn {
+  display: flex; align-items: center; gap: 4px;
+  padding: 8px 16px; border: 1.5px solid var(--border); border-radius: 6px;
+  font-size: 0.85rem; cursor: pointer; background: var(--white); color: var(--text);
+  transition: all 0.15s; font-family: inherit;
+}
+.page-btn:disabled { opacity: 0.38; cursor: default; }
+.page-btn:not(:disabled):hover { border-color: var(--primary); color: var(--primary); }
+.page-numbers { display: flex; gap: 4px; }
+.page-num {
+  width: 36px; height: 36px; border-radius: 6px;
+  border: 1.5px solid var(--border); background: var(--white);
+  font-size: 0.85rem; cursor: pointer; color: var(--text);
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s; font-family: inherit;
+}
+.page-num.active { background: var(--primary); color: var(--white); border-color: var(--primary); font-weight: 700; }
+.page-num:not(.active):hover { border-color: var(--primary); color: var(--primary); }
+.page-ellipsis { display: flex; align-items: center; color: var(--text-light); padding: 0 2px; font-size: 0.9rem; }
+
+/* Notice mobile */
+@media (max-width: 768px) {
+  .notice-row { grid-template-columns: 44px 68px 1fr; }
+  .col-date, .col-views { display: none; }
+  .notice-search-input { width: 150px; }
+}
+@media (max-width: 480px) {
+  .notice-row { grid-template-columns: 40px 1fr; }
+  .col-category { display: none; }
+  .notice-search-wrap { flex-direction: column; align-items: flex-start; }
+}
+
+/* ── FAB 레이블 (PC에서 텍스트 표시) ── */
+.fab-label {
+  position: absolute; right: 60px; top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0,0,0,0.72); color: #fff;
+  font-size: 0.72rem; font-weight: 600; white-space: nowrap;
+  padding: 4px 10px; border-radius: 6px;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.15s;
+}
+.fab-btn { position: relative; }
+.fab-btn:hover .fab-label { opacity: 1; }
+@media (max-width: 768px) { .fab-label { display: none; } }
