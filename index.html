@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>(주)태인종합물류 - 신뢰와 혁신의 물류 파트너</title>
-  <link rel="stylesheet" href="style.css?v=4" />
+  <link rel="stylesheet" href="style.css?v=5" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
 </head>
@@ -74,7 +74,7 @@
       </nav>
       <div class="header-right">
         <button class="lang-toggle" id="langToggle">EN</button>
-        <a href="#home" class="btn-estimate" data-i18n="nav.estimate">빠른 견적</a>
+        <a href="#estimate" class="btn-estimate" data-i18n="nav.estimate">빠른 견적</a>
         <a href="#inquiry-section" class="btn-consult" data-i18n="nav.consult">상담 문의</a>
       </div>
       <button class="mob-lang-hdr" id="mobLangHdr">
@@ -123,231 +123,40 @@
     </nav>
   </header>
 
-  <!-- HERO (with embedded Quick Estimate) -->
+  <!-- HERO: 풀스크린 이미지 슬라이드 -->
   <section id="home" class="hero">
-    <canvas id="heroCanvas" class="hero-canvas"></canvas>
     <div class="hero-slides">
       <div class="slide slide-1 active"></div>
       <div class="slide slide-2"></div>
       <div class="slide slide-3"></div>
     </div>
-    <div class="hero-grid container">
-      <!-- Left: rotating slide texts -->
-      <div class="hero-left">
-        <div class="slide-text active">
-          <p class="slide-tag">TRUST &amp; INNOVATION</p>
-          <h1 data-i18n-html="hero1.h1">신뢰와 열정으로<br/>세계를 연결합니다</h1>
-          <p class="slide-desc" data-i18n-html="hero1.desc">TAEIN TOTAL TRANSPORTATION CO.,LTD<br/>해상·항공 수출입, 통관, 운송의 글로벌 종합물류 기업</p>
-          <div class="hero-btns">
-            <a href="#services" class="btn-primary" data-i18n="hero1.btn">서비스 알아보기</a>
-            <a href="customer-service.html" class="btn-outline" data-i18n="hero.consult">상담 문의</a>
-          </div>
-        </div>
-        <div class="slide-text">
-          <p class="slide-tag">GLOBAL LOGISTICS</p>
-          <h1 data-i18n-html="hero2.h1">글로벌 물류 네트워크로<br/>세계를 연결합니다</h1>
-          <p class="slide-desc" data-i18n-html="hero2.desc">해운·항공·육로의 복합운송 서비스로<br/>전 세계 어디든 안전하게 운송합니다.</p>
-          <div class="hero-btns">
-            <a href="network.html" class="btn-primary" data-i18n="hero2.btn">네트워크 보기</a>
-            <a href="customer-service.html" class="btn-outline" data-i18n="hero.consult">상담 문의</a>
-          </div>
-        </div>
-        <div class="slide-text">
-          <p class="slide-tag">WCA MEMBER · ONE-STOP SERVICE</p>
-          <h1 data-i18n-html="hero3.h1">고객 맞춤<br/>원스톱 물류 서비스</h1>
-          <p class="slide-desc" data-i18n-html="hero3.desc">WCA(World Cargo Association) 회원사로서<br/>40여 개국 120여 해외 파트너와 함께합니다</p>
-          <div class="hero-btns">
-            <a href="#services" class="btn-primary" data-i18n="hero3.btn">더 알아보기</a>
-            <a href="customer-service.html" class="btn-outline" data-i18n="hero.consult">상담 문의</a>
-          </div>
+    <div class="hero-overlay"></div>
+    <div class="hero-content container">
+      <div class="slide-text active">
+        <p class="slide-tag">TRUST &amp; INNOVATION</p>
+        <h1 data-i18n-html="hero1.h1">신뢰와 열정으로<br/>세계를 연결합니다</h1>
+        <p class="slide-desc" data-i18n-html="hero1.desc">TAEIN TOTAL TRANSPORTATION CO.,LTD<br/>해상·항공 수출입, 통관, 운송의 글로벌 종합물류 기업</p>
+        <div class="hero-btns">
+          <a href="#services" class="btn-primary" data-i18n="hero1.btn">서비스 알아보기</a>
+          <a href="customer-service.html" class="btn-outline" data-i18n="hero.consult">상담 문의</a>
         </div>
       </div>
-      <!-- Right: Quick Estimate card (always visible) -->
-      <div class="hero-right">
-        <p class="hero-quote-label">⚡ QUICK ESTIMATE · 빠른 견적</p>
-        <div class="quote-card">
-          <div class="q-tabs">
-            <button class="q-tab active" data-target="qt-fcl">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M2 20h20M4 20V8l8-4 8 4v12"/><rect x="9" y="12" width="6" height="8"/></svg>
-              해운 FCL
-            </button>
-            <button class="q-tab" data-target="qt-lcl">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
-              해운 LCL
-            </button>
-            <button class="q-tab" data-target="qt-air">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21 4 19 4c-1 0-2 .5-3.5 2L8 9.2l-3.2-1.6a1 1 0 0 0-1.1.2L2 9l7 3.7-1.3 3.8L6 17v2l3-1 1 3 2-1.7 3.8-1.3L19 22l1.1-1.7a1 1 0 0 0 .2-1.1z"/></svg>
-              항공
-            </button>
-            <button class="q-tab" data-target="qt-land">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-              육상
-            </button>
-          </div>
-          <div class="q-panes">
-            <div class="q-pane active" id="qt-fcl">
-              <div class="q-fields">
-                <div class="q-field">
-                  <label>출발지</label>
-                  <div class="port-select-wrap">
-                    <input type="text" id="fcl-from" placeholder="항구 선택 또는 직접 입력" readonly class="port-input" onclick="openPortPicker('fcl-from','sea')" />
-                    <button type="button" class="port-pick-btn" onclick="openPortPicker('fcl-from','sea')">목록 ▾</button>
-                  </div>
-                </div>
-                <div class="q-field">
-                  <label>도착지</label>
-                  <div class="port-select-wrap">
-                    <input type="text" id="fcl-to" placeholder="항구 선택 또는 직접 입력" readonly class="port-input" onclick="openPortPicker('fcl-to','sea')" />
-                    <button type="button" class="port-pick-btn" onclick="openPortPicker('fcl-to','sea')">목록 ▾</button>
-                  </div>
-                </div>
-                <div class="q-field"><label>컨테이너</label>
-                  <select id="fcl-container">
-                    <option value="">종류 선택</option>
-                    <optgroup label="일반 (GP/HC)">
-                      <option>20GP</option><option>40GP</option><option>40HC</option>
-                    </optgroup>
-                    <optgroup label="플랫랙 (FR)">
-                      <option>20FR</option><option>40FR</option>
-                    </optgroup>
-                    <optgroup label="오픈탑 (OT)">
-                      <option>20OT</option><option>40OT</option>
-                    </optgroup>
-                    <optgroup label="냉동 (RF)">
-                      <option>20RF</option><option>40RF</option>
-                    </optgroup>
-                    <optgroup label="특수">
-                      <option>위험물 컨테이너</option><option>기타 특수컨</option>
-                    </optgroup>
-                  </select>
-                </div>
-                <div class="q-field"><label>인코텀즈</label>
-                  <select id="fcl-incoterms">
-                    <option value="">선택 (선택사항)</option>
-                    <option value="EXW">EXW</option>
-                    <option value="FCA">FCA</option>
-                    <option value="FAS">FAS</option>
-                    <option value="FOB">FOB</option>
-                    <option value="CFR">CFR</option>
-                    <option value="CIF">CIF</option>
-                    <option value="CPT">CPT</option>
-                    <option value="CIP">CIP</option>
-                    <option value="DAP">DAP</option>
-                    <option value="DPU">DPU</option>
-                    <option value="DDP">DDP</option>
-                  </select>
-                </div>
-              </div>
-              <button type="button" class="q-submit" onclick="event.preventDefault();fillInquiryForm('fcl')">견적 문의하기 →</button>
-            </div>
-            <div class="q-pane" id="qt-lcl">
-              <div class="q-fields">
-                <div class="q-field">
-                  <label>출발지</label>
-                  <div class="port-select-wrap">
-                    <input type="text" id="lcl-from" placeholder="항구 선택 또는 직접 입력" readonly class="port-input" onclick="openPortPicker('lcl-from','sea')" />
-                    <button type="button" class="port-pick-btn" onclick="openPortPicker('lcl-from','sea')">목록 ▾</button>
-                  </div>
-                </div>
-                <div class="q-field">
-                  <label>도착지</label>
-                  <div class="port-select-wrap">
-                    <input type="text" id="lcl-to" placeholder="항구 선택 또는 직접 입력" readonly class="port-input" onclick="openPortPicker('lcl-to','sea')" />
-                    <button type="button" class="port-pick-btn" onclick="openPortPicker('lcl-to','sea')">목록 ▾</button>
-                  </div>
-                </div>
-                <div class="q-field"><label>화물 중량</label><input type="text" id="lcl-weight" placeholder="예: 500 kg / 2 CBM" /></div>
-                <div class="q-field"><label>인코텀즈</label>
-                  <select id="lcl-incoterms">
-                    <option value="">선택 (선택사항)</option>
-                    <option value="EXW">EXW</option>
-                    <option value="FCA">FCA</option>
-                    <option value="FAS">FAS</option>
-                    <option value="FOB">FOB</option>
-                    <option value="CFR">CFR</option>
-                    <option value="CIF">CIF</option>
-                    <option value="CPT">CPT</option>
-                    <option value="CIP">CIP</option>
-                    <option value="DAP">DAP</option>
-                    <option value="DPU">DPU</option>
-                    <option value="DDP">DDP</option>
-                  </select>
-                </div>
-              </div>
-              <button type="button" class="q-submit" onclick="event.preventDefault();fillInquiryForm('lcl')">견적 문의하기 →</button>
-            </div>
-            <div class="q-pane" id="qt-air">
-              <div class="q-fields">
-                <div class="q-field">
-                  <label>출발 공항</label>
-                  <div class="port-select-wrap">
-                    <input type="text" id="air-from" placeholder="공항 선택 또는 직접 입력" readonly class="port-input" onclick="openPortPicker('air-from','air')" />
-                    <button type="button" class="port-pick-btn" onclick="openPortPicker('air-from','air')">목록 ▾</button>
-                  </div>
-                </div>
-                <div class="q-field">
-                  <label>도착 공항</label>
-                  <div class="port-select-wrap">
-                    <input type="text" id="air-to" placeholder="공항 선택 또는 직접 입력" readonly class="port-input" onclick="openPortPicker('air-to','air')" />
-                    <button type="button" class="port-pick-btn" onclick="openPortPicker('air-to','air')">목록 ▾</button>
-                  </div>
-                </div>
-                <div class="q-field"><label>화물 중량</label><input type="text" id="air-weight" placeholder="예: 100 kg" /></div>
-                <div class="q-field"><label>인코텀즈</label>
-                  <select id="air-incoterms">
-                    <option value="">선택 (선택사항)</option>
-                    <option value="EXW">EXW</option>
-                    <option value="FCA">FCA</option>
-                    <option value="CPT">CPT</option>
-                    <option value="CIP">CIP</option>
-                    <option value="DAP">DAP</option>
-                    <option value="DPU">DPU</option>
-                    <option value="DDP">DDP</option>
-                  </select>
-                </div>
-              </div>
-              <button type="button" class="q-submit" onclick="event.preventDefault();fillInquiryForm('air')">견적 문의하기 →</button>
-            </div>
-            <div class="q-pane" id="qt-land">
-              <div class="q-fields">
-                <div class="q-field">
-                  <label>출발지</label>
-                  <div class="port-select-wrap">
-                    <input type="text" id="land-from" placeholder="지역 선택 또는 직접 입력" readonly class="port-input" onclick="openPortPicker('land-from','land')" />
-                    <button type="button" class="port-pick-btn" onclick="openPortPicker('land-from','land')">목록 ▾</button>
-                  </div>
-                </div>
-                <div class="q-field">
-                  <label>도착지</label>
-                  <div class="port-select-wrap">
-                    <input type="text" id="land-to" placeholder="지역 선택 또는 직접 입력" readonly class="port-input" onclick="openPortPicker('land-to','land')" />
-                    <button type="button" class="port-pick-btn" onclick="openPortPicker('land-to','land')">목록 ▾</button>
-                  </div>
-                </div>
-                <div class="q-field"><label>화물 종류</label>
-                  <select id="land-cargo">
-                    <option value="">종류 선택</option>
-                    <option>일반 화물</option><option>대형 화물</option>
-                    <option>냉동/냉장</option><option>위험물</option>
-                    <option>특수화물</option><option>기타</option>
-                  </select>
-                </div>
-                <div class="q-field"><label>인코텀즈</label>
-                  <select id="land-incoterms">
-                    <option value="">선택 (선택사항)</option>
-                    <option value="EXW">EXW</option>
-                    <option value="FCA">FCA</option>
-                    <option value="CPT">CPT</option>
-                    <option value="CIP">CIP</option>
-                    <option value="DAP">DAP</option>
-                    <option value="DPU">DPU</option>
-                    <option value="DDP">DDP</option>
-                  </select>
-                </div>
-              </div>
-              <button type="button" class="q-submit" onclick="event.preventDefault();fillInquiryForm('land')">견적 문의하기 →</button>
-            </div>
-          </div>
+      <div class="slide-text">
+        <p class="slide-tag">GLOBAL LOGISTICS</p>
+        <h1 data-i18n-html="hero2.h1">글로벌 물류 네트워크로<br/>세계를 연결합니다</h1>
+        <p class="slide-desc" data-i18n-html="hero2.desc">해운·항공·육로의 복합운송 서비스로<br/>전 세계 어디든 안전하게 운송합니다.</p>
+        <div class="hero-btns">
+          <a href="network.html" class="btn-primary" data-i18n="hero2.btn">네트워크 보기</a>
+          <a href="customer-service.html" class="btn-outline" data-i18n="hero.consult">상담 문의</a>
+        </div>
+      </div>
+      <div class="slide-text">
+        <p class="slide-tag">WCA MEMBER · ONE-STOP SERVICE</p>
+        <h1 data-i18n-html="hero3.h1">고객 맞춤<br/>원스톱 물류 서비스</h1>
+        <p class="slide-desc" data-i18n-html="hero3.desc">WCA(World Cargo Association) 회원사로서<br/>40여 개국 120여 해외 파트너와 함께합니다</p>
+        <div class="hero-btns">
+          <a href="#services" class="btn-primary" data-i18n="hero3.btn">더 알아보기</a>
+          <a href="customer-service.html" class="btn-outline" data-i18n="hero.consult">상담 문의</a>
         </div>
       </div>
     </div>
@@ -359,79 +168,311 @@
     </div>
   </section>
 
-  <!-- ABOUT -->
-  <section id="about" class="about">
+  <!-- 2섹션: 빠른 견적 -->
+  <section id="estimate" class="estimate-section">
     <div class="container">
-      <div class="about-inner about-text-only">
-        <div class="about-content">
-          <p class="section-label">ABOUT US</p>
-          <h2 class="section-title" data-i18n-html="about.title">(주)태인종합물류를<br/>소개합니다</h2>
-          <p class="about-desc" data-i18n="about.desc">2010년 설립 이래, 해상·항공 수출입, 통관, 운송을 아우르는 종합 물류 서비스를 제공합니다. WCA 정식 회원사로 40여 개국 120여 해외파트너와 협력하며 고객의 성공적인 비즈니스를 지원합니다.</p>
-          <div class="about-stats-row">
-            <div class="ast-item">
-              <strong>2010</strong>
-              <span data-i18n="stat1.label">년 설립</span>
+      <div class="section-header">
+        <p class="section-label">QUICK ESTIMATE</p>
+        <h2 class="section-title" data-i18n="estimate.title">빠른 견적 문의</h2>
+        <p class="section-desc" data-i18n="estimate.desc">출발지·도착지·화물 정보를 입력하시면 담당자가 빠르게 안내해 드립니다.</p>
+      </div>
+      <div class="quote-card">
+        <div class="q-tabs">
+          <button class="q-tab active" data-target="qt-fcl">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M2 20h20M4 20V8l8-4 8 4v12"/><rect x="9" y="12" width="6" height="8"/></svg>
+            해운 FCL
+          </button>
+          <button class="q-tab" data-target="qt-lcl">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+            해운 LCL
+          </button>
+          <button class="q-tab" data-target="qt-air">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21 4 19 4c-1 0-2 .5-3.5 2L8 9.2l-3.2-1.6a1 1 0 0 0-1.1.2L2 9l7 3.7-1.3 3.8L6 17v2l3-1 1 3 2-1.7 3.8-1.3L19 22l1.1-1.7a1 1 0 0 0 .2-1.1z"/></svg>
+            항공
+          </button>
+          <button class="q-tab" data-target="qt-land">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+            육상
+          </button>
+        </div>
+        <div class="q-panes">
+          <div class="q-pane active" id="qt-fcl">
+            <div class="q-fields">
+              <div class="q-field">
+                <label>출발지</label>
+                <div class="port-select-wrap">
+                  <input type="text" id="fcl-from" placeholder="항구 선택 또는 직접 입력" readonly class="port-input" onclick="openPortPicker('fcl-from','sea')" />
+                  <button type="button" class="port-pick-btn" onclick="openPortPicker('fcl-from','sea')">목록 ▾</button>
+                </div>
+              </div>
+              <div class="q-field">
+                <label>도착지</label>
+                <div class="port-select-wrap">
+                  <input type="text" id="fcl-to" placeholder="항구 선택 또는 직접 입력" readonly class="port-input" onclick="openPortPicker('fcl-to','sea')" />
+                  <button type="button" class="port-pick-btn" onclick="openPortPicker('fcl-to','sea')">목록 ▾</button>
+                </div>
+              </div>
+              <div class="q-field"><label>컨테이너</label>
+                <select id="fcl-container">
+                  <option value="">종류 선택</option>
+                  <optgroup label="일반 (GP/HC)">
+                    <option>20GP</option><option>40GP</option><option>40HC</option>
+                  </optgroup>
+                  <optgroup label="플랫랙 (FR)">
+                    <option>20FR</option><option>40FR</option>
+                  </optgroup>
+                  <optgroup label="오픈탑 (OT)">
+                    <option>20OT</option><option>40OT</option>
+                  </optgroup>
+                  <optgroup label="냉동 (RF)">
+                    <option>20RF</option><option>40RF</option>
+                  </optgroup>
+                  <optgroup label="특수">
+                    <option>위험물 컨테이너</option><option>기타 특수컨</option>
+                  </optgroup>
+                </select>
+              </div>
+              <div class="q-field"><label>인코텀즈</label>
+                <select id="fcl-incoterms">
+                  <option value="">선택 (선택사항)</option>
+                  <option value="EXW">EXW</option>
+                  <option value="FCA">FCA</option>
+                  <option value="FAS">FAS</option>
+                  <option value="FOB">FOB</option>
+                  <option value="CFR">CFR</option>
+                  <option value="CIF">CIF</option>
+                  <option value="CPT">CPT</option>
+                  <option value="CIP">CIP</option>
+                  <option value="DAP">DAP</option>
+                  <option value="DPU">DPU</option>
+                  <option value="DDP">DDP</option>
+                </select>
+              </div>
             </div>
-            <div class="ast-item">
-              <strong>40<sup>+</sup></strong>
-              <span data-i18n="stat2.label">개국 네트워크</span>
-            </div>
-            <div class="ast-item">
-              <strong>120<sup>+</sup></strong>
-              <span data-i18n="stat3.label">해외 파트너</span>
-            </div>
-            <div class="ast-item">
-              <strong>10억</strong>
-              <span data-i18n="stat4.label">원 화물보험</span>
-            </div>
+            <button type="button" class="q-submit" onclick="event.preventDefault();fillInquiryForm('fcl')">견적 문의하기 →</button>
           </div>
-          <a href="philosophy.html" class="btn-primary" data-i18n="about.btn">회사 소개 더보기</a>
+          <div class="q-pane" id="qt-lcl">
+            <div class="q-fields">
+              <div class="q-field">
+                <label>출발지</label>
+                <div class="port-select-wrap">
+                  <input type="text" id="lcl-from" placeholder="항구 선택 또는 직접 입력" readonly class="port-input" onclick="openPortPicker('lcl-from','sea')" />
+                  <button type="button" class="port-pick-btn" onclick="openPortPicker('lcl-from','sea')">목록 ▾</button>
+                </div>
+              </div>
+              <div class="q-field">
+                <label>도착지</label>
+                <div class="port-select-wrap">
+                  <input type="text" id="lcl-to" placeholder="항구 선택 또는 직접 입력" readonly class="port-input" onclick="openPortPicker('lcl-to','sea')" />
+                  <button type="button" class="port-pick-btn" onclick="openPortPicker('lcl-to','sea')">목록 ▾</button>
+                </div>
+              </div>
+              <div class="q-field"><label>화물 중량</label><input type="text" id="lcl-weight" placeholder="예: 500 kg / 2 CBM" /></div>
+              <div class="q-field"><label>인코텀즈</label>
+                <select id="lcl-incoterms">
+                  <option value="">선택 (선택사항)</option>
+                  <option value="EXW">EXW</option>
+                  <option value="FCA">FCA</option>
+                  <option value="FAS">FAS</option>
+                  <option value="FOB">FOB</option>
+                  <option value="CFR">CFR</option>
+                  <option value="CIF">CIF</option>
+                  <option value="CPT">CPT</option>
+                  <option value="CIP">CIP</option>
+                  <option value="DAP">DAP</option>
+                  <option value="DPU">DPU</option>
+                  <option value="DDP">DDP</option>
+                </select>
+              </div>
+            </div>
+            <button type="button" class="q-submit" onclick="event.preventDefault();fillInquiryForm('lcl')">견적 문의하기 →</button>
+          </div>
+          <div class="q-pane" id="qt-air">
+            <div class="q-fields">
+              <div class="q-field">
+                <label>출발 공항</label>
+                <div class="port-select-wrap">
+                  <input type="text" id="air-from" placeholder="공항 선택 또는 직접 입력" readonly class="port-input" onclick="openPortPicker('air-from','air')" />
+                  <button type="button" class="port-pick-btn" onclick="openPortPicker('air-from','air')">목록 ▾</button>
+                </div>
+              </div>
+              <div class="q-field">
+                <label>도착 공항</label>
+                <div class="port-select-wrap">
+                  <input type="text" id="air-to" placeholder="공항 선택 또는 직접 입력" readonly class="port-input" onclick="openPortPicker('air-to','air')" />
+                  <button type="button" class="port-pick-btn" onclick="openPortPicker('air-to','air')">목록 ▾</button>
+                </div>
+              </div>
+              <div class="q-field"><label>화물 중량</label><input type="text" id="air-weight" placeholder="예: 100 kg" /></div>
+              <div class="q-field"><label>인코텀즈</label>
+                <select id="air-incoterms">
+                  <option value="">선택 (선택사항)</option>
+                  <option value="EXW">EXW</option>
+                  <option value="FCA">FCA</option>
+                  <option value="CPT">CPT</option>
+                  <option value="CIP">CIP</option>
+                  <option value="DAP">DAP</option>
+                  <option value="DPU">DPU</option>
+                  <option value="DDP">DDP</option>
+                </select>
+              </div>
+            </div>
+            <button type="button" class="q-submit" onclick="event.preventDefault();fillInquiryForm('air')">견적 문의하기 →</button>
+          </div>
+          <div class="q-pane" id="qt-land">
+            <div class="q-fields">
+              <div class="q-field">
+                <label>출발지</label>
+                <div class="port-select-wrap">
+                  <input type="text" id="land-from" placeholder="지역 선택 또는 직접 입력" readonly class="port-input" onclick="openPortPicker('land-from','land')" />
+                  <button type="button" class="port-pick-btn" onclick="openPortPicker('land-from','land')">목록 ▾</button>
+                </div>
+              </div>
+              <div class="q-field">
+                <label>도착지</label>
+                <div class="port-select-wrap">
+                  <input type="text" id="land-to" placeholder="지역 선택 또는 직접 입력" readonly class="port-input" onclick="openPortPicker('land-to','land')" />
+                  <button type="button" class="port-pick-btn" onclick="openPortPicker('land-to','land')">목록 ▾</button>
+                </div>
+              </div>
+              <div class="q-field"><label>화물 종류</label>
+                <select id="land-cargo">
+                  <option value="">종류 선택</option>
+                  <option>일반 화물</option><option>대형 화물</option>
+                  <option>냉동/냉장</option><option>위험물</option>
+                  <option>특수화물</option><option>기타</option>
+                </select>
+              </div>
+              <div class="q-field"><label>인코텀즈</label>
+                <select id="land-incoterms">
+                  <option value="">선택 (선택사항)</option>
+                  <option value="EXW">EXW</option>
+                  <option value="FCA">FCA</option>
+                  <option value="CPT">CPT</option>
+                  <option value="CIP">CIP</option>
+                  <option value="DAP">DAP</option>
+                  <option value="DPU">DPU</option>
+                  <option value="DDP">DDP</option>
+                </select>
+              </div>
+            </div>
+            <button type="button" class="q-submit" onclick="event.preventDefault();fillInquiryForm('land')">견적 문의하기 →</button>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- SERVICES OVERVIEW -->
+  <!-- 3섹션: 서비스 소개 (5개 카드) -->
   <section id="services" class="services-overview">
     <div class="container">
-      <div class="svc-overview-inner">
-        <div class="svc-overview-left">
-          <p class="section-label">OUR SERVICES</p>
-          <h2 class="section-title" data-i18n-html="svc.title">수출입 기업을 위한<br/>올인원 물류 솔루션</h2>
-          <p class="svc-overview-desc" data-i18n-html="svc.desc">복잡한 국제 운송, 태인종합물류로<br/>하나로 간편하게 해결하세요</p>
-          <a href="services.html" class="btn-primary" style="margin-top:24px;display:inline-block;" data-i18n="svc.more">자세히 보기 ↗</a>
-        </div>
-        <div class="svc-overview-grid">
-          <a href="sea-transport.html" class="svc-ov-card">
-            <div class="svc-ov-icon">
-              <img src="assets/icon-ship.svg" alt="해상운송" />
-            </div>
-            <h3 data-i18n="svc.card1.title">다양한 운송 수단</h3>
-            <p data-i18n="svc.card1.desc">해운 FCL/LCL, 항공, 철도를 통해 전 세계 연결</p>
-          </a>
-          <a href="customs.html" class="svc-ov-card">
-            <div class="svc-ov-icon">
-              <img src="assets/icon-customs.svg" alt="통관" />
-            </div>
-            <h3 data-i18n="svc.card2.title">다양한 화물 타입</h3>
-            <p data-i18n="svc.card2.desc">일반 화물부터 위험물 및 냉동화물까지 안전한 운송</p>
-          </a>
-          <a href="land-transport.html" class="svc-ov-card">
-            <div class="svc-ov-icon">
-              <img src="assets/icon-truck.svg" alt="육상운송" />
-            </div>
-            <h3 data-i18n="svc.card3.title">출도착지 내륙 운송</h3>
-            <p data-i18n="svc.card3.desc">출발지 픽업 및 최종 도착지까지의 운송 서비스 제공</p>
-          </a>
-          <a href="logistics-solutions.html" class="svc-ov-card">
-            <div class="svc-ov-icon">
-              <img src="assets/icon-warehouse.svg" alt="물류솔루션" />
-            </div>
-            <h3 data-i18n="svc.card4.title">부가 서비스</h3>
-            <p data-i18n="svc.card4.desc">통관, 보험, 포장 등 국제 운송에 필요한 모든 서비스</p>
-          </a>
-        </div>
+      <div class="section-header">
+        <p class="section-label">OUR SERVICES</p>
+        <h2 class="section-title" data-i18n-html="svc.title">수출입 기업을 위한<br/>올인원 물류 솔루션</h2>
+        <p class="section-desc" data-i18n="svc.desc2">해상·항공·육상·통관·물류솔루션까지 원스톱으로 제공합니다</p>
       </div>
+      <div class="svc-cards-grid">
+        <a href="sea-transport.html" class="svc-card">
+          <div class="svc-card-icon">
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" width="40" height="40">
+              <path d="M4 38h40M8 38V22l16-10 16 10v16"/>
+              <path d="M20 38V28h8v10"/>
+              <path d="M12 26h4M32 26h4"/>
+              <path d="M2 42h44"/>
+            </svg>
+          </div>
+          <h3 data-i18n="svc.sea.title">해상운송</h3>
+          <p data-i18n="svc.sea.desc">FCL·LCL 컨테이너 및 벌크화물, 전 세계 주요 항구 운송</p>
+          <span class="svc-card-more" data-i18n="svc.card.more">자세히 보기 →</span>
+        </a>
+        <a href="air-transport.html" class="svc-card">
+          <div class="svc-card-icon">
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" width="40" height="40">
+              <path d="M33.6 36.4L30 21l5.25-5.25C38 13 38 10 36 10c-1.5 0-3 .75-5.25 3L15 18.3l-4.8-2.4a1.5 1.5 0 0 0-1.65.3L6 18.5l10.5 5.55-1.95 5.7L12 31v3l4.5-1.5 1.5 4.5 3-2.55 5.7-1.95L32 44l2.7-2.55a1.5 1.5 0 0 0 .3-1.65z"/>
+            </svg>
+          </div>
+          <h3 data-i18n="svc.air.title">항공운송</h3>
+          <p data-i18n="svc.air.desc">신속·정확한 항공화물 서비스, 긴급·특수화물 전문 처리</p>
+          <span class="svc-card-more" data-i18n="svc.card.more">자세히 보기 →</span>
+        </a>
+        <a href="land-transport.html" class="svc-card">
+          <div class="svc-card-icon">
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" width="40" height="40">
+              <rect x="1" y="10" width="30" height="22"/>
+              <path d="M31 18l8 0 6 6v8H31V18z"/>
+              <circle cx="10" cy="36" r="4"/>
+              <circle cx="38" cy="36" r="4"/>
+              <path d="M14 36h20"/>
+            </svg>
+          </div>
+          <h3 data-i18n="svc.land.title">육상운송</h3>
+          <p data-i18n="svc.land.desc">전국 도어투도어 배송 및 항만 내륙 컨테이너 운송</p>
+          <span class="svc-card-more" data-i18n="svc.card.more">자세히 보기 →</span>
+        </a>
+        <a href="customs.html" class="svc-card">
+          <div class="svc-card-icon">
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" width="40" height="40">
+              <rect x="8" y="6" width="32" height="36" rx="2"/>
+              <path d="M16 16h16M16 22h16M16 28h10"/>
+              <path d="M30 30l4 4 6-6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h3 data-i18n="svc.customs.title">통관</h3>
+          <p data-i18n="svc.customs.desc">수출입 통관 대행, 포워딩, 관세 컨설팅 전문 서비스</p>
+          <span class="svc-card-more" data-i18n="svc.card.more">자세히 보기 →</span>
+        </a>
+        <a href="logistics-solutions.html" class="svc-card">
+          <div class="svc-card-icon">
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" width="40" height="40">
+              <rect x="4" y="26" width="10" height="16"/>
+              <rect x="19" y="18" width="10" height="24"/>
+              <rect x="34" y="10" width="10" height="32"/>
+              <path d="M4 22L14 14l10 6 10-12" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h3 data-i18n="svc.solution.title">물류솔루션</h3>
+          <p data-i18n="svc.solution.desc">3PL·4PL 통합 물류관리, 창고운영 및 공급망 최적화</p>
+          <span class="svc-card-more" data-i18n="svc.card.more">자세히 보기 →</span>
+        </a>
+      </div>
+      <div class="svc-cards-footer">
+        <a href="services.html" class="btn-services-all" data-i18n="svc.more">전체 서비스 보기 ↗</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 공지사항 최신 4건 -->
+  <section class="news-section">
+    <div class="container">
+      <div class="news-header">
+        <div>
+          <p class="section-label">NOTICE</p>
+          <h2 class="section-title" data-i18n="news.title">최신 공지사항</h2>
+        </div>
+        <a href="notice.html" class="btn-news-all" data-i18n="news.more">전체 보기 →</a>
+      </div>
+      <ul class="news-list">
+        <li class="news-item">
+          <span class="news-tag tag-notice">공지</span>
+          <a href="notice.html" class="news-title">2026년 설 연휴 휴무 안내 <span class="news-new">N</span></a>
+          <span class="news-date">2026.01.15</span>
+        </li>
+        <li class="news-item">
+          <span class="news-tag tag-notice">공지</span>
+          <a href="notice.html" class="news-title">WCA 네트워크 파트너십 확대 안내</a>
+          <span class="news-date">2025.12.10</span>
+        </li>
+        <li class="news-item">
+          <span class="news-tag tag-general">일반</span>
+          <a href="notice.html" class="news-title">부산지사 이전 안내</a>
+          <span class="news-date">2025.11.20</span>
+        </li>
+        <li class="news-item">
+          <span class="news-tag tag-general">일반</span>
+          <a href="notice.html" class="news-title">2025년 추석 연휴 휴무 안내</a>
+          <span class="news-date">2025.09.05</span>
+        </li>
+      </ul>
     </div>
   </section>
 
@@ -641,7 +682,7 @@
 
   <button class="scroll-top" id="scrollTop" aria-label="맨 위로">▲</button>
 
-  <script src="main.js?v=4"></script>
+  <script src="main.js?v=5"></script>
   <script>
     // Quote tab switcher
     document.querySelectorAll('.q-tab').forEach(function(btn) {
