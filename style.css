@@ -65,7 +65,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   display: flex; align-items: center; height: 72px; gap: 32px;
 }
 .logo a { display: flex; align-items: center; gap: 6px; }
-.logo a, .logo a:hover, .logo a:visited, .logo a:active { text-decoration: none; color: inherit; }
+.logo a, .logo a:hover, .logo a:visited, .logo a:active, .logo a:focus { text-decoration: none; color: #000 !important; }
 .logo-img { height: 34px; width: auto; flex-shrink: 0; }
 .logo-text { display: flex; align-items: baseline; gap: 3px; white-space: nowrap; }
 .logo .logo-main { font-size: 1.25rem; font-weight: 600; color: #000 !important; letter-spacing: -0.02em; white-space: nowrap; }

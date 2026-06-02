@@ -649,6 +649,20 @@ document.addEventListener('DOMContentLoaded', () => {
         'form.title': '견적 및 상담 문의', 'form.subtitle': '아래 양식을 작성해 주시면 담당자가 빠르게 연락드리겠습니다.',
         'form.name': '이름/회사명 *', 'form.phone': '연락처 *', 'form.email': '이메일 *',
         'form.service': '문의 서비스', 'form.message': '문의 내용 *', 'form.submit': '문의 보내기',
+        'page.ceo.label': 'CEO GREETING', 'page.ceo.h1': '대표 인사말',
+        'page.phil.label': 'MANAGEMENT PHILOSOPHY', 'page.phil.h1': '경영이념',
+        'page.hist.label': 'COMPANY HISTORY', 'page.hist.h1': '연혁',
+        'page.dir.label': 'DIRECTIONS', 'page.dir.h1': '오시는길',
+        'page.svc.label': 'SERVICES', 'page.svc.h1': '국제 물류 서비스',
+        'page.sea.label': 'OCEAN FREIGHT', 'page.sea.h1': '해상운송',
+        'page.air.label': 'AIR FREIGHT', 'page.air.h1': '항공운송',
+        'page.land.label': 'LAND TRANSPORT', 'page.land.h1': '육상운송',
+        'page.customs.label': 'CUSTOMS & FORWARDING', 'page.customs.h1': '통관 및 포워딩',
+        'page.sol.label': 'LOGISTICS SOLUTIONS', 'page.sol.h1': '물류 솔루션',
+        'page.net.label': 'GLOBAL NETWORK', 'page.net.h1': '글로벌 네트워크',
+        'page.notice.label': 'NOTICE', 'page.notice.h1': '공지사항',
+        'page.faq.label': 'FAQ', 'page.faq.h1': '자주 묻는 질문',
+        'page.cs.label': 'CUSTOMER SERVICE', 'page.cs.h1': '고객센터',
       },
       en: {
         'nav.company': 'About Us', 'nav.services': 'Services',
@@ -680,17 +694,31 @@ document.addEventListener('DOMContentLoaded', () => {
         'form.title': 'Inquiry & Consultation', 'form.subtitle': 'Fill in the form below and our team will get back to you quickly.',
         'form.name': 'Name / Company *', 'form.phone': 'Phone *', 'form.email': 'Email *',
         'form.service': 'Service Type', 'form.message': 'Message *', 'form.submit': 'Send Inquiry',
+        'page.ceo.label': 'CEO GREETING', 'page.ceo.h1': "CEO's Message",
+        'page.phil.label': 'MANAGEMENT PHILOSOPHY', 'page.phil.h1': 'Our Philosophy',
+        'page.hist.label': 'COMPANY HISTORY', 'page.hist.h1': 'History',
+        'page.dir.label': 'DIRECTIONS', 'page.dir.h1': 'How to Find Us',
+        'page.svc.label': 'SERVICES', 'page.svc.h1': 'International Logistics Services',
+        'page.sea.label': 'OCEAN FREIGHT', 'page.sea.h1': 'Ocean Freight',
+        'page.air.label': 'AIR FREIGHT', 'page.air.h1': 'Air Freight',
+        'page.land.label': 'LAND TRANSPORT', 'page.land.h1': 'Land Transport',
+        'page.customs.label': 'CUSTOMS & FORWARDING', 'page.customs.h1': 'Customs & Forwarding',
+        'page.sol.label': 'LOGISTICS SOLUTIONS', 'page.sol.h1': 'Logistics Solutions',
+        'page.net.label': 'GLOBAL NETWORK', 'page.net.h1': 'Global Network',
+        'page.notice.label': 'NOTICE', 'page.notice.h1': 'Notice',
+        'page.faq.label': 'FAQ', 'page.faq.h1': 'Frequently Asked Questions',
+        'page.cs.label': 'CUSTOMER SERVICE', 'page.cs.h1': 'Customer Service',
       }
     };
 
     const toggleBtn = document.getElementById('langToggle');
     const mobileToggleBtn = document.getElementById('mobileLangToggle');
     const mobLangHdr = document.getElementById('mobLangHdr');
-    let lang = sessionStorage.getItem('lang') || 'ko';
+    let lang = localStorage.getItem('lang') || 'ko';
 
     function applyLang(l) {
       lang = l;
-      sessionStorage.setItem('lang', l);
+      localStorage.setItem('lang', l);
       if (toggleBtn) toggleBtn.textContent = l === 'ko' ? 'EN' : 'KO';
       if (mobileToggleBtn) mobileToggleBtn.textContent = l === 'ko' ? '🌐 English' : '🌐 한국어';
       if (mobLangHdr) {
