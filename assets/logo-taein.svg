@@ -1,24 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 215 208">
-  <!-- CRIMSON T: 7 horizontal bars (perspective stack, decreasing width) -->
-  <rect x="5"  y="5"  width="128" height="11" fill="#8B1850"/>
-  <rect x="5"  y="19" width="123" height="11" fill="#8B1850"/>
-  <rect x="5"  y="33" width="118" height="11" fill="#8B1850"/>
-  <rect x="5"  y="47" width="113" height="11" fill="#8B1850"/>
-  <rect x="5"  y="61" width="108" height="11" fill="#8B1850"/>
-  <rect x="5"  y="75" width="103" height="11" fill="#8B1850"/>
-  <rect x="5"  y="89" width="98"  height="11" fill="#8B1850"/>
-  <!-- Crimson T: right arm (two parallelogram sections) -->
-  <polygon points="123,5  170,5   183,19  136,19"  fill="#8B1850"/>
-  <polygon points="136,19 183,19  195,47  148,47"  fill="#8B1850"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 282">
+  <!-- ===== CRIMSON T: 8 horizontal bars (4 wide/crossbar + 4 narrow/stem) ===== -->
+  <rect x="8" y="8"   width="140" height="15" fill="#A81F5C"/>
+  <rect x="8" y="27"  width="133" height="15" fill="#A81F5C"/>
+  <rect x="8" y="46"  width="126" height="15" fill="#A81F5C"/>
+  <rect x="8" y="65"  width="119" height="15" fill="#A81F5C"/>
+  <rect x="8" y="84"  width="96"  height="15" fill="#A81F5C"/>
+  <rect x="8" y="103" width="89"  height="15" fill="#A81F5C"/>
+  <rect x="8" y="122" width="82"  height="15" fill="#A81F5C"/>
+  <rect x="8" y="141" width="75"  height="15" fill="#A81F5C"/>
+  <!-- Crimson right arm: step-in shape (wider at top, narrower below) -->
+  <polygon points="148,8  198,8  198,27  178,27  178,80  148,80" fill="#A81F5C"/>
 
-  <!-- BLUE T: 6 horizontal bars (offset: +12px right, +112px down) -->
-  <rect x="17" y="117" width="116" height="11" fill="#1A4AB0"/>
-  <rect x="17" y="131" width="111" height="11" fill="#1A4AB0"/>
-  <rect x="17" y="145" width="106" height="11" fill="#1A4AB0"/>
-  <rect x="17" y="159" width="101" height="11" fill="#1A4AB0"/>
-  <rect x="17" y="173" width="96"  height="11" fill="#1A4AB0"/>
-  <rect x="17" y="187" width="91"  height="11" fill="#1A4AB0"/>
-  <!-- Blue T: right arm -->
-  <polygon points="123,117 170,117 182,131 135,131" fill="#1A4AB0"/>
-  <polygon points="135,131 182,131 194,159 147,159" fill="#1A4AB0"/>
+  <!-- ===== BLUE T: 6 horizontal bars (offset +10px right, below crimson) ===== -->
+  <rect x="18" y="172" width="128" height="15" fill="#2558B2"/>
+  <rect x="18" y="191" width="121" height="15" fill="#2558B2"/>
+  <rect x="18" y="210" width="114" height="15" fill="#2558B2"/>
+  <rect x="18" y="229" width="107" height="15" fill="#2558B2"/>
+  <rect x="18" y="248" width="94"  height="15" fill="#2558B2"/>
+  <rect x="18" y="267" width="82"  height="15" fill="#2558B2"/>
+  <!-- Blue right arm: L-shape (vertical strip + horizontal base) -->
+  <polygon points="146,172  186,172  186,282  75,282  75,248  146,248" fill="#2558B2"/>
 </svg>
