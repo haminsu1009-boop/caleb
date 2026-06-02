@@ -22,7 +22,7 @@
 /* ---------- Reset ---------- */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; font-size: 16px; }
-body { font-family: 'Noto Sans KR', sans-serif; color: var(--text); background: var(--white); line-height: 1.7; }
+body { font-family: 'Pretendard', 'Noto Sans KR', sans-serif; color: var(--text); background: var(--white); line-height: 1.7; }
 a { text-decoration: none; color: inherit; }
 ul, ol { list-style: none; }
 img { max-width: 100%; display: block; }
@@ -65,9 +65,9 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   display: flex; align-items: center; height: 72px; gap: 32px;
 }
 .logo a { display: flex; align-items: center; gap: 10px; }
-.logo-img { height: 52px; width: auto; flex-shrink: 0; }
+.logo-img { height: 34px; width: auto; flex-shrink: 0; }
 .logo-text { display: flex; align-items: baseline; gap: 4px; white-space: nowrap; }
-.logo .logo-main { font-size: 1.25rem; font-weight: 900; color: var(--primary); letter-spacing: -0.02em; white-space: nowrap; }
+.logo .logo-main { font-size: 1.25rem; font-weight: 900; color: #111; letter-spacing: -0.02em; white-space: nowrap; }
 .logo .logo-sub  { font-size: 0.72rem; color: var(--text-light); font-weight: 400; white-space: nowrap; }
 .gnb { flex: 1; }
 .gnb ul { display: flex; gap: 4px; }
