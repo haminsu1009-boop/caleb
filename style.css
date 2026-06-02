@@ -54,10 +54,11 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
    ============================================================ */
 #header {
   position: fixed; top: 0; left: 0; width: 100%; z-index: 1000;
-  background: transparent; transition: background var(--transition), box-shadow var(--transition);
+  background: var(--white); box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  transition: box-shadow var(--transition);
 }
 #header.scrolled {
-  background: var(--white); box-shadow: 0 2px 16px rgba(0,0,0,0.10);
+  box-shadow: 0 2px 16px rgba(0,0,0,0.13);
 }
 .header-inner {
   max-width: 1200px; margin: 0 auto; padding: 0 24px;
@@ -65,31 +66,18 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 }
 .logo a { display: flex; align-items: center; gap: 10px; }
 .logo-img { height: 52px; width: auto; flex-shrink: 0; }
-.logo-text { display: flex; align-items: baseline; gap: 4px; }
-.logo .logo-main { font-size: 1.25rem; font-weight: 900; color: var(--white); letter-spacing: -0.02em; transition: color var(--transition); }
-.logo .logo-sub  { font-size: 0.72rem; color: rgba(255,255,255,0.7); font-weight: 400; transition: color var(--transition); }
-/* 스크롤 후 헤더 — 텍스트 색상 변경 */
-#header.scrolled .logo .logo-main { color: var(--primary); }
-#header.scrolled .logo .logo-sub  { color: var(--text-light); }
+.logo-text { display: flex; align-items: baseline; gap: 4px; white-space: nowrap; }
+.logo .logo-main { font-size: 1.25rem; font-weight: 900; color: var(--primary); letter-spacing: -0.02em; white-space: nowrap; }
+.logo .logo-sub  { font-size: 0.72rem; color: var(--text-light); font-weight: 400; white-space: nowrap; }
 .gnb { flex: 1; }
 .gnb ul { display: flex; gap: 4px; }
 .gnb ul li a {
-  display: block; padding: 8px 16px; color: rgba(255,255,255,0.9);
+  display: block; padding: 8px 16px; color: var(--text);
   font-size: 0.95rem; font-weight: 500; border-radius: 4px;
   transition: color var(--transition), background var(--transition);
 }
-.gnb ul li a:hover { color: var(--white); background: rgba(255,255,255,0.12); }
-#header.scrolled .gnb ul li a { color: var(--text); }
-#header.scrolled .gnb ul li a:hover { color: var(--primary); background: var(--bg); }
-#header.scrolled .btn-estimate {
-  border-color: var(--primary); color: var(--primary); background: transparent;
-}
-#header.scrolled .btn-estimate:hover { background: var(--bg); }
-#header.scrolled .lang-toggle {
-  background: var(--bg); border-color: var(--border); color: var(--text);
-}
-#header.scrolled .lang-toggle:hover { background: var(--border); }
-#header.scrolled .hamburger span { background: var(--text); }
+.gnb ul li a:hover { color: var(--primary); background: var(--bg); }
+/* scrolled: shadow만 강화, 색상은 항상 동일 */
 
 /* Mega Menu — universal (shown when hovering any nav item) */
 .gnb { flex: 1; position: relative; }
@@ -359,13 +347,13 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 }
 .btn-consult:hover { background: #aa1f1f; }
 .btn-estimate {
-  display: inline-block; border: 1.5px solid rgba(255,255,255,0.55); color: var(--white);
+  display: inline-block; border: 1.5px solid var(--primary); color: var(--primary);
   background: transparent; padding: 8px 20px; border-radius: 4px;
   font-size: 0.88rem; font-weight: 600; transition: var(--transition); margin-left: 8px;
 }
-.btn-estimate:hover { background: rgba(255,255,255,0.12); border-color: var(--white); }
+.btn-estimate:hover { background: var(--bg); }
 .hamburger { display: none; flex-direction: column; gap: 5px; padding: 4px; }
-.hamburger span { display: block; width: 26px; height: 2.5px; background: var(--white); border-radius: 2px; transition: var(--transition); }
+.hamburger span { display: block; width: 26px; height: 2.5px; background: var(--text); border-radius: 2px; transition: var(--transition); }
 
 /* Mobile Menu */
 .mobile-menu {
@@ -1978,15 +1966,15 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 
 /* ── 언어 토글 버튼 ── */
 .lang-toggle {
-  background: rgba(255,255,255,0.14);
-  border: 1.5px solid rgba(255,255,255,0.42);
-  color: #fff; border-radius: 14px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  color: var(--text); border-radius: 14px;
   padding: 4px 12px; font-size: 0.78rem; font-weight: 700;
   letter-spacing: 0.05em; cursor: pointer;
   transition: background 0.18s; flex-shrink: 0;
   font-family: inherit;
 }
-.lang-toggle:hover { background: rgba(255,255,255,0.28); }
+.lang-toggle:hover { background: var(--border); }
 @media (max-width: 900px) { .lang-toggle { display: none; } }
 
 /* ── 모바일 메뉴 언어 토글 ── */
@@ -2042,21 +2030,17 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .mob-lang-hdr {
   display: none;
   align-items: center; gap: 4px;
-  background: rgba(255,255,255,0.15);
-  border: 1.5px solid rgba(255,255,255,0.55);
-  color: #fff; border-radius: 20px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  color: var(--text); border-radius: 20px;
   padding: 5px 11px; font-size: 0.78rem; font-weight: 800;
   cursor: pointer; font-family: inherit;
   letter-spacing: 0.04em;
   transition: background 0.18s, border-color 0.18s;
   margin-right: 4px; flex-shrink: 0;
 }
-.mob-lang-hdr svg { opacity: 0.9; flex-shrink: 0; }
-.mob-lang-hdr:hover { background: rgba(255,255,255,0.3); border-color: rgba(255,255,255,0.8); }
-#header.scrolled .mob-lang-hdr {
-  background: var(--bg); border-color: var(--border); color: var(--text);
-}
-#header.scrolled .mob-lang-hdr svg { opacity: 0.7; }
+.mob-lang-hdr svg { opacity: 0.7; flex-shrink: 0; }
+.mob-lang-hdr:hover { background: var(--border); border-color: var(--border); }
 @media (max-width: 768px) { .mob-lang-hdr { display: inline-flex; } }
 
 /* ── 채팅 선택 패널 ── */
