@@ -68,7 +68,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .logo a, .logo a:hover, .logo a:visited, .logo a:active { text-decoration: none; color: inherit; }
 .logo-img { height: 34px; width: auto; flex-shrink: 0; }
 .logo-text { display: flex; align-items: baseline; gap: 3px; white-space: nowrap; }
-.logo .logo-main { font-size: 1.25rem; font-weight: 900; color: #000; letter-spacing: -0.02em; white-space: nowrap; }
+.logo .logo-main { font-size: 1.25rem; font-weight: 600; color: #000; letter-spacing: -0.02em; white-space: nowrap; }
 .logo .logo-sub  { font-size: 0.72rem; color: #000; font-weight: 400; white-space: nowrap; }
 .gnb { flex: 1; }
 .gnb ul { display: flex; gap: 4px; }
