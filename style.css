@@ -57,17 +57,20 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   background: transparent; transition: background var(--transition), box-shadow var(--transition);
 }
 #header.scrolled {
-  background: var(--primary); box-shadow: 0 2px 16px rgba(0,0,0,0.18);
+  background: var(--white); box-shadow: 0 2px 16px rgba(0,0,0,0.10);
 }
 .header-inner {
   max-width: 1200px; margin: 0 auto; padding: 0 24px;
   display: flex; align-items: center; height: 72px; gap: 32px;
 }
 .logo a { display: flex; align-items: center; gap: 10px; }
-.logo-icon { width: 52px; height: 52px; flex-shrink: 0; }
+.logo-img { height: 40px; width: auto; flex-shrink: 0; }
 .logo-text { display: flex; align-items: baseline; gap: 4px; }
-.logo .logo-main { font-size: 1.25rem; font-weight: 900; color: var(--white); letter-spacing: -0.02em; }
-.logo .logo-sub  { font-size: 0.72rem; color: rgba(255,255,255,0.7); font-weight: 400; }
+.logo .logo-main { font-size: 1.25rem; font-weight: 900; color: var(--white); letter-spacing: -0.02em; transition: color var(--transition); }
+.logo .logo-sub  { font-size: 0.72rem; color: rgba(255,255,255,0.7); font-weight: 400; transition: color var(--transition); }
+/* 스크롤 후 헤더 — 텍스트 색상 변경 */
+#header.scrolled .logo .logo-main { color: var(--primary); }
+#header.scrolled .logo .logo-sub  { color: var(--text-light); }
 .gnb { flex: 1; }
 .gnb ul { display: flex; gap: 4px; }
 .gnb ul li a {
@@ -76,6 +79,17 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   transition: color var(--transition), background var(--transition);
 }
 .gnb ul li a:hover { color: var(--white); background: rgba(255,255,255,0.12); }
+#header.scrolled .gnb ul li a { color: var(--text); }
+#header.scrolled .gnb ul li a:hover { color: var(--primary); background: var(--bg); }
+#header.scrolled .btn-estimate {
+  border-color: var(--primary); color: var(--primary); background: transparent;
+}
+#header.scrolled .btn-estimate:hover { background: var(--bg); }
+#header.scrolled .lang-toggle {
+  background: var(--bg); border-color: var(--border); color: var(--text);
+}
+#header.scrolled .lang-toggle:hover { background: var(--border); }
+#header.scrolled .hamburger span { background: var(--text); }
 
 /* Mega Menu — universal (shown when hovering any nav item) */
 .gnb { flex: 1; position: relative; }
@@ -2039,6 +2053,10 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 }
 .mob-lang-hdr svg { opacity: 0.9; flex-shrink: 0; }
 .mob-lang-hdr:hover { background: rgba(255,255,255,0.3); border-color: rgba(255,255,255,0.8); }
+#header.scrolled .mob-lang-hdr {
+  background: var(--bg); border-color: var(--border); color: var(--text);
+}
+#header.scrolled .mob-lang-hdr svg { opacity: 0.7; }
 @media (max-width: 768px) { .mob-lang-hdr { display: inline-flex; } }
 
 /* ── 채팅 선택 패널 ── */
@@ -2214,8 +2232,8 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .hero {
   position: relative;
   width: 100%;
-  height: 100vh;
-  min-height: 600px;
+  height: 90vh;
+  min-height: 540px;
   overflow: hidden;
   display: flex;
   align-items: center;
