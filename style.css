@@ -64,7 +64,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   display: flex; align-items: center; height: 72px; gap: 32px;
 }
 .logo a { display: flex; align-items: center; gap: 10px; }
-.logo-img { height: 40px; width: auto; flex-shrink: 0; }
+.logo-img { height: 52px; width: auto; flex-shrink: 0; }
 .logo-text { display: flex; align-items: baseline; gap: 4px; }
 .logo .logo-main { font-size: 1.25rem; font-weight: 900; color: var(--white); letter-spacing: -0.02em; transition: color var(--transition); }
 .logo .logo-sub  { font-size: 0.72rem; color: rgba(255,255,255,0.7); font-weight: 400; transition: color var(--transition); }
@@ -2232,8 +2232,8 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .hero {
   position: relative;
   width: 100%;
-  height: 90vh;
-  min-height: 540px;
+  height: 60vh;
+  min-height: 440px;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -2369,11 +2369,11 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
    2섹션: 빠른 견적 (Estimate Section)
    ============================================================ */
 .estimate-section {
-  padding: 80px 0;
+  padding: 56px 0 72px;
   background: var(--bg);
 }
 .estimate-section .section-header {
-  margin-bottom: 40px;
+  margin-bottom: 32px;
 }
 .estimate-section .quote-card {
   max-width: 900px;
