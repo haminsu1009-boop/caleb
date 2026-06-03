@@ -2726,27 +2726,50 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 
 /* Consent notice text */
 .ic-consent-notice {
-  font-size: 0.83rem; color: var(--text-light);
-  line-height: 1.55; margin: 2px 0 6px;
+  font-size: 0.85rem; color: var(--text-light);
+  line-height: 1.65; margin: 4px 0 8px;
 }
 
-/* Consent section: master checkbox only */
+/* Consent section */
 .ic-agree-section {
   display: flex; flex-direction: column;
+  border: 1.5px solid var(--border); border-radius: 10px;
+  overflow: hidden;
 }
 .ic-agree-all {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; gap: 12px;
   font-size: 1rem; font-weight: 700; color: var(--text);
-  cursor: pointer; padding: 2px 0;
+  cursor: pointer; padding: 16px 18px;
+  background: var(--white);
 }
 .ic-agree-all input[type="checkbox"] {
   flex-shrink: 0; accent-color: var(--primary);
-  width: 19px; height: 19px;
+  width: 20px; height: 20px;
 }
+.ic-agree-divider {
+  border: none; border-top: 1.5px solid var(--border); margin: 0;
+}
+.ic-agree {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 0.95rem; color: var(--text); cursor: pointer;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--white);
+}
+.ic-agree:last-child { border-bottom: none; }
+.ic-agree input[type="checkbox"] {
+  flex-shrink: 0; accent-color: var(--primary);
+  width: 18px; height: 18px;
+}
+.ic-agree em { color: var(--accent); font-style: normal; font-weight: 600; margin-left: 4px; }
+.ic-agree em.opt { color: var(--text-light); font-weight: 400; }
+.ic-agree a { color: var(--primary); text-decoration: underline; }
 
 /* Submit button */
 .ic-submit { margin-top: 14px; font-size: 1.05rem; padding: 17px; letter-spacing: 0.02em; }
 
 @media (max-width: 540px) {
   .ic-title { font-size: 1.15rem; }
+  .ic-agree { font-size: 0.88rem; padding: 14px 16px; }
+  .ic-agree-all { padding: 14px 16px; }
 }

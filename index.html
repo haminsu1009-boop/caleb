@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>(주)태인종합물류 - 신뢰와 혁신의 물류 파트너</title>
-  <link rel="stylesheet" href="style.css?v=17" />
+  <link rel="stylesheet" href="style.css?v=18" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
@@ -386,11 +386,23 @@
                 <input type="checkbox" id="ic-agree-all" required />
                 <span>모두 동의하기</span>
               </label>
-              <!-- 개별 동의 항목: 마스터 체크 시 JS로 자동 체크 -->
-              <input type="checkbox" id="ic-terms" name="terms" style="display:none" />
-              <input type="checkbox" id="ic-privacy" name="privacy" style="display:none" />
-              <input type="checkbox" id="ic-age" name="age" style="display:none" />
-              <input type="checkbox" id="ic-marketing" name="marketing" style="display:none" />
+              <hr class="ic-agree-divider" />
+              <label class="ic-agree">
+                <input type="checkbox" id="ic-terms" name="terms" />
+                <span><a href="#" onclick="return false">이용약관</a>에 동의합니다.<em>(필수)</em></span>
+              </label>
+              <label class="ic-agree">
+                <input type="checkbox" id="ic-privacy" name="privacy" />
+                <span><a href="#" onclick="return false">개인정보 수집 및 이용</a>에 동의합니다.<em>(필수)</em></span>
+              </label>
+              <label class="ic-agree">
+                <input type="checkbox" id="ic-age" name="age" />
+                <span>만 14세 이상임을 확인하고 동의합니다.<em>(필수)</em></span>
+              </label>
+              <label class="ic-agree">
+                <input type="checkbox" id="ic-marketing" name="marketing" />
+                <span><a href="#" onclick="return false">마케팅 활용</a>에 동의합니다.<em class="opt">(선택)</em></span>
+              </label>
             </div>
 
             <button type="submit" class="q-submit ic-submit">견적 바로 보기</button>
@@ -685,7 +697,7 @@
 
   <button class="scroll-top" id="scrollTop" aria-label="맨 위로">▲</button>
 
-  <script src="main.js?v=17"></script>
+  <script src="main.js?v=18"></script>
   <script>
     // Quote tab switcher
     document.querySelectorAll('.q-tab').forEach(function(btn) {
