@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>(주)태인종합물류 - 신뢰와 혁신의 물류 파트너</title>
-  <link rel="stylesheet" href="style.css?v=15" />
+  <link rel="stylesheet" href="style.css?v=16" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
@@ -367,10 +367,11 @@
 
         <!-- 인라인 연락처 입력 패널 -->
         <div id="inline-contact-panel" style="display:none;">
-          <div class="inline-contact-back">
-            <button type="button" id="inlineContactBack">← 뒤로</button>
+          <div class="ic-header">
+            <h4 class="ic-title">간단한 개인정보 입력 후,<br/>즉시 견적 확인 가능합니다.</h4>
+            <button type="button" id="inlineContactBack" class="ic-close-btn" aria-label="닫기">✕</button>
           </div>
-          <h4 class="ic-title">간단한 정보를 입력해 주시면<br/>담당자가 바로 연락드립니다</h4>
+          <p class="ic-required-note">* 체크된 항목은 필수입력항목입니다.</p>
           <p class="inline-contact-summary" id="inline-contact-summary"></p>
           <form class="inline-contact-form" id="inlineContactForm">
             <input type="text" id="ic-name" name="name" placeholder="이름 *" required />
@@ -378,6 +379,8 @@
             <input type="tel" id="ic-phone" name="phone" placeholder="연락처 *" required />
             <input type="text" id="ic-company" name="company" placeholder="회사명 *" />
             <input type="hidden" id="ic-detail" name="detail" />
+
+            <p class="ic-consent-notice">아래 링크를 눌러 내용을 주의깊게 읽으세요.<br/>체크박스를 선택하면, 다음 항목을 모두 읽고 동의한 것으로 간주합니다.</p>
 
             <div class="ic-agree-section">
               <label class="ic-agree-all">
@@ -695,7 +698,7 @@
 
   <button class="scroll-top" id="scrollTop" aria-label="맨 위로">▲</button>
 
-  <script src="main.js?v=15"></script>
+  <script src="main.js?v=16"></script>
   <script>
     // Quote tab switcher
     document.querySelectorAll('.q-tab').forEach(function(btn) {
