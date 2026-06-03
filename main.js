@@ -758,4 +758,83 @@ document.addEventListener('DOMContentLoaded', () => {
     applyLang(lang);
   })();
 
+  /* ── 견적 팝업 모달 ── */
+  window.openQuoteModal = function(type) {
+    var labelMap = { fcl:'해운 FCL', lcl:'해운 LCL', air:'항공운송', land:'육상운송' };
+    var from = '', to = '', detail = '';
+    var qty = '';
+
+    if (type === 'fcl') {
+      from   = (document.getElementById('fcl-from')||{}).value||'';
+      to     = (document.getElementById('fcl-to')||{}).value||'';
+      detail = (document.getElementById('fcl-container')||{}).value||'';
+      qty    = (document.getElementById('fcl-qty')||{}).value||'1';
+    } else if (type === 'lcl') {
+      from   = (document.getElementById('lcl-from')||{}).value||'';
+      to     = (document.getElementById('lcl-to')||{}).value||'';
+      detail = (document.getElementById('lcl-weight')||{}).value||'';
+      qty    = (document.getElementById('lcl-qty')||{}).value||'1';
+    } else if (type === 'air') {
+      from   = (document.getElementById('air-from')||{}).value||'';
+      to     = (document.getElementById('air-to')||{}).value||'';
+      detail = (document.getElementById('air-weight')||{}).value||'';
+    } else if (type === 'land') {
+      from   = (document.getElementById('land-from')||{}).value||'';
+      to     = (document.getElementById('land-to')||{}).value||'';
+      detail = (document.getElementById('land-cargo')||{}).value||'';
+    }
+
+    var parts = [labelMap[type]];
+    if (from) parts.push(from + ' → ' + to);
+    if (qty && (type==='fcl'||type==='lcl')) parts.push('수량: ' + qty);
+    if (detail) parts.push(detail);
+
+    var summaryEl = document.getElementById('qmodal-summary');
+    var detailEl  = document.getElementById('qm-detail');
+    if (summaryEl) summaryEl.textContent = parts.join(' | ');
+    if (detailEl)  detailEl.value = parts.join(' | ');
+
+    var modal = document.getElementById('quote-modal');
+    if (modal) { modal.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+    var nameEl = document.getElementById('qm-name');
+    if (nameEl) setTimeout(function(){ nameEl.focus(); }, 100);
+  };
+
+  (function initQuoteModal() {
+    var modal   = document.getElementById('quote-modal');
+    var closeBtn = document.getElementById('qmodalClose');
+    var form    = document.getElementById('qmodalForm');
+    if (!modal) return;
+
+    function closeModal() {
+      modal.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', function(e) { if (e.target === modal) closeModal(); });
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeModal(); });
+
+    if (form) {
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        var btn = form.querySelector('.qmodal-submit');
+        var orig = btn.textContent;
+        btn.textContent = '전송 중...'; btn.disabled = true;
+        try {
+          var resp = await fetch('https://formspree.io/f/xpwrjvrd', {
+            method: 'POST', body: new FormData(form),
+            headers: { 'Accept': 'application/json' }
+          });
+          if (resp.ok) {
+            btn.textContent = '접수 완료 ✓'; btn.style.background = '#2e7d32';
+            setTimeout(function() { form.reset(); closeModal(); btn.textContent = orig; btn.style.background = ''; btn.disabled = false; }, 2000);
+          } else { throw new Error(); }
+        } catch {
+          btn.textContent = '전송 실패 — 다시 시도해주세요'; btn.style.background = '#c62828';
+          setTimeout(function() { btn.textContent = orig; btn.style.background = ''; btn.disabled = false; }, 3000);
+        }
+      });
+    }
+  })();
+
 });

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>(주)태인종합물류 - 신뢰와 혁신의 물류 파트너</title>
-  <link rel="stylesheet" href="style.css?v=11" />
+  <link rel="stylesheet" href="style.css?v=12" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
@@ -29,7 +29,6 @@
           <li><a href="ceo.html" data-i18n="nav.company">회사소개</a></li>
           <li><a href="services.html" data-i18n="nav.services">사업영역</a></li>
           <li><a href="network.html" data-i18n="nav.network">글로벌 네트워크</a></li>
-          <li><a href="notice.html" data-i18n="nav.notice">공지사항</a></li>
           <li><a href="customer-service.html" data-i18n="nav.support">고객센터</a></li>
         </ul>
         <div class="mega-panel">
@@ -68,7 +67,6 @@
             <div class="mega-col">
               <span class="mega-col-title">더보기</span>
               <a href="network.html">글로벌 네트워크</a>
-              <a href="notice.html">공지사항</a>
               <a href="faq.html">자주 묻는 질문</a>
               <a href="customer-service.html">견적 문의</a>
             </div>
@@ -111,7 +109,6 @@
           </ul>
         </li>
         <li><a href="network.html" class="mobile-direct">글로벌 네트워크</a></li>
-        <li><a href="notice.html" class="mobile-direct">공지사항</a></li>
         <li class="mobile-accordion">
           <button class="mobile-acc-title" type="button">고객센터 <span class="acc-arrow">›</span></button>
           <ul class="mobile-acc-body">
@@ -211,7 +208,11 @@
                   <button type="button" class="port-pick-btn" onclick="openPortPicker('fcl-to','sea')">목록 ▾</button>
                 </div>
               </div>
-              <div class="q-field"><label>컨테이너</label>
+              <div class="q-field-row">
+                <div class="q-field q-field--qty"><label>수량</label>
+                  <input type="number" id="fcl-qty" min="1" max="99" value="1" />
+                </div>
+                <div class="q-field q-field--grow"><label>컨테이너</label>
                 <select id="fcl-container">
                   <option value="">종류 선택</option>
                   <optgroup label="일반 (GP/HC)">
@@ -230,7 +231,7 @@
                     <option>위험물 컨테이너</option><option>기타 특수컨</option>
                   </optgroup>
                 </select>
-              </div>
+              </div></div>
               <div class="q-field"><label>인코텀즈</label>
                 <select id="fcl-incoterms">
                   <option value="">선택 (선택사항)</option>
@@ -248,7 +249,7 @@
                 </select>
               </div>
             </div>
-            <button type="button" class="q-submit" onclick="event.preventDefault();fillInquiryForm('fcl')">견적 문의하기 →</button>
+            <button type="button" class="q-submit" onclick="event.preventDefault();openQuoteModal('fcl')">견적 문의하기 →</button>
           </div>
           <div class="q-pane" id="qt-lcl">
             <div class="q-fields">
@@ -266,7 +267,12 @@
                   <button type="button" class="port-pick-btn" onclick="openPortPicker('lcl-to','sea')">목록 ▾</button>
                 </div>
               </div>
-              <div class="q-field"><label>화물 중량</label><input type="text" id="lcl-weight" placeholder="예: 500 kg / 2 CBM" /></div>
+              <div class="q-field-row">
+                <div class="q-field q-field--qty"><label>수량</label>
+                  <input type="number" id="lcl-qty" min="1" max="99" value="1" />
+                </div>
+                <div class="q-field q-field--grow"><label>화물 중량</label><input type="text" id="lcl-weight" placeholder="예: 500 kg / 2 CBM" /></div>
+              </div>
               <div class="q-field"><label>인코텀즈</label>
                 <select id="lcl-incoterms">
                   <option value="">선택 (선택사항)</option>
@@ -284,7 +290,7 @@
                 </select>
               </div>
             </div>
-            <button type="button" class="q-submit" onclick="event.preventDefault();fillInquiryForm('lcl')">견적 문의하기 →</button>
+            <button type="button" class="q-submit" onclick="event.preventDefault();openQuoteModal('lcl')">견적 문의하기 →</button>
           </div>
           <div class="q-pane" id="qt-air">
             <div class="q-fields">
@@ -316,7 +322,7 @@
                 </select>
               </div>
             </div>
-            <button type="button" class="q-submit" onclick="event.preventDefault();fillInquiryForm('air')">견적 문의하기 →</button>
+            <button type="button" class="q-submit" onclick="event.preventDefault();openQuoteModal('air')">견적 문의하기 →</button>
           </div>
           <div class="q-pane" id="qt-land">
             <div class="q-fields">
@@ -355,7 +361,7 @@
                 </select>
               </div>
             </div>
-            <button type="button" class="q-submit" onclick="event.preventDefault();fillInquiryForm('land')">견적 문의하기 →</button>
+            <button type="button" class="q-submit" onclick="event.preventDefault();openQuoteModal('land')">견적 문의하기 →</button>
           </div>
         </div>
       </div>
@@ -616,6 +622,31 @@
   <!-- CEO (숨김 앵커용) -->
   <div id="ceo" style="display:none;"></div>
 
+  <!-- 견적 팝업 모달 -->
+  <div id="quote-modal" class="qmodal-backdrop" style="display:none;" role="dialog" aria-modal="true">
+    <div class="qmodal-box">
+      <button class="qmodal-close" id="qmodalClose" aria-label="닫기">✕</button>
+      <h3 class="qmodal-title">간단한 정보를 입력해 주시면<br/>담당자가 바로 연락드립니다</h3>
+      <p class="qmodal-summary" id="qmodal-summary"></p>
+      <form class="qmodal-form" id="qmodalForm">
+        <div class="qmodal-row">
+          <input type="text" id="qm-name" name="name" placeholder="이름 *" required />
+          <input type="tel" id="qm-phone" name="phone" placeholder="연락처 *" required />
+        </div>
+        <input type="email" id="qm-email" name="email" placeholder="이메일 *" required />
+        <input type="text" id="qm-company" name="company" placeholder="회사명" />
+        <input type="hidden" id="qm-detail" name="detail" />
+        <div class="qm-agree-wrap">
+          <label class="qm-agree">
+            <input type="checkbox" id="qm-consent" required />
+            <span>개인정보 수집·이용에 동의합니다 <em>(필수)</em></span>
+          </label>
+        </div>
+        <button type="submit" class="qmodal-submit">견적 문의 보내기</button>
+      </form>
+    </div>
+  </div>
+
   <!-- FOOTER -->
   <footer class="footer">
     <div class="footer-top">
@@ -650,7 +681,6 @@
           <div class="footer-links">
             <h4>고객센터</h4>
             <ul>
-              <li><a href="notice.html">공지사항</a></li>
               <li><a href="faq.html">자주 묻는 질문</a></li>
               <li><a href="customer-service.html">견적 문의</a></li>
             </ul>
@@ -681,7 +711,7 @@
 
   <button class="scroll-top" id="scrollTop" aria-label="맨 위로">▲</button>
 
-  <script src="main.js?v=11"></script>
+  <script src="main.js?v=12"></script>
   <script>
     // Quote tab switcher
     document.querySelectorAll('.q-tab').forEach(function(btn) {
