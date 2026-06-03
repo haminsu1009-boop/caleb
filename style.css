@@ -375,7 +375,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 
 
 .hero {
-  position: relative; height: 100vh; min-height: 680px;
+  position: relative; height: 88vh; min-height: 580px;
   display: flex; align-items: center; overflow: hidden;
 }
 /* Canvas animated background */
@@ -2354,7 +2354,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
    2섹션: 빠른 견적 (Estimate Section)
    ============================================================ */
 .estimate-section {
-  padding: 56px 0 72px;
+  padding: 40px 0 56px;
   background: var(--bg);
 }
 .estimate-section .section-header {

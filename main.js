@@ -150,21 +150,38 @@ document.addEventListener('DOMContentLoaded', () => {
   const dots       = document.querySelectorAll('.dot');
   let current      = 0;
   let autoPlay;
+  let cycleCount   = 0;
+  let autoStopped  = false;
 
-  const goTo = (idx) => {
+  const goTo = (idx, fromAuto) => {
     slides[current].classList.remove('active');
     if (slideTexts.length) slideTexts[current].classList.remove('active');
     if (dots.length) dots[current].classList.remove('active');
-    current = (idx + slides.length) % slides.length;
+    const next = (idx + slides.length) % slides.length;
+    if (fromAuto && next === 0) {
+      cycleCount++;
+      if (cycleCount >= 3) {
+        autoStopped = true;
+        clearInterval(autoPlay);
+        const target = document.getElementById('estimate');
+        if (target) target.scrollIntoView({ behavior: 'smooth' });
+        current = next;
+        slides[current].classList.add('active');
+        if (slideTexts.length) slideTexts[current].classList.add('active');
+        if (dots.length) dots[current].classList.add('active');
+        return;
+      }
+    }
+    current = next;
     slides[current].classList.add('active');
     if (slideTexts.length) slideTexts[current].classList.add('active');
     if (dots.length) dots[current].classList.add('active');
   };
 
   const startAuto = () => {
-    autoPlay = setInterval(() => goTo(current + 1), 5000);
+    autoPlay = setInterval(() => goTo(current + 1, true), 5000);
   };
-  const stopAuto = () => clearInterval(autoPlay);
+  const stopAuto = () => { clearInterval(autoPlay); autoStopped = true; };
 
   document.getElementById('slideNext').addEventListener('click', () => { stopAuto(); goTo(current + 1); startAuto(); });
   document.getElementById('slidePrev').addEventListener('click', () => { stopAuto(); goTo(current - 1); startAuto(); });
