@@ -2708,12 +2708,33 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   transition: border-color 0.18s; box-sizing: border-box;
 }
 .inline-contact-form input:focus { outline: none; border-color: var(--primary); }
+.ic-title {
+  font-size: 1rem; font-weight: 700; color: var(--text);
+  line-height: 1.55; margin-bottom: 14px;
+}
+.ic-agree-section {
+  display: flex; flex-direction: column; gap: 2px;
+  background: var(--bg); border-radius: 8px;
+  padding: 12px 14px; margin-top: 4px;
+}
+.ic-agree-all {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.9rem; font-weight: 700; color: var(--text);
+  cursor: pointer; padding: 4px 0;
+}
+.ic-agree-all input[type="checkbox"] { flex-shrink: 0; accent-color: var(--primary); width: 16px; height: 16px; }
+.ic-agree-divider {
+  border: none; border-top: 1px solid var(--border);
+  margin: 8px 0;
+}
 .ic-agree {
   display: flex; align-items: flex-start; gap: 8px;
-  font-size: 0.85rem; color: var(--text-light); cursor: pointer; padding: 4px 0;
+  font-size: 0.83rem; color: var(--text-light); cursor: pointer; padding: 3px 0;
 }
 .ic-agree input[type="checkbox"] { margin-top: 2px; flex-shrink: 0; accent-color: var(--primary); width: 15px; height: 15px; }
 .ic-agree em { color: var(--accent); font-style: normal; font-weight: 600; }
+.ic-agree em.opt { color: var(--text-light); font-weight: 400; }
+.ic-agree a { color: var(--primary); text-decoration: underline; }
 .ic-submit { margin-top: 4px; }
 @media (max-width: 540px) {
   .inline-contact-row { flex-direction: column; }

@@ -802,8 +802,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tabs)  tabs.style.display  = 'none';
     if (panel) panel.style.display = 'block';
 
-    var nameEl = document.getElementById('ic-name');
-    if (nameEl) setTimeout(function(){ nameEl.focus(); }, 80);
+    /* 자동 키보드 방지 — focus 없음 */
   };
 
   (function initInlineContact() {
@@ -820,6 +819,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (panes) panes.style.display = '';
         if (tabs)  tabs.style.display  = '';
         if (form)  form.reset();
+      });
+    }
+
+    /* 모두 동의하기 마스터 체크박스 */
+    var agreeAll = document.getElementById('ic-agree-all');
+    var subChecks = form ? form.querySelectorAll('.ic-agree-section input[type="checkbox"]:not(#ic-agree-all)') : [];
+    if (agreeAll) {
+      agreeAll.addEventListener('change', function() {
+        subChecks.forEach(function(cb) { cb.checked = agreeAll.checked; });
+      });
+      subChecks.forEach(function(cb) {
+        cb.addEventListener('change', function() {
+          agreeAll.checked = Array.from(subChecks).every(function(c) { return c.checked; });
+        });
       });
     }
 

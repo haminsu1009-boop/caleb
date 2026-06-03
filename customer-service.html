@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>고객센터 - (주)태인종합물류</title>
-  <link rel="stylesheet" href="style.css?v=13" />
+  <link rel="stylesheet" href="style.css?v=14" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css" />
@@ -126,9 +126,9 @@
     <p class="page-hero-label" data-i18n="page.cs.label">CUSTOMER SERVICE</p>
     <h1 data-i18n="page.cs.h1">고객센터</h1>
     <nav class="breadcrumb">
-      <a href="index.html">홈</a>
+      <a href="index.html" data-i18n="breadcrumb.home">홈</a>
       <span>›</span>
-      <span>고객센터</span>
+      <span data-i18n="breadcrumb.support">고객센터</span>
     </nav>
   </div>
 </section>
@@ -139,37 +139,37 @@
     <!-- Contact Info Top -->
     <div class="cs-top">
       <div class="cs-branch hq">
-        <span class="branch-tag">본사 · SEOUL</span>
+        <span class="branch-tag" data-i18n="cs.hq.tag">본사 · SEOUL</span>
         <div class="contact-item">
           <div class="contact-icon phone-icon"></div>
-          <div><strong>대표전화</strong><p>02-3142-4051~4</p><small>평일 09:00 ~ 18:00</small></div>
+          <div><strong data-i18n="cs.label.phone">대표전화</strong><p>02-3142-4051~4</p><small data-i18n="cs.hours">평일 09:00 ~ 18:00</small></div>
         </div>
         <div class="contact-item">
           <div class="contact-icon fax-icon"></div>
-          <div><strong>팩스</strong><p>02-3142-4055~6</p></div>
+          <div><strong data-i18n="cs.label.fax">팩스</strong><p>02-3142-4055~6</p></div>
         </div>
         <div class="contact-item">
           <div class="contact-icon email-icon"></div>
-          <div><strong>이메일</strong><p>op@ttt3.co.kr</p></div>
+          <div><strong data-i18n="cs.label.email">이메일</strong><p>op@ttt3.co.kr</p></div>
         </div>
         <div class="contact-item">
           <div class="contact-icon addr-icon"></div>
-          <div><strong>주소</strong><p>서울 마포구 월드컵로 112, 효성 B/D 4층</p></div>
+          <div><strong data-i18n="cs.label.addr">주소</strong><p data-i18n="cs.hq.addr">서울 마포구 월드컵로 112, 효성 B/D 4층</p></div>
         </div>
       </div>
       <div class="cs-branch busan">
-        <span class="branch-tag">지사 · BUSAN</span>
+        <span class="branch-tag" data-i18n="cs.busan.tag">지사 · BUSAN</span>
         <div class="contact-item">
           <div class="contact-icon phone-icon"></div>
-          <div><strong>대표전화</strong><p>051-464-7056</p><small>평일 09:00 ~ 18:00</small></div>
+          <div><strong data-i18n="cs.label.phone">대표전화</strong><p>051-464-7056</p><small data-i18n="cs.hours">평일 09:00 ~ 18:00</small></div>
         </div>
         <div class="contact-item">
           <div class="contact-icon fax-icon"></div>
-          <div><strong>팩스</strong><p>051-464-7055</p></div>
+          <div><strong data-i18n="cs.label.fax">팩스</strong><p>051-464-7055</p></div>
         </div>
         <div class="contact-item">
           <div class="contact-icon addr-icon"></div>
-          <div><strong>주소</strong><p>부산광역시 중구 충장대로 5번길 12-1, 코리아 B/D 3층</p></div>
+          <div><strong data-i18n="cs.label.addr">주소</strong><p data-i18n="cs.busan.addr">부산광역시 중구 충장대로 5번길 12-1, 코리아 B/D 3층</p></div>
         </div>
       </div>
     </div>
@@ -177,51 +177,51 @@
     <!-- Inquiry Form -->
     <div class="section-header" style="margin-top:72px; margin-bottom:40px;">
       <p class="section-label">INQUIRY FORM</p>
-      <h2 class="section-title">온라인 견적 문의</h2>
-      <p class="section-desc">아래 양식을 작성해 주시면 담당자가 빠르게 연락드리겠습니다.</p>
+      <h2 class="section-title" data-i18n="cs.form.title">온라인 견적 문의</h2>
+      <p class="section-desc" data-i18n="cs.form.desc">아래 양식을 작성해 주시면 담당자가 빠르게 연락드리겠습니다.</p>
     </div>
 
     <form class="contact-form" id="contactForm" style="max-width:720px; margin:0 auto;">
       <div class="form-row">
         <div class="form-group">
-          <label for="name">이름/회사명 *</label>
-          <input type="text" id="name" name="name" placeholder="이름 또는 회사명" required />
+          <label for="name" data-i18n="cs.form.name">이름/회사명 *</label>
+          <input type="text" id="name" name="name" placeholder="이름 또는 회사명" data-i18n-placeholder="cs.form.name.placeholder" required />
         </div>
         <div class="form-group">
-          <label for="phone">연락처 *</label>
+          <label for="phone" data-i18n="cs.form.phone">연락처 *</label>
           <input type="tel" id="phone" name="phone" placeholder="010-0000-0000" required />
         </div>
       </div>
       <div class="form-group">
-        <label for="email">이메일</label>
+        <label for="email" data-i18n="cs.form.email">이메일</label>
         <input type="email" id="email" name="email" placeholder="example@email.com" />
       </div>
       <div class="form-group">
-        <label for="service">문의 서비스</label>
+        <label for="service" data-i18n="cs.form.service">문의 서비스</label>
         <select id="service" name="service">
-          <option value="">서비스를 선택하세요</option>
-          <option>해상운송 (FCL)</option>
-          <option>해상운송 (LCL)</option>
-          <option>항공운송</option>
-          <option>육상운송</option>
-          <option>통관/포워딩</option>
-          <option>물류 솔루션</option>
-          <option>기타</option>
+          <option value="" data-i18n="cs.form.service.placeholder">서비스를 선택하세요</option>
+          <option data-i18n="cs.form.svc.fcl">해상운송 (FCL)</option>
+          <option data-i18n="cs.form.svc.lcl">해상운송 (LCL)</option>
+          <option data-i18n="cs.form.svc.air">항공운송</option>
+          <option data-i18n="cs.form.svc.land">육상운송</option>
+          <option data-i18n="cs.form.svc.customs">통관/포워딩</option>
+          <option data-i18n="cs.form.svc.sol">물류 솔루션</option>
+          <option data-i18n="cs.form.svc.other">기타</option>
         </select>
       </div>
       <div class="form-group">
-        <label for="message">문의 내용 *</label>
-        <textarea id="message" name="message" rows="6" placeholder="출발지, 도착지, 화물 정보 등을 함께 입력해 주시면 빠른 견적 안내가 가능합니다." required></textarea>
+        <label for="message" data-i18n="cs.form.message">문의 내용 *</label>
+        <textarea id="message" name="message" rows="6" placeholder="출발지, 도착지, 화물 정보 등을 함께 입력해 주시면 빠른 견적 안내가 가능합니다." data-i18n-placeholder="cs.form.message.placeholder" required></textarea>
       </div>
       <div class="form-check">
         <input type="checkbox" id="agree" name="agree" required />
-        <label for="agree">개인정보 수집·이용에 동의합니다. <a href="#">[내용보기]</a></label>
+        <label for="agree" data-i18n-html="cs.form.agree">개인정보 수집·이용에 동의합니다. <a href="#">[내용보기]</a></label>
       </div>
-      <button type="submit" class="btn-submit">문의 보내기</button>
+      <button type="submit" class="btn-submit" data-i18n="cs.form.submit">문의 보내기</button>
     </form>
 
     <div style="text-align:center; margin-top:48px;">
-      <a href="faq.html" class="btn-primary" style="background:var(--primary);">자주 묻는 질문 보기</a>
+      <a href="faq.html" class="btn-primary" style="background:var(--primary);" data-i18n="cs.faq.btn">자주 묻는 질문 보기</a>
     </div>
 
   </div>
@@ -288,6 +288,6 @@
   </div>
 </footer>
 <button class="scroll-top" id="scrollTop" aria-label="맨 위로">▲</button>
-<script src="main.js?v=13"></script>
+<script src="main.js?v=14"></script>
 </body>
 </html>
