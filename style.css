@@ -2677,7 +2677,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 
 /* Inline contact panel */
 #inline-contact-panel {
-  padding: 2px 0 6px;
+  padding: 8px 0 12px;
   animation: ic-fadein 0.28s ease;
 }
 @keyframes ic-fadein {
@@ -2688,26 +2688,26 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 /* Header: title + X button */
 .ic-header {
   display: flex; align-items: flex-start;
-  justify-content: space-between; gap: 12px;
-  margin-bottom: 4px;
+  justify-content: space-between; gap: 16px;
+  margin-bottom: 14px;
 }
 .ic-title {
-  font-size: 1.3rem; font-weight: 800; color: var(--text);
-  line-height: 1.4; flex: 1;
+  font-size: 1.55rem; font-weight: 800; color: var(--text);
+  line-height: 1.38; flex: 1;
 }
 .ic-close-btn {
-  flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%;
-  background: var(--bg); border: none; font-size: 1rem;
-  color: var(--text-light); cursor: pointer;
+  flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%;
+  background: var(--bg); border: 1.5px solid var(--border);
+  font-size: 1.05rem; color: var(--text-light); cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  transition: background 0.18s, color 0.18s; margin-top: 2px;
+  transition: background 0.18s, color 0.18s; margin-top: 4px;
 }
-.ic-close-btn:hover { background: var(--border); color: var(--text); }
+.ic-close-btn:hover { background: #e2e6f0; color: var(--text); }
 
 /* Required note */
 .ic-required-note {
-  font-size: 0.8rem; color: var(--text-light);
-  text-align: right; margin-bottom: 12px;
+  font-size: 0.82rem; color: var(--text-light);
+  text-align: right; margin-bottom: 20px;
 }
 
 /* Form inputs */

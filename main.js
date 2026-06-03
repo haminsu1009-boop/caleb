@@ -800,9 +800,17 @@ document.addEventListener('DOMContentLoaded', () => {
     var panel = document.getElementById('inline-contact-panel');
     if (panes) panes.style.display = 'none';
     if (tabs)  tabs.style.display  = 'none';
-    if (panel) panel.style.display = 'block';
-
-    /* 자동 키보드 방지 — focus 없음 */
+    if (panel) {
+      panel.style.display = 'block';
+      // 패널 상단이 화면 상단에 오도록 스크롤 (헤더 높이 70px 오프셋)
+      setTimeout(function() {
+        var card = document.querySelector('.quote-card');
+        if (card) {
+          var top = card.getBoundingClientRect().top + window.pageYOffset - 80;
+          window.scrollTo({ top: top, behavior: 'smooth' });
+        }
+      }, 60);
+    }
   };
 
   (function initInlineContact() {
