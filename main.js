@@ -758,11 +758,10 @@ document.addEventListener('DOMContentLoaded', () => {
     applyLang(lang);
   })();
 
-  /* ── 견적 팝업 모달 ── */
+  /* ── 견적 인라인 연락처 전환 ── */
   window.openQuoteModal = function(type) {
     var labelMap = { fcl:'해운 FCL', lcl:'해운 LCL', air:'항공운송', land:'육상운송' };
-    var from = '', to = '', detail = '';
-    var qty = '';
+    var from = '', to = '', detail = '', qty = '';
 
     if (type === 'fcl') {
       from   = (document.getElementById('fcl-from')||{}).value||'';
@@ -785,39 +784,49 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     var parts = [labelMap[type]];
-    if (from) parts.push(from + ' → ' + to);
+    if (from && to) parts.push(from + ' → ' + to);
     if (qty && (type==='fcl'||type==='lcl')) parts.push('수량: ' + qty);
     if (detail) parts.push(detail);
+    var summary = parts.join(' | ');
 
-    var summaryEl = document.getElementById('qmodal-summary');
-    var detailEl  = document.getElementById('qm-detail');
-    if (summaryEl) summaryEl.textContent = parts.join(' | ');
-    if (detailEl)  detailEl.value = parts.join(' | ');
+    var summaryEl = document.getElementById('inline-contact-summary');
+    var detailEl  = document.getElementById('ic-detail');
+    if (summaryEl) summaryEl.textContent = summary;
+    if (detailEl)  detailEl.value = summary;
 
-    var modal = document.getElementById('quote-modal');
-    if (modal) { modal.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
-    var nameEl = document.getElementById('qm-name');
-    if (nameEl) setTimeout(function(){ nameEl.focus(); }, 100);
+    // 탭/pane 숨기고 인라인 패널 표시
+    var panes = document.querySelector('.q-panes');
+    var tabs  = document.querySelector('.q-tabs');
+    var panel = document.getElementById('inline-contact-panel');
+    if (panes) panes.style.display = 'none';
+    if (tabs)  tabs.style.display  = 'none';
+    if (panel) panel.style.display = 'block';
+
+    var nameEl = document.getElementById('ic-name');
+    if (nameEl) setTimeout(function(){ nameEl.focus(); }, 80);
   };
 
-  (function initQuoteModal() {
-    var modal   = document.getElementById('quote-modal');
-    var closeBtn = document.getElementById('qmodalClose');
-    var form    = document.getElementById('qmodalForm');
-    if (!modal) return;
+  (function initInlineContact() {
+    var panel   = document.getElementById('inline-contact-panel');
+    var backBtn = document.getElementById('inlineContactBack');
+    var form    = document.getElementById('inlineContactForm');
+    if (!panel) return;
 
-    function closeModal() {
-      modal.style.display = 'none';
-      document.body.style.overflow = '';
+    if (backBtn) {
+      backBtn.addEventListener('click', function() {
+        panel.style.display = 'none';
+        var panes = document.querySelector('.q-panes');
+        var tabs  = document.querySelector('.q-tabs');
+        if (panes) panes.style.display = '';
+        if (tabs)  tabs.style.display  = '';
+        if (form)  form.reset();
+      });
     }
-    if (closeBtn) closeBtn.addEventListener('click', closeModal);
-    modal.addEventListener('click', function(e) { if (e.target === modal) closeModal(); });
-    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeModal(); });
 
     if (form) {
       form.addEventListener('submit', async function(e) {
         e.preventDefault();
-        var btn = form.querySelector('.qmodal-submit');
+        var btn = form.querySelector('.ic-submit');
         var orig = btn.textContent;
         btn.textContent = '전송 중...'; btn.disabled = true;
         try {
@@ -827,7 +836,14 @@ document.addEventListener('DOMContentLoaded', () => {
           });
           if (resp.ok) {
             btn.textContent = '접수 완료 ✓'; btn.style.background = '#2e7d32';
-            setTimeout(function() { form.reset(); closeModal(); btn.textContent = orig; btn.style.background = ''; btn.disabled = false; }, 2000);
+            setTimeout(function() {
+              form.reset(); panel.style.display = 'none';
+              var panes = document.querySelector('.q-panes');
+              var tabs  = document.querySelector('.q-tabs');
+              if (panes) panes.style.display = '';
+              if (tabs)  tabs.style.display  = '';
+              btn.textContent = orig; btn.style.background = ''; btn.disabled = false;
+            }, 2000);
           } else { throw new Error(); }
         } catch {
           btn.textContent = '전송 실패 — 다시 시도해주세요'; btn.style.background = '#c62828';

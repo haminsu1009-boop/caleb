@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>오시는길 - (주)태인종합물류</title>
-  <link rel="stylesheet" href="style.css?v=12" />
+  <link rel="stylesheet" href="style.css?v=13" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css" />
@@ -126,11 +126,11 @@
     <p class="page-hero-label" data-i18n="page.dir.label">DIRECTIONS</p>
     <h1 data-i18n="page.dir.h1">오시는길</h1>
     <nav class="breadcrumb">
-      <a href="index.html">홈</a>
+      <a href="index.html" data-i18n="breadcrumb.home">홈</a>
       <span>›</span>
-      <span>회사소개</span>
+      <span data-i18n="breadcrumb.company">회사소개</span>
       <span>›</span>
-      <span>오시는길</span>
+      <span data-i18n="breadcrumb.dir">오시는길</span>
     </nav>
   </div>
 </section>
@@ -139,8 +139,8 @@
   <div class="container">
 
     <div class="section-header-centered">
-      <h2 class="section-title">사무소 안내</h2>
-      <p class="section-sub">서울 본사와 부산 지사에서 전국 물류 서비스를 제공하고 있습니다.</p>
+      <h2 class="section-title" data-i18n="dir.section.title">사무소 안내</h2>
+      <p class="section-sub" data-i18n="dir.section.sub">서울 본사와 부산 지사에서 전국 물류 서비스를 제공하고 있습니다.</p>
     </div>
 
     <!-- Office Cards -->
@@ -149,8 +149,8 @@
       <!-- 서울 본사 -->
       <div class="office-card office-hq">
         <div class="office-card-header">
-          <div class="office-badge hq-badge">본사 HQ</div>
-          <h3>서울 본사</h3>
+          <div class="office-badge hq-badge" data-i18n="dir.hq.badge">본사 HQ</div>
+          <h3 data-i18n="dir.hq.name">서울 본사</h3>
         </div>
 
         <div class="office-info-list">
@@ -162,7 +162,7 @@
               </svg>
             </span>
             <div>
-              <strong>주소</strong>
+              <strong data-i18n="dir.label.address">주소</strong>
               <p>서울 마포구 월드컵로 112, 효성 B/D 4층 (우: 03916)</p>
             </div>
           </div>
@@ -173,7 +173,7 @@
               </svg>
             </span>
             <div>
-              <strong>대표전화</strong>
+              <strong data-i18n="dir.label.tel">대표전화</strong>
               <p>02-3142-4051 ~ 4</p>
             </div>
           </div>
@@ -184,7 +184,7 @@
               </svg>
             </span>
             <div>
-              <strong>팩스</strong>
+              <strong data-i18n="dir.label.fax">팩스</strong>
               <p>02-3142-4055 ~ 6</p>
             </div>
           </div>
@@ -196,7 +196,7 @@
               </svg>
             </span>
             <div>
-              <strong>이메일</strong>
+              <strong data-i18n="dir.label.email">이메일</strong>
               <p>op@ttt3.co.kr</p>
             </div>
           </div>
@@ -208,8 +208,8 @@
               </svg>
             </span>
             <div>
-              <strong>업무시간</strong>
-              <p>평일 09:00 ~ 18:00 &nbsp;<span class="closed">토·일·공휴일 휴무</span></p>
+              <strong data-i18n="dir.label.hours">업무시간</strong>
+              <p data-i18n-html="dir.hq.hours">평일 09:00 ~ 18:00 &nbsp;<span class="closed">토·일·공휴일 휴무</span></p>
             </div>
           </div>
         </div>
@@ -225,18 +225,18 @@
           <div class="map-app-links">
             <a href="https://map.kakao.com/link/map/태인종합물류(서울본사),37.5639,126.9268" target="_blank" class="map-app-btn kakao-btn">
               <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M12 3C6.48 3 2 6.81 2 11.5c0 2.96 1.75 5.56 4.4 7.18L5.2 22l4.3-2.2c.81.17 1.64.26 2.5.26 5.52 0 10-3.81 10-8.5C22 6.81 17.52 3 12 3z"/></svg>
-              카카오맵으로 보기
+              <span data-i18n="dir.map.kakao">카카오맵으로 보기</span>
             </a>
             <a href="https://map.naver.com/v5/search/서울+마포구+월드컵로+112+효성빌딩" target="_blank" class="map-app-btn naver-btn">
               <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M16.27 13.62L7.5 2H2v20h7.73L18.5 12H24V2h-7.73z"/></svg>
-              네이버지도로 보기
+              <span data-i18n="dir.map.naver">네이버지도로 보기</span>
             </a>
           </div>
         </div>
 
         <!-- 교통안내 서울 -->
         <div class="transport-guide">
-          <h4>교통안내 (서울 본사)</h4>
+          <h4 data-i18n="dir.transport.hq.title">교통안내 (서울 본사)</h4>
           <div class="transport-tabs">
 
             <div class="transport-item">
@@ -250,11 +250,11 @@
                 </svg>
               </div>
               <div class="transport-content">
-                <strong>지하철 이용 시</strong>
+                <strong data-i18n="dir.transport.subway">지하철 이용 시</strong>
                 <ul>
-                  <li><span class="line-badge line2">2호선</span> 합정역 1번 출구 → 도보 약 10분</li>
-                  <li><span class="line-badge line6">6호선</span> 월드컵경기장역 1번 출구 → 도보 약 7분</li>
-                  <li><span class="line-badge line6">6호선</span> 마포구청역 4번 출구 → 도보 약 10분</li>
+                  <li data-i18n-html="dir.hq.subway.li1"><span class="line-badge line2">2호선</span> 합정역 1번 출구 → 도보 약 10분</li>
+                  <li data-i18n-html="dir.hq.subway.li2"><span class="line-badge line6">6호선</span> 월드컵경기장역 1번 출구 → 도보 약 7분</li>
+                  <li data-i18n-html="dir.hq.subway.li3"><span class="line-badge line6">6호선</span> 마포구청역 4번 출구 → 도보 약 10분</li>
                 </ul>
               </div>
             </div>
@@ -269,11 +269,11 @@
                 </svg>
               </div>
               <div class="transport-content">
-                <strong>버스 이용 시</strong>
+                <strong data-i18n="dir.transport.bus">버스 이용 시</strong>
                 <ul>
-                  <li><span class="bus-badge bus-blue">간선버스</span> 571, 672, 710번 → 월드컵로 정류장 하차</li>
-                  <li><span class="bus-badge bus-green">지선버스</span> 7711, 7715번 → 효성빌딩 앞 하차</li>
-                  <li><span class="bus-badge bus-red">광역버스</span> 9701번 → 합정 방향 이용</li>
+                  <li data-i18n-html="dir.hq.bus.li1"><span class="bus-badge bus-blue">간선버스</span> 571, 672, 710번 → 월드컵로 정류장 하차</li>
+                  <li data-i18n-html="dir.hq.bus.li2"><span class="bus-badge bus-green">지선버스</span> 7711, 7715번 → 효성빌딩 앞 하차</li>
+                  <li data-i18n-html="dir.hq.bus.li3"><span class="bus-badge bus-red">광역버스</span> 9701번 → 합정 방향 이용</li>
                 </ul>
               </div>
             </div>
@@ -289,11 +289,11 @@
                 </svg>
               </div>
               <div class="transport-content">
-                <strong>자가용 이용 시</strong>
+                <strong data-i18n="dir.transport.car">자가용 이용 시</strong>
                 <ul>
-                  <li>내부순환로 마포IC 방면 → 월드컵로 방향 우회전 후 직진</li>
-                  <li>강변북로 합정IC 방면 → 월드컵로 직진 약 5분</li>
-                  <li>건물 내 주차 가능 (유료, 방문 시 주차권 제공)</li>
+                  <li data-i18n="dir.hq.car.li1">내부순환로 마포IC 방면 → 월드컵로 방향 우회전 후 직진</li>
+                  <li data-i18n="dir.hq.car.li2">강변북로 합정IC 방면 → 월드컵로 직진 약 5분</li>
+                  <li data-i18n="dir.hq.car.li3">건물 내 주차 가능 (유료, 방문 시 주차권 제공)</li>
                 </ul>
               </div>
             </div>
@@ -306,8 +306,8 @@
       <!-- 부산 지사 -->
       <div class="office-card office-branch">
         <div class="office-card-header">
-          <div class="office-badge branch-badge">지사 Branch</div>
-          <h3>부산 지사</h3>
+          <div class="office-badge branch-badge" data-i18n="dir.branch.badge">지사 Branch</div>
+          <h3 data-i18n="dir.branch.name">부산 지사</h3>
         </div>
 
         <div class="office-info-list">
@@ -319,7 +319,7 @@
               </svg>
             </span>
             <div>
-              <strong>주소</strong>
+              <strong data-i18n="dir.label.address">주소</strong>
               <p>부산광역시 중구 충장대로 5번길 12-1, 코리아 B/D 3층 (우: 48943)</p>
             </div>
           </div>
@@ -330,7 +330,7 @@
               </svg>
             </span>
             <div>
-              <strong>대표전화</strong>
+              <strong data-i18n="dir.label.tel">대표전화</strong>
               <p>051-464-7056</p>
             </div>
           </div>
@@ -341,7 +341,7 @@
               </svg>
             </span>
             <div>
-              <strong>팩스</strong>
+              <strong data-i18n="dir.label.fax">팩스</strong>
               <p>051-464-7055</p>
             </div>
           </div>
@@ -353,7 +353,7 @@
               </svg>
             </span>
             <div>
-              <strong>이메일</strong>
+              <strong data-i18n="dir.label.email">이메일</strong>
               <p>busan@ttt3.co.kr</p>
             </div>
           </div>
@@ -365,8 +365,8 @@
               </svg>
             </span>
             <div>
-              <strong>업무시간</strong>
-              <p>평일 09:00 ~ 18:00 &nbsp;<span class="closed">토·일·공휴일 휴무</span></p>
+              <strong data-i18n="dir.label.hours">업무시간</strong>
+              <p data-i18n-html="dir.branch.hours">평일 09:00 ~ 18:00 &nbsp;<span class="closed">토·일·공휴일 휴무</span></p>
             </div>
           </div>
         </div>
@@ -535,6 +535,6 @@
   </div>
 </footer>
 <button class="scroll-top" id="scrollTop" aria-label="맨 위로">▲</button>
-<script src="main.js?v=12"></script>
+<script src="main.js?v=13"></script>
 </body>
 </html>

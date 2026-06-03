@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>(주)태인종합물류 - 신뢰와 혁신의 물류 파트너</title>
-  <link rel="stylesheet" href="style.css?v=12" />
+  <link rel="stylesheet" href="style.css?v=13" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
@@ -364,6 +364,28 @@
             <button type="button" class="q-submit" onclick="event.preventDefault();openQuoteModal('land')">견적 문의하기 →</button>
           </div>
         </div>
+
+        <!-- 인라인 연락처 입력 패널 -->
+        <div id="inline-contact-panel" style="display:none;">
+          <div class="inline-contact-back">
+            <button type="button" id="inlineContactBack">← 뒤로</button>
+          </div>
+          <p class="inline-contact-summary" id="inline-contact-summary"></p>
+          <form class="inline-contact-form" id="inlineContactForm">
+            <div class="inline-contact-row">
+              <input type="text" id="ic-name" name="name" placeholder="이름 *" required />
+              <input type="tel" id="ic-phone" name="phone" placeholder="연락처 *" required />
+            </div>
+            <input type="email" id="ic-email" name="email" placeholder="이메일 *" required />
+            <input type="text" id="ic-company" name="company" placeholder="회사명" />
+            <input type="hidden" id="ic-detail" name="detail" />
+            <label class="ic-agree">
+              <input type="checkbox" id="ic-consent" required />
+              <span>개인정보 수집·이용에 동의합니다 <em>(필수)</em></span>
+            </label>
+            <button type="submit" class="q-submit ic-submit">견적 문의 보내기</button>
+          </form>
+        </div>
       </div>
     </div>
   </section>
@@ -622,30 +644,6 @@
   <!-- CEO (숨김 앵커용) -->
   <div id="ceo" style="display:none;"></div>
 
-  <!-- 견적 팝업 모달 -->
-  <div id="quote-modal" class="qmodal-backdrop" style="display:none;" role="dialog" aria-modal="true">
-    <div class="qmodal-box">
-      <button class="qmodal-close" id="qmodalClose" aria-label="닫기">✕</button>
-      <h3 class="qmodal-title">간단한 정보를 입력해 주시면<br/>담당자가 바로 연락드립니다</h3>
-      <p class="qmodal-summary" id="qmodal-summary"></p>
-      <form class="qmodal-form" id="qmodalForm">
-        <div class="qmodal-row">
-          <input type="text" id="qm-name" name="name" placeholder="이름 *" required />
-          <input type="tel" id="qm-phone" name="phone" placeholder="연락처 *" required />
-        </div>
-        <input type="email" id="qm-email" name="email" placeholder="이메일 *" required />
-        <input type="text" id="qm-company" name="company" placeholder="회사명" />
-        <input type="hidden" id="qm-detail" name="detail" />
-        <div class="qm-agree-wrap">
-          <label class="qm-agree">
-            <input type="checkbox" id="qm-consent" required />
-            <span>개인정보 수집·이용에 동의합니다 <em>(필수)</em></span>
-          </label>
-        </div>
-        <button type="submit" class="qmodal-submit">견적 문의 보내기</button>
-      </form>
-    </div>
-  </div>
 
   <!-- FOOTER -->
   <footer class="footer">
@@ -711,7 +709,7 @@
 
   <button class="scroll-top" id="scrollTop" aria-label="맨 위로">▲</button>
 
-  <script src="main.js?v=12"></script>
+  <script src="main.js?v=13"></script>
   <script>
     // Quote tab switcher
     document.querySelectorAll('.q-tab').forEach(function(btn) {
