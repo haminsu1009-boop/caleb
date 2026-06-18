@@ -54,12 +54,25 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
    ============================================================ */
 #header {
   position: fixed; top: 0; left: 0; width: 100%; z-index: 1000;
-  background: var(--white); box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-  transition: box-shadow var(--transition);
+  background: transparent; box-shadow: none;
+  transition: background var(--transition), box-shadow var(--transition);
 }
 #header.scrolled {
+  background: var(--white);
   box-shadow: 0 2px 16px rgba(0,0,0,0.13);
 }
+#header .logo .logo-main, #header .logo .logo-sub { color: #fff !important; transition: color var(--transition); }
+#header.scrolled .logo .logo-main, #header.scrolled .logo .logo-sub { color: #000 !important; }
+#header .gnb ul li a { color: #fff; transition: color var(--transition), background var(--transition); }
+#header.scrolled .gnb ul li a { color: var(--text); }
+#header .hamburger span { background: #fff; }
+#header.scrolled .hamburger span { background: var(--text); }
+#header .lang-toggle { background: transparent; border-color: rgba(255,255,255,0.6); color: #fff; }
+#header.scrolled .lang-toggle { background: var(--bg); border-color: var(--border); color: var(--text); }
+#header .btn-estimate { border-color: #fff; color: #fff; }
+#header.scrolled .btn-estimate { border-color: var(--primary); color: var(--primary); }
+#header .mob-lang-hdr { background: transparent; border-color: rgba(255,255,255,0.6); color: #fff; }
+#header.scrolled .mob-lang-hdr { background: var(--bg); border-color: var(--border); color: var(--text); }
 .header-inner {
   max-width: 1200px; margin: 0 auto; padding: 0 24px;
   display: flex; align-items: center; height: 72px; gap: 32px;
