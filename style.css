@@ -2217,8 +2217,8 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .hero {
   position: relative;
   width: 100%;
-  height: 60vh;
-  min-height: 440px;
+  height: 66vh;
+  min-height: 480px;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -2239,19 +2239,19 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 }
 .slide.active { opacity: 1; }
 .slide-1 {
-  background-image: url('assets/hero-ship.svg'), linear-gradient(100deg, #9c3459 0%, #9c3459 54%, #31589b 58%, #31589b 100%);
+  background-image: url('assets/hero-ship.svg'), linear-gradient(135deg, #1f3a63 0%, #31589b 55%, #4a72b8 100%);
   background-repeat: no-repeat, no-repeat;
   background-position: right bottom, center;
   background-size: 50% auto, cover;
 }
 .slide-2 {
-  background-image: url('assets/hero-network.svg'), linear-gradient(95deg, #9c3459 0%, #9c3459 50%, #31589b 54%, #31589b 100%);
+  background-image: url('assets/hero-network.svg'), linear-gradient(135deg, #16294a 0%, #28477d 55%, #3a62a3 100%);
   background-repeat: no-repeat, no-repeat;
   background-position: right center, center;
   background-size: 52% auto, cover;
 }
 .slide-3 {
-  background-image: url('assets/hero-onestop.svg'), linear-gradient(115deg, #9c3459 0%, #9c3459 58%, #31589b 62%, #31589b 100%);
+  background-image: url('assets/hero-onestop.svg'), linear-gradient(135deg, #22406e 0%, #31589b 55%, #5878b0 100%);
   background-repeat: no-repeat, no-repeat;
   background-position: right center, center;
   background-size: 48% auto, cover;
@@ -2401,11 +2401,11 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
    2섹션: 빠른 견적 (Estimate Section)
    ============================================================ */
 .estimate-section {
-  padding: 40px 0 56px;
+  padding: 26px 0 56px;
   background: var(--bg);
 }
 .estimate-section .section-header {
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
 .estimate-section .quote-card {
   max-width: 900px;
