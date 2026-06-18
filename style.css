@@ -2250,14 +2250,16 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .hero-content {
   position: relative;
   z-index: 2;
-  text-align: center;
+  text-align: left;
   color: #fff;
   padding: 0 24px;
+  width: 100%;
 }
 .slide-text {
   display: none;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
+  max-width: 620px;
   animation: slideIn 0.7s ease;
 }
 .slide-text.active { display: flex; }
@@ -2291,7 +2293,15 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-start;
+}
+.hero-btns .btn-primary {
+  background: #fff;
+  color: var(--primary);
+}
+.hero-btns .btn-primary:hover {
+  background: #e8e8e8;
+  transform: translateY(-2px);
 }
 .hero-btns .btn-outline {
   border-color: rgba(255,255,255,0.7);
@@ -2300,6 +2310,28 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .hero-btns .btn-outline:hover {
   background: rgba(255,255,255,0.18);
   border-color: #fff;
+}
+.slide-dots {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  gap: 10px;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.4);
+  cursor: pointer;
+  transition: background 0.2s, width 0.2s;
+}
+.dot.active {
+  background: #fff;
+  width: 22px;
+  border-radius: 4px;
 }
 .slide-prev, .slide-next {
   position: absolute;
