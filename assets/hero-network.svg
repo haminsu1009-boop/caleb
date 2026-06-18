@@ -20,7 +20,7 @@
   <g stroke-width="2.5" fill="none" stroke-dasharray="3 7">
     <path d="M260 200 Q 430 90 590 170" stroke="#ffffff" stroke-opacity="0.55"/>
     <path d="M300 420 Q 430 320 560 410" stroke="#ffffff" stroke-opacity="0.55"/>
-    <path d="M250 320 Q 410 230 610 300" stroke="#d43636" stroke-opacity="0.7"/>
+    <path d="M250 320 Q 410 230 610 300" stroke="#9c3459" stroke-opacity="0.7"/>
   </g>
 
   <!-- nodes -->
@@ -30,7 +30,7 @@
     <circle cx="300" cy="420" r="5"/>
     <circle cx="560" cy="410" r="5"/>
   </g>
-  <g fill="#d43636">
+  <g fill="#9c3459">
     <circle cx="250" cy="320" r="7"/>
     <circle cx="610" cy="300" r="7"/>
   </g>

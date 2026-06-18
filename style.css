@@ -2239,19 +2239,19 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 }
 .slide.active { opacity: 1; }
 .slide-1 {
-  background-image: url('assets/hero-ship.svg'), linear-gradient(135deg, #1e3d8a 0%, #3568d4 50%, #0a2460 100%);
+  background-image: url('assets/hero-ship.svg'), linear-gradient(135deg, #31589b 0%, #4a6fb0 35%, #6b3f73 70%, #9c3459 100%);
   background-repeat: no-repeat, no-repeat;
   background-position: right bottom, center;
   background-size: 50% auto, cover;
 }
 .slide-2 {
-  background-image: url('assets/hero-network.svg'), linear-gradient(135deg, #0a2460 0%, #1a4a6e 50%, #3568d4 100%);
+  background-image: url('assets/hero-network.svg'), linear-gradient(135deg, #1f3a63 0%, #31589b 55%, #5d82c2 100%);
   background-repeat: no-repeat, no-repeat;
   background-position: right center, center;
   background-size: 52% auto, cover;
 }
 .slide-3 {
-  background-image: url('assets/hero-onestop.svg'), linear-gradient(135deg, #2d1b69 0%, #1e3d8a 50%, #0a3060 100%);
+  background-image: url('assets/hero-onestop.svg'), linear-gradient(135deg, #7a2c4a 0%, #9c3459 45%, #5c3e63 75%, #31589b 100%);
   background-repeat: no-repeat, no-repeat;
   background-position: right center, center;
   background-size: 48% auto, cover;
