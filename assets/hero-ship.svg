@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" fill="none">
+  <defs>
+    <linearGradient id="hullGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#cfe0f5" stop-opacity="0.85"/>
+    </linearGradient>
+  </defs>
+
+  <!-- network dots/arcs in sky -->
+  <g stroke="#ffffff" stroke-opacity="0.35" stroke-width="2" fill="none">
+    <path d="M80 90 Q 220 20 360 90" stroke-dasharray="4 8"/>
+    <path d="M360 90 Q 480 30 600 110" stroke-dasharray="4 8"/>
+  </g>
+  <g fill="#ffffff" fill-opacity="0.55">
+    <circle cx="80" cy="90" r="4"/>
+    <circle cx="360" cy="90" r="4"/>
+    <circle cx="600" cy="110" r="4"/>
+  </g>
+  <g fill="#d43636" fill-opacity="0.85">
+    <circle cx="360" cy="90" r="6"/>
+  </g>
+
+  <!-- waves -->
+  <g stroke="#ffffff" stroke-opacity="0.25" stroke-width="6" fill="none" stroke-linecap="round">
+    <path d="M40 470 Q 110 450 180 470 T 320 470 T 460 470 T 600 470 T 740 470"/>
+    <path d="M20 510 Q 90 492 160 510 T 300 510 T 440 510 T 580 510 T 720 510"/>
+  </g>
+
+  <!-- ship hull -->
+  <path d="M120 430 L 680 430 L 630 480 Q 400 500 170 480 Z" fill="url(#hullGrad)"/>
+  <path d="M120 430 L 680 430 L 660 450 L 140 450 Z" fill="#0a2460" fill-opacity="0.35"/>
+
+  <!-- bridge / cabin -->
+  <rect x="560" y="350" width="70" height="80" rx="4" fill="#ffffff" fill-opacity="0.92"/>
+  <rect x="572" y="365" width="16" height="16" rx="2" fill="#1e3d8a"/>
+  <rect x="598" y="365" width="16" height="16" rx="2" fill="#1e3d8a"/>
+  <rect x="585" y="335" width="20" height="18" rx="2" fill="#ffffff" fill-opacity="0.92"/>
+
+  <!-- container stacks -->
+  <g>
+    <rect x="160" y="370" width="60" height="55" rx="3" fill="#d43636"/>
+    <rect x="160" y="370" width="60" height="55" rx="3" fill="#000" fill-opacity="0.08"/>
+    <rect x="225" y="385" width="60" height="40" rx="3" fill="#ffffff" fill-opacity="0.92"/>
+    <rect x="290" y="370" width="60" height="55" rx="3" fill="#3568d4"/>
+    <rect x="355" y="385" width="60" height="40" rx="3" fill="#d43636"/>
+    <rect x="420" y="370" width="60" height="55" rx="3" fill="#ffffff" fill-opacity="0.92"/>
+    <rect x="485" y="385" width="60" height="40" rx="3" fill="#3568d4"/>
+
+    <rect x="190" y="330" width="60" height="40" rx="3" fill="#3568d4"/>
+    <rect x="255" y="330" width="60" height="40" rx="3" fill="#ffffff" fill-opacity="0.92"/>
+    <rect x="320" y="330" width="60" height="40" rx="3" fill="#d43636"/>
+    <rect x="385" y="330" width="60" height="40" rx="3" fill="#3568d4"/>
+    <rect x="450" y="330" width="60" height="40" rx="3" fill="#ffffff" fill-opacity="0.92"/>
+  </g>
+</svg>
