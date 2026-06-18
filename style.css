@@ -371,7 +371,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 
 /* Mobile Menu */
 .mobile-menu {
-  display: none; background: var(--primary);
+  display: none; background: linear-gradient(180deg, #2c3f5e 0%, #3a5275 100%);
   padding: 0; max-height: 0; overflow: hidden; transition: max-height 0.4s ease, padding 0.3s;
 }
 .mobile-menu.open { max-height: 600px; padding: 8px 0 16px; }
@@ -2252,27 +2252,27 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 }
 .slide.active { opacity: 1; }
 .slide-1 {
-  background-image: url('assets/hero-ship.svg'), linear-gradient(135deg, #1f3a63 0%, #31589b 55%, #4a72b8 100%);
+  background-image: url('assets/hero-ship.svg'), linear-gradient(125deg, #142849 0%, #2c4f86 58%, #4878bd 100%);
   background-repeat: no-repeat, no-repeat;
   background-position: right bottom, center;
-  background-size: 50% auto, cover;
+  background-size: 62% auto, cover;
 }
 .slide-2 {
-  background-image: url('assets/hero-network.svg'), linear-gradient(135deg, #16294a 0%, #28477d 55%, #3a62a3 100%);
+  background-image: url('assets/hero-network.svg'), linear-gradient(125deg, #0d1d36 0%, #1f3a64 58%, #34548c 100%);
   background-repeat: no-repeat, no-repeat;
   background-position: right center, center;
-  background-size: 52% auto, cover;
+  background-size: 64% auto, cover;
 }
 .slide-3 {
-  background-image: url('assets/hero-onestop.svg'), linear-gradient(135deg, #22406e 0%, #31589b 55%, #5878b0 100%);
+  background-image: url('assets/hero-onestop.svg'), linear-gradient(125deg, #4a1a30 0%, #9c3459 58%, #bf5a7d 100%);
   background-repeat: no-repeat, no-repeat;
   background-position: right center, center;
-  background-size: 48% auto, cover;
+  background-size: 60% auto, cover;
 }
 .hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.5) 100%);
+  background: linear-gradient(100deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.38) 32%, rgba(0,0,0,0.12) 58%, rgba(0,0,0,0.05) 100%);
   z-index: 1;
 }
 .hero-content {

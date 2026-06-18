@@ -1,41 +1,44 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" fill="none">
-  <!-- orbit ring -->
-  <circle cx="420" cy="300" r="170" fill="none" stroke="#ffffff" stroke-opacity="0.3" stroke-width="2" stroke-dasharray="3 9"/>
-  <circle cx="420" cy="300" r="60" fill="#ffffff" fill-opacity="0.12" stroke="#ffffff" stroke-opacity="0.45" stroke-width="2"/>
+  <!-- soft glow behind hub -->
+  <circle cx="580" cy="300" r="190" fill="#ffffff" fill-opacity="0.08"/>
+  <circle cx="580" cy="300" r="130" fill="#ffffff" fill-opacity="0.06"/>
 
-  <!-- center package -->
-  <g transform="translate(420,300)">
-    <rect x="-28" y="-24" width="56" height="48" rx="4" fill="#ffffff" fill-opacity="0.95"/>
-    <path d="M-28 -8 H28 M0 -24 V24" stroke="#9c3459" stroke-width="4"/>
+  <!-- connector lines from satellite modes into the hub -->
+  <g stroke="#ffffff" stroke-opacity="0.45" stroke-width="2.5" stroke-dasharray="3 8" fill="none">
+    <path d="M480 410 Q 520 370 558 340"/>
+    <path d="M700 230 Q 650 270 600 290"/>
+    <path d="M700 410 Q 650 370 605 335"/>
   </g>
 
-  <!-- ship icon (left) -->
-  <g transform="translate(230,210)">
-    <circle r="44" fill="#ffffff" fill-opacity="0.12" stroke="#ffffff" stroke-opacity="0.5" stroke-width="2"/>
-    <path d="M-22 6 H22 L14 22 Q0 28 -14 22 Z" fill="#ffffff" fill-opacity="0.95"/>
-    <rect x="-12" y="-10" width="10" height="16" rx="1" fill="#9c3459"/>
-    <rect x="2" y="-10" width="10" height="16" rx="1" fill="#31589b"/>
+  <!-- central warehouse / hub building -->
+  <g transform="translate(580,300)">
+    <path d="M-100 30 L0 -70 L100 30 V100 H-100 Z" fill="#ffffff" fill-opacity="0.97"/>
+    <path d="M-100 30 L0 -70 L100 30 L80 30 L0 -42 L-80 30 Z" fill="#9c3459" fill-opacity="0.9"/>
+    <rect x="-66" y="40" width="40" height="60" rx="3" fill="#9c3459" fill-opacity="0.85"/>
+    <rect x="-10" y="40" width="40" height="40" rx="3" fill="#31589b" fill-opacity="0.85"/>
+    <rect x="46" y="40" width="40" height="60" rx="3" fill="#31589b" fill-opacity="0.85"/>
   </g>
 
-  <!-- plane icon (top right) -->
-  <g transform="translate(560,190) rotate(20)">
-    <circle r="44" fill="#ffffff" fill-opacity="0.12" stroke="#ffffff" stroke-opacity="0.5" stroke-width="2" transform="rotate(-20)"/>
-    <path d="M-26 0 L20 4 L28 0 L20 -4 Z M2 -2 L-8 -16 L-2 -16 L8 -3 Z M2 2 L-8 16 L-2 16 L8 3 Z" fill="#ffffff" fill-opacity="0.95"/>
+  <!-- ship badge -->
+  <g transform="translate(460,420)">
+    <circle r="40" fill="#ffffff" fill-opacity="0.14" stroke="#ffffff" stroke-opacity="0.55" stroke-width="2"/>
+    <path d="M-20 6 H20 L13 20 Q0 25 -13 20 Z" fill="#ffffff" fill-opacity="0.95"/>
+    <rect x="-10" y="-9" width="9" height="14" rx="1" fill="#9c3459"/>
+    <rect x="2" y="-9" width="9" height="14" rx="1" fill="#31589b"/>
   </g>
 
-  <!-- truck icon (bottom) -->
-  <g transform="translate(380,420)">
-    <circle r="44" fill="#ffffff" fill-opacity="0.12" stroke="#ffffff" stroke-opacity="0.5" stroke-width="2"/>
-    <rect x="-26" y="-10" width="34" height="22" rx="2" fill="#ffffff" fill-opacity="0.95"/>
-    <path d="M8 -10 H24 L30 0 V12 H8 Z" fill="#9c3459" fill-opacity="0.9"/>
-    <circle cx="-14" cy="14" r="6" fill="#22406e"/>
-    <circle cx="18" cy="14" r="6" fill="#22406e"/>
+  <!-- plane badge -->
+  <g transform="translate(700,225) rotate(18)">
+    <circle r="40" fill="#ffffff" fill-opacity="0.14" stroke="#ffffff" stroke-opacity="0.55" stroke-width="2" transform="rotate(-18)"/>
+    <path d="M-24 0 L18 4 L25 0 L18 -4 Z M2 -2 L-7 -15 L-1 -15 L7 -3 Z M2 2 L-7 15 L-1 15 L7 3 Z" fill="#ffffff" fill-opacity="0.95"/>
   </g>
 
-  <!-- warehouse icon (right) -->
-  <g transform="translate(560,390)">
-    <circle r="44" fill="#ffffff" fill-opacity="0.12" stroke="#ffffff" stroke-opacity="0.5" stroke-width="2"/>
-    <path d="M-24 4 L0 -16 L24 4 V22 H-24 Z" fill="#ffffff" fill-opacity="0.95"/>
-    <rect x="-8" y="6" width="16" height="16" fill="#31589b"/>
+  <!-- truck badge -->
+  <g transform="translate(700,415)">
+    <circle r="40" fill="#ffffff" fill-opacity="0.14" stroke="#ffffff" stroke-opacity="0.55" stroke-width="2"/>
+    <rect x="-24" y="-9" width="32" height="20" rx="2" fill="#ffffff" fill-opacity="0.95"/>
+    <path d="M8 -9 H22 L28 0 V11 H8 Z" fill="#9c3459" fill-opacity="0.9"/>
+    <circle cx="-13" cy="13" r="5.5" fill="#22406e"/>
+    <circle cx="17" cy="13" r="5.5" fill="#22406e"/>
   </g>
 </svg>
