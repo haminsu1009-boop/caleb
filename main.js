@@ -232,7 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
   fadeEls.forEach(el => fadeObserver.observe(el));
 
   /* ── STATS COUNTER ANIMATION ── */
-  const statNums = document.querySelectorAll('.stat-num');
+  const statNums = document.querySelectorAll('.stat-num-value[data-target]');
   const countObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
