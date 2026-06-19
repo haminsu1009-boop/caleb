@@ -613,9 +613,10 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .stat-num {
   font-size: clamp(2.2rem, 4vw, 3.2rem); font-weight: 900;
   color: var(--white);
+  white-space: nowrap; display: flex; align-items: baseline; justify-content: center;
 }
 .stat-num-value {
-  display: inline-block; min-width: 3ch; text-align: right;
+  display: inline-block; min-width: 3ch; text-align: right; flex-shrink: 0;
   font-variant-numeric: tabular-nums;
 }
 .stat-unit { font-size: 1.4rem; font-weight: 700; color: var(--accent2); }
