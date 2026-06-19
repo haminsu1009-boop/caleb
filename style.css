@@ -962,7 +962,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 /* ============================================================
    FOOTER
    ============================================================ */
-.footer-top { background: var(--dark); padding: 64px 0 40px; }
+.footer-top { background: linear-gradient(180deg, #1c2c47 0%, #243a5e 100%); padding: 64px 0 40px; }
 .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1.5fr; gap: 40px; }
 .footer-logo { display: flex; align-items: baseline; gap: 4px; margin-bottom: 16px; }
 .footer-logo .logo-main { font-size: 1.2rem; font-weight: 900; color: var(--white); }
@@ -1321,7 +1321,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px;
 }
 .branch-box.cta-branch {
-  background: var(--primary); color: var(--white); border-radius: var(--radius);
+  background: linear-gradient(135deg, #2c4a73 0%, #3d5d89 100%); color: var(--white); border-radius: var(--radius);
   padding: 32px 28px; display: flex; flex-direction: column; gap: 12px;
 }
 .branch-box.cta-branch .cta-label {
