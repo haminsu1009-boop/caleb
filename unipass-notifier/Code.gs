@@ -23,7 +23,7 @@ function run() {
 
   var stateKey = CONFIG.BL_NO + ':' + CONFIG.BL_YEAR;
   var records = fetchCargoProgress_(CONFIG.BL_NO, CONFIG.BL_YEAR);
-  var latest = records[records.length - 1];
+  var latest = pickLatest_(records);
   var summaryLine = summaryLine_(latest);
   var newHash = hash_(records);
 
@@ -73,6 +73,25 @@ function collectRecords_(el, out) {
   children.forEach(function (c) {
     collectRecords_(c, out);
   });
+}
+
+// prcsDttm(처리시각) 기준으로 가장 최근 기록을 고른다 (API가 항상 시간순으로 주지 않을 수 있음)
+function pickLatest_(records) {
+  var latest = records[0];
+  var latestTime = recordTime_(latest);
+  for (var i = 1; i < records.length; i++) {
+    var t = recordTime_(records[i]);
+    if (t >= latestTime) {
+      latest = records[i];
+      latestTime = t;
+    }
+  }
+  return latest;
+}
+
+function recordTime_(record) {
+  var raw = record.prcsDttm || record.cargTrcnPrcsDttm || record.prcsDt || '';
+  return raw;
 }
 
 function summaryLine_(record) {
