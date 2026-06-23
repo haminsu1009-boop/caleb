@@ -1,19 +1,15 @@
 // 유니패스 통관상태 변경 감지 -> 텔레그램 알림
 //
 // 사용법:
-// 1) 아래 CONFIG의 BL_NO, BL_YEAR 를 본인이 조회하고 싶은 BL번호/연도로 바꾼다.
-//    (화물관리번호로 조회하려면 CARGO_NO 에 값을 넣는다. BL_NO/CARGO_NO 둘 중 하나만 채우면 된다)
-// 2) 함수 선택 드롭다운에서 run 선택 -> 실행(▶) 클릭. 권한 요청 뜨면 허용.
-// 3) 텔레그램으로 메시지가 오는지 확인한다.
-// 4) 잘 되면, 좌측 시계 아이콘(트리거) -> 트리거 추가 -> 함수: run, 시간 기반, 예: 10분마다
-//    로 설정하면 그 다음부터는 상태가 바뀔 때만 자동으로 텔레그램 알림이 온다.
+// 1) 함수 선택 드롭다운에서 run 선택 -> 실행(▶) 클릭. 권한 요청 뜨면 허용. (1회 테스트용)
+// 2) 자동으로 1분마다 체크하고 싶으면, 함수 드롭다운에서 createTrigger 선택 -> 실행.
+//    (한 번만 실행하면 됨. 그 뒤로는 1분마다 자동으로 run이 돌면서 상태가 바뀔 때만 알림이 옴)
+// 3) 자동 체크를 멈추고 싶으면 removeTriggers 실행.
 
 var CONFIG = {
   UNIPASS_API_KEY: 'n250i296j006s253p060c040h5',
   TELEGRAM_BOT_TOKEN: '8901206831:AAF2cPkHwSVjaqFyNqvO-ke5B-ubXFLYveg',
   TELEGRAM_CHAT_ID: '8624472047',
-
-  // 조회할 화물번호: BL번호 방식 또는 화물관리번호 방식 중 하나만 채운다
   BL_NO: 'KMTCYOK0756465',
   BL_YEAR: '2026',
 };
@@ -27,7 +23,8 @@ function run() {
 
   var stateKey = CONFIG.BL_NO + ':' + CONFIG.BL_YEAR;
   var records = fetchCargoProgress_(CONFIG.BL_NO, CONFIG.BL_YEAR);
-  var summary = summarize_(records);
+  var latest = records[records.length - 1];
+  var summaryLine = summaryLine_(latest);
   var newHash = hash_(records);
 
   var props = PropertiesService.getScriptProperties();
@@ -35,16 +32,16 @@ function run() {
   var prev = prevRaw ? JSON.parse(prevRaw) : null;
 
   if (!prev) {
-    sendTelegram_('[유니패스] ' + stateKey + ' 조회 시작\n현재 상태: ' + summary);
-    Logger.log('최초 조회: ' + summary);
+    sendTelegram_(formatMessage_('📦 조회 시작', null, latest));
+    Logger.log('최초 조회: ' + summaryLine);
   } else if (prev.hash !== newHash) {
-    sendTelegram_('[유니패스] ' + stateKey + ' 상태 변경!\n이전: ' + prev.summary + '\n현재: ' + summary);
-    Logger.log('상태 변경 감지: ' + prev.summary + ' -> ' + summary);
+    sendTelegram_(formatMessage_('🔔 상태 변경!', prev.summaryLine, latest));
+    Logger.log('상태 변경 감지: ' + prev.summaryLine + ' -> ' + summaryLine);
   } else {
-    Logger.log('변경 없음: ' + summary);
+    Logger.log('변경 없음: ' + summaryLine);
   }
 
-  props.setProperty('STATE_' + stateKey, JSON.stringify({ hash: newHash, summary: summary }));
+  props.setProperty('STATE_' + stateKey, JSON.stringify({ hash: newHash, summaryLine: summaryLine }));
 }
 
 function fetchCargoProgress_(blNo, blYear) {
@@ -82,16 +79,15 @@ function collectRecords_(el, out) {
   });
 }
 
-function summarize_(records) {
-  var latest = records[records.length - 1];
-  var status = latest.csclPrgsStts || latest.prgsStts || latest.cargTrcnRsltNm;
-  var date = latest.prcsDttm || latest.cargTrcnPrcsDttm || latest.prcsDt;
+function summaryLine_(record) {
+  var status = record.csclPrgsStts || record.prgsStts || record.cargTrcnRsltNm;
+  var date = record.prcsDttm || record.cargTrcnPrcsDttm || record.prcsDt;
   if (status) {
     return date ? (status + ' (' + date + ')') : status;
   }
   var parts = [];
-  for (var k in latest) {
-    if (latest[k]) parts.push(k + '=' + latest[k]);
+  for (var k in record) {
+    if (record[k]) parts.push(k + '=' + record[k]);
   }
   return parts.join(', ');
 }
@@ -102,14 +98,51 @@ function hash_(records) {
   return digest.map(function (b) { return (b < 0 ? b + 256 : b).toString(16).padStart(2, '0'); }).join('');
 }
 
+// 텔레그램에 보기 좋게 정리된 HTML 메시지를 만든다
+function formatMessage_(title, prevLine, latestRecord) {
+  var status = latestRecord.csclPrgsStts || latestRecord.prgsStts || latestRecord.cargTrcnRsltNm || '-';
+  var date = latestRecord.prcsDttm || latestRecord.cargTrcnPrcsDttm || latestRecord.prcsDt || '-';
+
+  var lines = [];
+  lines.push('<b>' + title + '</b>');
+  lines.push('');
+  lines.push('🚢 BL번호: <code>' + CONFIG.BL_NO + '</code>');
+  if (prevLine) {
+    lines.push('이전 상태: ' + prevLine);
+  }
+  lines.push('현재 상태: <b>' + status + '</b>');
+  lines.push('처리 시각: ' + date);
+  return lines.join('\n');
+}
+
 function sendTelegram_(text) {
   var url = 'https://api.telegram.org/bot' + CONFIG.TELEGRAM_BOT_TOKEN + '/sendMessage';
   var resp = UrlFetchApp.fetch(url, {
     method: 'post',
-    payload: { chat_id: CONFIG.TELEGRAM_CHAT_ID, text: text },
+    payload: { chat_id: CONFIG.TELEGRAM_CHAT_ID, text: text, parse_mode: 'HTML' },
     muteHttpExceptions: true,
   });
   if (resp.getResponseCode() !== 200) {
     throw new Error('텔레그램 전송 실패: ' + resp.getContentText());
   }
+}
+
+// 1분마다 자동으로 run()을 실행하는 트리거를 등록한다. 한 번만 실행하면 됨.
+function createTrigger() {
+  removeTriggers();
+  ScriptApp.newTrigger('run')
+    .timeBased()
+    .everyMinutes(1)
+    .create();
+  Logger.log('1분마다 자동 체크 트리거가 등록되었습니다.');
+}
+
+// run에 연결된 기존 트리거를 모두 제거한다 (중복 등록 방지 / 자동 체크 끄기용)
+function removeTriggers() {
+  var triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(function (trigger) {
+    if (trigger.getHandlerFunction() === 'run') {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  });
 }
