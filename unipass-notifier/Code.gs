@@ -30,16 +30,10 @@ function run() {
   var props = PropertiesService.getScriptProperties();
   var prevRaw = props.getProperty('STATE_' + stateKey);
   var prev = prevRaw ? JSON.parse(prevRaw) : null;
+  var changed = !prev || prev.hash !== newHash;
 
-  if (!prev) {
-    sendTelegram_(formatMessage_('📦 조회 시작', null, latest));
-    Logger.log('최초 조회: ' + summaryLine);
-  } else if (prev.hash !== newHash) {
-    sendTelegram_(formatMessage_('🔔 상태 변경!', prev.summaryLine, latest));
-    Logger.log('상태 변경 감지: ' + prev.summaryLine + ' -> ' + summaryLine);
-  } else {
-    Logger.log('변경 없음: ' + summaryLine);
-  }
+  sendTelegram_(formatMessage_(changed, prev ? prev.summaryLine : null, latest));
+  Logger.log((changed ? '상태 변경/최초 조회: ' : '확인(변경없음): ') + summaryLine);
 
   props.setProperty('STATE_' + stateKey, JSON.stringify({ hash: newHash, summaryLine: summaryLine }));
 }
@@ -99,19 +93,21 @@ function hash_(records) {
 }
 
 // 텔레그램에 보기 좋게 정리된 HTML 메시지를 만든다
-function formatMessage_(title, prevLine, latestRecord) {
+function formatMessage_(changed, prevLine, latestRecord) {
   var status = latestRecord.csclPrgsStts || latestRecord.prgsStts || latestRecord.cargTrcnRsltNm || '-';
   var date = latestRecord.prcsDttm || latestRecord.cargTrcnPrcsDttm || latestRecord.prcsDt || '-';
+  var checkedAt = Utilities.formatDate(new Date(), 'Asia/Seoul', 'MM월 dd일 HH시 mm분');
 
   var lines = [];
-  lines.push('<b>' + title + '</b>');
+  lines.push('<b>' + (changed ? '🔔 상태 변경 감지!' : '✅ 확인 완료 (변경 없음)') + '</b>');
   lines.push('');
+  lines.push('🕐 확인 시각: ' + checkedAt);
   lines.push('🚢 BL번호: <code>' + CONFIG.BL_NO + '</code>');
   if (prevLine) {
     lines.push('이전 상태: ' + prevLine);
   }
   lines.push('현재 상태: <b>' + status + '</b>');
-  lines.push('처리 시각: ' + date);
+  lines.push('통관 처리시각: ' + date);
   return lines.join('\n');
 }
 
