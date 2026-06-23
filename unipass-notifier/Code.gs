@@ -1,34 +1,61 @@
-// 유니패스 통관상태 변경 감지 -> 텔레그램 알림 (Google Apps Script 버전)
+// 유니패스 통관상태 변경 감지 -> 텔레그램 알림
 //
 // 사용법:
-// 1) 아래 setup() 함수의 YOUR_... 부분을 실제 값으로 채우고 한 번 실행해서 스크립트 속성에 저장하세요.
-//    (한 번 실행한 뒤엔 setup() 함수는 다시 실행하지 않아도 됩니다)
-// 2) checkUnipass('BL번호', '연도') 또는 checkUnipassByCargo('화물관리번호') 를 실행/트리거로 호출하세요.
+// 1) 아래 CONFIG의 BL_NO, BL_YEAR 를 본인이 조회하고 싶은 BL번호/연도로 바꾼다.
+//    (화물관리번호로 조회하려면 CARGO_NO 에 값을 넣는다. BL_NO/CARGO_NO 둘 중 하나만 채우면 된다)
+// 2) 함수 선택 드롭다운에서 run 선택 -> 실행(▶) 클릭. 권한 요청 뜨면 허용.
+// 3) 텔레그램으로 메시지가 오는지 확인한다.
+// 4) 잘 되면, 좌측 시계 아이콘(트리거) -> 트리거 추가 -> 함수: run, 시간 기반, 예: 10분마다
+//    로 설정하면 그 다음부터는 상태가 바뀔 때만 자동으로 텔레그램 알림이 온다.
+
+var CONFIG = {
+  UNIPASS_API_KEY: 'n250i296j006s253p060c040h5',
+  TELEGRAM_BOT_TOKEN: '8901206831:AAF2cPkHwSVjaqFyNqvO-ke5B-ubXFLYveg',
+  TELEGRAM_CHAT_ID: '755200451',
+
+  // 조회할 화물번호: BL번호 방식 또는 화물관리번호 방식 중 하나만 채운다
+  BL_NO: '',       // 예: 'KMTC1234567'
+  BL_YEAR: '',     // 예: '2026' (BL_NO 사용 시 같이 채움)
+  CARGO_NO: '',    // 화물관리번호 (이걸 채우면 BL_NO보다 우선 사용됨)
+};
 
 var UNIPASS_URL = 'https://unipass.customs.go.kr:38010/ext/rest/cargCsclPrgsInfoQry/retrieveCargCsclPrgsInfo';
 
-function setup() {
+function run() {
+  if (!CONFIG.CARGO_NO && !CONFIG.BL_NO) {
+    throw new Error('CONFIG 의 BL_NO 또는 CARGO_NO 중 하나를 채워주세요.');
+  }
+
+  var stateKey = CONFIG.CARGO_NO || (CONFIG.BL_NO + ':' + CONFIG.BL_YEAR);
+  var records = fetchCargoProgress_(CONFIG.CARGO_NO, CONFIG.BL_NO, CONFIG.BL_YEAR);
+  var summary = summarize_(records);
+  var newHash = hash_(records);
+
   var props = PropertiesService.getScriptProperties();
-  props.setProperty('UNIPASS_API_KEY', 'YOUR_UNIPASS_API_KEY');
-  props.setProperty('TELEGRAM_BOT_TOKEN', 'YOUR_TELEGRAM_BOT_TOKEN');
-  props.setProperty('TELEGRAM_CHAT_ID', 'YOUR_TELEGRAM_CHAT_ID');
+  var prevRaw = props.getProperty('STATE_' + stateKey);
+  var prev = prevRaw ? JSON.parse(prevRaw) : null;
+
+  if (!prev) {
+    sendTelegram_('[유니패스] ' + stateKey + ' 조회 시작\n현재 상태: ' + summary);
+    Logger.log('최초 조회: ' + summary);
+  } else if (prev.hash !== newHash) {
+    sendTelegram_('[유니패스] ' + stateKey + ' 상태 변경!\n이전: ' + prev.summary + '\n현재: ' + summary);
+    Logger.log('상태 변경 감지: ' + prev.summary + ' -> ' + summary);
+  } else {
+    Logger.log('변경 없음: ' + summary);
+  }
+
+  props.setProperty('STATE_' + stateKey, JSON.stringify({ hash: newHash, summary: summary }));
 }
 
-function getConfig_() {
-  var props = PropertiesService.getScriptProperties();
-  return {
-    apiKey: props.getProperty('UNIPASS_API_KEY'),
-    botToken: props.getProperty('TELEGRAM_BOT_TOKEN'),
-    chatId: props.getProperty('TELEGRAM_CHAT_ID'),
-  };
-}
-
-function fetchCargoProgress_(apiKey, mblNo, hblNo, blYy) {
-  var url = UNIPASS_URL
-    + '?crkyCn=' + encodeURIComponent(apiKey)
-    + (mblNo ? '&mblNo=' + encodeURIComponent(mblNo) : '')
-    + (hblNo ? '&hblNo=' + encodeURIComponent(hblNo) : '')
-    + (blYy ? '&blYy=' + encodeURIComponent(blYy) : '');
+function fetchCargoProgress_(cargoNo, blNo, blYear) {
+  var url = UNIPASS_URL + '?crkyCn=' + encodeURIComponent(CONFIG.UNIPASS_API_KEY);
+  if (cargoNo) {
+    url += '&cargMtNo=' + encodeURIComponent(cargoNo);
+  } else {
+    url += '&mblNo=' + encodeURIComponent(blNo);
+    if (blYear) url += '&blYy=' + encodeURIComponent(blYear);
+  }
 
   var resp = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
   var xml = resp.getContentText();
@@ -80,55 +107,14 @@ function hash_(records) {
   return digest.map(function (b) { return (b < 0 ? b + 256 : b).toString(16).padStart(2, '0'); }).join('');
 }
 
-function sendTelegram_(botToken, chatId, text) {
-  var url = 'https://api.telegram.org/bot' + botToken + '/sendMessage';
+function sendTelegram_(text) {
+  var url = 'https://api.telegram.org/bot' + CONFIG.TELEGRAM_BOT_TOKEN + '/sendMessage';
   var resp = UrlFetchApp.fetch(url, {
     method: 'post',
-    payload: { chat_id: chatId, text: text },
+    payload: { chat_id: CONFIG.TELEGRAM_CHAT_ID, text: text },
     muteHttpExceptions: true,
   });
   if (resp.getResponseCode() !== 200) {
     throw new Error('텔레그램 전송 실패: ' + resp.getContentText());
   }
-}
-
-function checkUnipassByCargo(cargoNo) {
-  check_(cargoNo, null, null, null, cargoNo);
-}
-
-function checkUnipass(blNo, blYear) {
-  check_(null, blNo, null, blYear, blNo + ':' + (blYear || ''));
-}
-
-function check_(cargoNo, mblNo, hblNo, blYy, stateKey) {
-  var cfg = getConfig_();
-  if (!cfg.apiKey || !cfg.botToken || !cfg.chatId) {
-    throw new Error('스크립트 속성에 UNIPASS_API_KEY / TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID 를 설정하세요.');
-  }
-
-  var records = fetchCargoProgress_(cfg.apiKey, cargoNo || mblNo, hblNo, blYy);
-  var summary = summarize_(records);
-  var newHash = hash_(records);
-
-  var props = PropertiesService.getScriptProperties();
-  var prevRaw = props.getProperty('STATE_' + stateKey);
-  var prev = prevRaw ? JSON.parse(prevRaw) : null;
-
-  if (!prev) {
-    sendTelegram_(cfg.botToken, cfg.chatId, '[유니패스] ' + stateKey + ' 조회 시작\n현재 상태: ' + summary);
-  } else if (prev.hash !== newHash) {
-    sendTelegram_(cfg.botToken, cfg.chatId, '[유니패스] ' + stateKey + ' 상태 변경!\n이전: ' + prev.summary + '\n현재: ' + summary);
-  } else {
-    Logger.log('변경 없음: ' + summary);
-  }
-
-  props.setProperty('STATE_' + stateKey, JSON.stringify({ hash: newHash, summary: summary }));
-}
-
-// 시간 기반 트리거로 주기적으로 자동 확인하고 싶을 때 사용
-// (Apps Script 편집기 좌측 시계 아이콘 > 트리거 추가 > 함수: checkAll, 시간 간격 선택)
-function checkAll() {
-  // 확인하고 싶은 번호들을 여기에 추가
-  // checkUnipass('BL번호', '2026');
-  // checkUnipassByCargo('화물관리번호');
 }
