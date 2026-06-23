@@ -32,8 +32,10 @@ function run() {
   var prev = prevRaw ? JSON.parse(prevRaw) : null;
   var changed = !prev || prev.hash !== newHash;
 
-  sendTelegram_(formatMessage_(changed, prev ? prev.summaryLine : null, latest));
-  Logger.log((changed ? '상태 변경/최초 조회: ' : '확인(변경없음): ') + summaryLine);
+  if (changed) {
+    sendTelegram_(formatMessage_(!prev, prev ? prev.summaryLine : null, latest));
+  }
+  Logger.log((changed ? '상태 변경/최초 조회 (알림 전송): ' : '확인(변경없음, 알림 안보냄): ') + summaryLine);
 
   props.setProperty('STATE_' + stateKey, JSON.stringify({ hash: newHash, summaryLine: summaryLine }));
 }
@@ -74,8 +76,8 @@ function collectRecords_(el, out) {
 }
 
 function summaryLine_(record) {
-  var status = record.csclPrgsStts || record.prgsStts || record.cargTrcnRsltNm;
-  var date = record.prcsDttm || record.cargTrcnPrcsDttm || record.prcsDt;
+  var status = record.cargTrcnRelaBsopTpcd || record.csclPrgsStts || record.prgsStts || record.cargTrcnRsltNm;
+  var date = formatDttm_(record.prcsDttm || record.cargTrcnPrcsDttm || record.prcsDt);
   if (status) {
     return date ? (status + ' (' + date + ')') : status;
   }
@@ -93,13 +95,13 @@ function hash_(records) {
 }
 
 // 텔레그램에 보기 좋게 정리된 HTML 메시지를 만든다
-function formatMessage_(changed, prevLine, latestRecord) {
-  var status = latestRecord.csclPrgsStts || latestRecord.prgsStts || latestRecord.cargTrcnRsltNm || '-';
-  var date = latestRecord.prcsDttm || latestRecord.cargTrcnPrcsDttm || latestRecord.prcsDt || '-';
+function formatMessage_(isFirst, prevLine, latestRecord) {
+  var status = latestRecord.cargTrcnRelaBsopTpcd || latestRecord.csclPrgsStts || latestRecord.prgsStts || latestRecord.cargTrcnRsltNm || '-';
+  var date = formatDttm_(latestRecord.prcsDttm || latestRecord.cargTrcnPrcsDttm || latestRecord.prcsDt);
   var checkedAt = Utilities.formatDate(new Date(), 'Asia/Seoul', 'MM월 dd일 HH시 mm분');
 
   var lines = [];
-  lines.push('<b>' + (changed ? '🔔 상태 변경 감지!' : '✅ 확인 완료 (변경 없음)') + '</b>');
+  lines.push('<b>' + (isFirst ? '📦 조회 시작' : '🔔 상태 변경 감지!') + '</b>');
   lines.push('');
   lines.push('🕐 확인 시각: ' + checkedAt);
   lines.push('🚢 BL번호: <code>' + CONFIG.BL_NO + '</code>');
@@ -109,6 +111,13 @@ function formatMessage_(changed, prevLine, latestRecord) {
   lines.push('현재 상태: <b>' + status + '</b>');
   lines.push('통관 처리시각: ' + date);
   return lines.join('\n');
+}
+
+// '20260612160923' 같은 형식을 '2026-06-12 16:09:23' 로 변환
+function formatDttm_(raw) {
+  if (!raw || raw.length < 14) return raw || '-';
+  return raw.substring(0, 4) + '-' + raw.substring(4, 6) + '-' + raw.substring(6, 8)
+    + ' ' + raw.substring(8, 10) + ':' + raw.substring(10, 12) + ':' + raw.substring(12, 14);
 }
 
 function sendTelegram_(text) {
