@@ -16,18 +16,17 @@ var CONFIG = {
   // 조회할 화물번호: BL번호 방식 또는 화물관리번호 방식 중 하나만 채운다
   BL_NO: 'KMTCYOK0756465',
   BL_YEAR: '2026',
-  CARGO_NO: '',    // 화물관리번호 (이걸 채우면 BL_NO보다 우선 사용됨)
 };
 
 var UNIPASS_URL = 'https://unipass.customs.go.kr:38010/ext/rest/cargCsclPrgsInfoQry/retrieveCargCsclPrgsInfo';
 
 function run() {
-  if (!CONFIG.CARGO_NO && !CONFIG.BL_NO) {
-    throw new Error('CONFIG 의 BL_NO 또는 CARGO_NO 중 하나를 채워주세요.');
+  if (!CONFIG.BL_NO) {
+    throw new Error('CONFIG 의 BL_NO 를 채워주세요.');
   }
 
-  var stateKey = CONFIG.CARGO_NO || (CONFIG.BL_NO + ':' + CONFIG.BL_YEAR);
-  var records = fetchCargoProgress_(CONFIG.CARGO_NO, CONFIG.BL_NO, CONFIG.BL_YEAR);
+  var stateKey = CONFIG.BL_NO + ':' + CONFIG.BL_YEAR;
+  var records = fetchCargoProgress_(CONFIG.BL_NO, CONFIG.BL_YEAR);
   var summary = summarize_(records);
   var newHash = hash_(records);
 
@@ -48,14 +47,10 @@ function run() {
   props.setProperty('STATE_' + stateKey, JSON.stringify({ hash: newHash, summary: summary }));
 }
 
-function fetchCargoProgress_(cargoNo, blNo, blYear) {
-  var url = UNIPASS_URL + '?crkyCn=' + encodeURIComponent(CONFIG.UNIPASS_API_KEY);
-  if (cargoNo) {
-    url += '&cargMtNo=' + encodeURIComponent(cargoNo);
-  } else {
-    url += '&mblNo=' + encodeURIComponent(blNo);
-    if (blYear) url += '&blYy=' + encodeURIComponent(blYear);
-  }
+function fetchCargoProgress_(blNo, blYear) {
+  var url = UNIPASS_URL + '?crkyCn=' + encodeURIComponent(CONFIG.UNIPASS_API_KEY)
+    + '&mblNo=' + encodeURIComponent(blNo)
+    + '&blYy=' + encodeURIComponent(blYear);
 
   var resp = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
   var xml = resp.getContentText();
