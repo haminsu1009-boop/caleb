@@ -10,7 +10,7 @@ var CONFIG = {
   UNIPASS_API_KEY: 'n250i296j006s253p060c040h5',
   TELEGRAM_BOT_TOKEN: '8901206831:AAF2cPkHwSVjaqFyNqvO-ke5B-ubXFLYveg',
   TELEGRAM_CHAT_ID: '8624472047',
-  BL_NO: 'TYSPJEK000626',
+  BL_NO: 'PSHAINC1AV757',
   BL_YEAR: '2026',
 };
 
@@ -77,7 +77,7 @@ function fetchCargoProgress_(blNo, blYear) {
 function collectRecords_(el, out) {
   var name = el.getName();
   var children = el.getChildren();
-  if ((name === 'cargCsclPrgsInfo' || (name.indexOf('cargCsclPrgsInfo') !== -1 && name.indexOf('Qry') === -1)) && children.length > 0 && !el.getChild('tCnt')) {
+  if (name.indexOf('cargCsclPrgsInfo') !== -1 && name.indexOf('RtnVo') === -1 && children.length > 0 && !el.getChild('tCnt')) {
     var record = {};
     children.forEach(function (c) {
       record[c.getName()] = c.getText().trim();
