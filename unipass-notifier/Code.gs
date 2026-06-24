@@ -152,13 +152,46 @@ function sendTelegram_(text) {
 }
 
 // 1분마다 자동으로 run()을 실행하는 트리거를 등록한다. 한 번만 실행하면 됨.
-function createTrigger() {
+function createTrigger1Min() {
   removeTriggers();
   ScriptApp.newTrigger('run')
     .timeBased()
     .everyMinutes(1)
     .create();
-  Logger.log('1분마다 자동 체크 트리거가 등록되었습니다.');
+  runAndNotify_('1분마다 자동 체크 시작');
+}
+
+// 5분마다 자동으로 run()을 실행하는 트리거를 등록한다. 한 번만 실행하면 됨.
+function createTrigger5Min() {
+  removeTriggers();
+  ScriptApp.newTrigger('run')
+    .timeBased()
+    .everyMinutes(5)
+    .create();
+  runAndNotify_('5분마다 자동 체크 시작');
+}
+
+// 트리거 등록 직후 현재 상태를 즉시 텔레그램으로 알려준다
+function runAndNotify_(triggerMsg) {
+  var records = fetchCargoProgress_(CONFIG.BL_NO, CONFIG.BL_YEAR);
+  var latest = pickLatest_(records);
+  var status = latest.cargTrcnRelaBsopTpcd || latest.csclPrgsStts || latest.prgsStts || latest.cargTrcnRsltNm || '-';
+  var date = formatDttm_(latest.prcsDttm || latest.cargTrcnPrcsDttm || latest.prcsDt);
+  var checkedAt = Utilities.formatDate(new Date(), 'Asia/Seoul', 'MM월 dd일 HH시 mm분');
+
+  var text = '<b>⚙️ ' + triggerMsg + '</b>\n\n'
+    + '🕐 현재 시각: ' + checkedAt + '\n'
+    + '🚢 BL번호: <code>' + CONFIG.BL_NO + '</code>\n'
+    + '현재 상태: <b>' + status + '</b>\n'
+    + '통관 처리시각: ' + date;
+  sendTelegram_(text);
+
+  // 현재 상태를 기준으로 저장 (이후 변경 감지 기준점)
+  var summaryLine = summaryLine_(latest);
+  var newHash = hash_(records);
+  var stateKey = CONFIG.BL_NO + ':' + CONFIG.BL_YEAR;
+  PropertiesService.getScriptProperties().setProperty('STATE_' + stateKey, JSON.stringify({ hash: newHash, summaryLine: summaryLine }));
+  Logger.log(triggerMsg + ' | 현재 상태: ' + summaryLine);
 }
 
 // run에 연결된 기존 트리거를 모두 제거한다 (중복 등록 방지 / 자동 체크 끄기용)
