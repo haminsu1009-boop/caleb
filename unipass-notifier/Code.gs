@@ -116,19 +116,18 @@ function hash_(records) {
 // 텔레그램에 보기 좋게 정리된 HTML 메시지를 만든다
 function formatMessage_(isFirst, prevLine, latestRecord) {
   var status = latestRecord.cargTrcnRelaBsopTpcd || latestRecord.csclPrgsStts || latestRecord.prgsStts || latestRecord.cargTrcnRsltNm || '-';
-  var date = formatDttm_(latestRecord.prcsDttm || latestRecord.cargTrcnPrcsDttm || latestRecord.prcsDt);
-  var checkedAt = Utilities.formatDate(new Date(), 'Asia/Seoul', 'MM월 dd일 HH시 mm분');
+  var statusAt = formatDttm_(latestRecord.prcsDttm || latestRecord.cargTrcnPrcsDttm || latestRecord.prcsDt);
 
   var lines = [];
-  lines.push('<b>' + (isFirst ? '📦 조회 시작' : '🔔 상태 변경 감지!') + '</b>');
+  lines.push('<b>' + (isFirst ? '📦 모니터링 시작' : '🔔 상태 변경 감지!') + '</b>');
   lines.push('');
-  lines.push('🕐 확인 시각: ' + checkedAt);
   lines.push('🚢 BL번호: <code>' + CONFIG.BL_NO + '</code>');
   if (prevLine) {
     lines.push('이전 상태: ' + prevLine);
   }
-  lines.push('현재 상태: <b>' + status + '</b>');
-  lines.push('통관 처리시각: ' + date);
+  lines.push('');
+  lines.push('📌 현재 상태: <b>' + status + '</b>');
+  lines.push('🕐 상태 발생 시각: ' + statusAt);
   return lines.join('\n');
 }
 
@@ -180,10 +179,10 @@ function runAndNotify_(triggerMsg) {
   var checkedAt = Utilities.formatDate(new Date(), 'Asia/Seoul', 'MM월 dd일 HH시 mm분');
 
   var text = '<b>⚙️ ' + triggerMsg + '</b>\n\n'
-    + '🕐 현재 시각: ' + checkedAt + '\n'
-    + '🚢 BL번호: <code>' + CONFIG.BL_NO + '</code>\n'
-    + '현재 상태: <b>' + status + '</b>\n'
-    + '통관 처리시각: ' + date;
+    + '🚢 BL번호: <code>' + CONFIG.BL_NO + '</code>\n\n'
+    + '📌 현재 상태: <b>' + status + '</b>\n'
+    + '🕐 상태 발생 시각: ' + date + '\n\n'
+    + '(조회 시각: ' + checkedAt + ')';
   sendTelegram_(text);
 
   // 현재 상태를 기준으로 저장 (이후 변경 감지 기준점)
