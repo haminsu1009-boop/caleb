@@ -25,19 +25,20 @@ function run() {
   var records = fetchCargoProgress_(CONFIG.BL_NO, CONFIG.BL_YEAR);
   var latest = pickLatest_(records);
   var summaryLine = summaryLine_(latest);
-  var newHash = hash_(records);
-
   var props = PropertiesService.getScriptProperties();
   var prevRaw = props.getProperty('STATE_' + stateKey);
   var prev = prevRaw ? JSON.parse(prevRaw) : null;
-  var changed = !prev || prev.hash !== newHash;
+  // 전체 배열이 아닌 최신 상태 요약값만 비교 (관련 없는 데이터 변동 무시)
+  var changed = !prev || prev.summaryLine !== summaryLine;
 
   if (changed) {
     sendTelegram_(formatMessage_(!prev, prev ? prev.summaryLine : null, latest));
+    Logger.log('상태 변경/최초 조회 (알림 전송): ' + summaryLine);
+  } else {
+    Logger.log('확인(변경없음): ' + summaryLine);
   }
-  Logger.log((changed ? '상태 변경/최초 조회 (알림 전송): ' : '확인(변경없음, 알림 안보냄): ') + summaryLine);
 
-  props.setProperty('STATE_' + stateKey, JSON.stringify({ hash: newHash, summaryLine: summaryLine }));
+  props.setProperty('STATE_' + stateKey, JSON.stringify({ summaryLine: summaryLine }));
 }
 
 function fetchCargoProgress_(blNo, blYear) {
@@ -75,18 +76,15 @@ function collectRecords_(el, out) {
   });
 }
 
-// prcsDttm(처리시각) 기준으로 가장 최근 기록을 고른다 (API가 항상 시간순으로 주지 않을 수 있음)
+// 상태값이 있는 레코드 중 prcsDttm 기준으로 가장 최근 것을 고른다
 function pickLatest_(records) {
-  var latest = records[0];
-  var latestTime = recordTime_(latest);
-  for (var i = 1; i < records.length; i++) {
-    var t = recordTime_(records[i]);
-    if (t >= latestTime) {
-      latest = records[i];
-      latestTime = t;
-    }
-  }
-  return latest;
+  var candidates = records.filter(function(r) {
+    return !!(r.cargTrcnRelaBsopTpcd || r.csclPrgsStts || r.prgsStts || r.cargTrcnRsltNm);
+  });
+  var pool = candidates.length > 0 ? candidates : records;
+  return pool.reduce(function(best, r) {
+    return recordTime_(r) >= recordTime_(best) ? r : best;
+  }, pool[0]);
 }
 
 function recordTime_(record) {
@@ -105,12 +103,6 @@ function summaryLine_(record) {
     if (record[k]) parts.push(k + '=' + record[k]);
   }
   return parts.join(', ');
-}
-
-function hash_(records) {
-  var json = JSON.stringify(records);
-  var digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, json);
-  return digest.map(function (b) { return (b < 0 ? b + 256 : b).toString(16).padStart(2, '0'); }).join('');
 }
 
 // 텔레그램에 보기 좋게 정리된 HTML 메시지를 만든다
@@ -189,7 +181,7 @@ function runAndNotify_(triggerMsg) {
   var summaryLine = summaryLine_(latest);
   var newHash = hash_(records);
   var stateKey = CONFIG.BL_NO + ':' + CONFIG.BL_YEAR;
-  PropertiesService.getScriptProperties().setProperty('STATE_' + stateKey, JSON.stringify({ hash: newHash, summaryLine: summaryLine }));
+  PropertiesService.getScriptProperties().setProperty('STATE_' + stateKey, JSON.stringify({ summaryLine: summaryLine }));
   Logger.log(triggerMsg + ' | 현재 상태: ' + summaryLine);
 }
 
