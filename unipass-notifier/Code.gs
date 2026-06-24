@@ -54,22 +54,23 @@ function run() {
 }
 
 function fetchCargoProgress_(blNo, blYear) {
-  var url = UNIPASS_URL + '?crkyCn=' + encodeURIComponent(CONFIG.UNIPASS_API_KEY)
-    + '&mblNo=' + encodeURIComponent(blNo)
-    + '&blYy=' + encodeURIComponent(blYear);
-
-  var resp = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
-  var xml = resp.getContentText();
-  var doc = XmlService.parse(xml);
-  var root = doc.getRootElement();
-
-  var records = [];
-  collectRecords_(root, records);
-
-  if (records.length === 0) {
-    throw new Error('조회 결과가 없습니다. 번호/연도를 확인하세요. 응답 일부: ' + xml.substring(0, 300));
+  var base = UNIPASS_URL + '?crkyCn=' + encodeURIComponent(CONFIG.UNIPASS_API_KEY);
+  var yearParam = blYear ? '&blYy=' + encodeURIComponent(blYear) : '';
+  // MBL → HBL 순으로 시도
+  var paramSets = [
+    '&mblNo=' + encodeURIComponent(blNo) + yearParam,
+    '&hblNo=' + encodeURIComponent(blNo) + yearParam,
+  ];
+  for (var i = 0; i < paramSets.length; i++) {
+    var resp = UrlFetchApp.fetch(base + paramSets[i], { muteHttpExceptions: true });
+    var xml = resp.getContentText();
+    var doc = XmlService.parse(xml);
+    var root = doc.getRootElement();
+    var records = [];
+    collectRecords_(root, records);
+    if (records.length > 0) return records;
   }
-  return records;
+  throw new Error('조회 결과가 없습니다. BL번호/연도를 확인하세요.');
 }
 
 // XML 트리를 순회하면서 cargCsclPrgsInfo 태그를 가진 요소를 모두 찾아 {태그:값} 객체로 변환
