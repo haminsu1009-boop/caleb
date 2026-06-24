@@ -16,6 +16,18 @@ var CONFIG = {
 
 var UNIPASS_URL = 'https://unipass.customs.go.kr:38010/ext/rest/cargCsclPrgsInfoQry/retrieveCargCsclPrgsInfo';
 
+// 실제 API 응답 필드를 텔레그램으로 확인하는 디버그 함수
+function debugFields() {
+  var records = fetchCargoProgress_(CONFIG.BL_NO, CONFIG.BL_YEAR);
+  var msg = 'records 수: ' + records.length + '\n\n';
+  records.slice(0, 3).forEach(function(r, i) {
+    msg += '레코드 ' + (i+1) + ':\n';
+    for (var k in r) { if (r[k]) msg += '  ' + k + ': ' + r[k] + '\n'; }
+    msg += '\n';
+  });
+  sendTelegram_(msg);
+}
+
 function run() {
   if (!CONFIG.BL_NO) {
     throw new Error('CONFIG 의 BL_NO 를 채워주세요.');
