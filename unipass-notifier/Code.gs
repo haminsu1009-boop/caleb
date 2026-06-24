@@ -179,7 +179,6 @@ function runAndNotify_(triggerMsg) {
 
   // 현재 상태를 기준으로 저장 (이후 변경 감지 기준점)
   var summaryLine = summaryLine_(latest);
-  var newHash = hash_(records);
   var stateKey = CONFIG.BL_NO + ':' + CONFIG.BL_YEAR;
   PropertiesService.getScriptProperties().setProperty('STATE_' + stateKey, JSON.stringify({ summaryLine: summaryLine }));
   Logger.log(triggerMsg + ' | 현재 상태: ' + summaryLine);
