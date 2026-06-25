@@ -2276,10 +2276,9 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 }
 .slide.active { opacity: 1; }
 .slide-1 {
-  background-image: url('assets/hero-ship.svg'), linear-gradient(125deg, #142849 0%, #2c4f86 58%, #4878bd 100%);
-  background-repeat: no-repeat, no-repeat;
-  background-position: right bottom, center;
-  background-size: 62% auto, cover;
+  background-image: url('assets/hero-photo-ship.png');
+  background-size: cover;
+  background-position: center center;
 }
 .slide-2 {
   background-image: url('assets/hero-network.svg'), linear-gradient(125deg, #0d1d36 0%, #1f3a64 58%, #34548c 100%);
@@ -2296,7 +2295,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(100deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.38) 32%, rgba(0,0,0,0.12) 58%, rgba(0,0,0,0.05) 100%);
+  background: linear-gradient(100deg, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.42) 35%, rgba(0,0,0,0.18) 60%, rgba(0,0,0,0.08) 100%);
   z-index: 1;
 }
 .hero-content {
