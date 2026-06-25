@@ -2276,9 +2276,15 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 }
 .slide.active { opacity: 1; }
 .slide-1 {
-  background-image: url('assets/hero-photo-ship.png');
-  background-size: cover;
-  background-position: center center;
+  background: #0a1628;
+}
+.slide-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
 }
 .slide-2 {
   background-image: url('assets/hero-network.svg'), linear-gradient(125deg, #0d1d36 0%, #1f3a64 58%, #34548c 100%);
