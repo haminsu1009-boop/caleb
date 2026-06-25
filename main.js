@@ -148,47 +148,23 @@ document.addEventListener('DOMContentLoaded', () => {
   const slides     = document.querySelectorAll('.slide');
   const slideTexts = document.querySelectorAll('.slide-text');
   const dots       = document.querySelectorAll('.dot');
-  let current      = 0;
-  let autoPlay;
-  let cycleCount   = 0;
-  let autoStopped  = false;
+  let current = 0;
 
-  const goTo = (idx, fromAuto) => {
+  const goTo = (idx) => {
     slides[current].classList.remove('active');
     if (slideTexts.length) slideTexts[current].classList.remove('active');
     if (dots.length) dots[current].classList.remove('active');
-    const next = (idx + slides.length) % slides.length;
-    if (fromAuto && next === 0) {
-      cycleCount++;
-      if (cycleCount >= 3) {
-        autoStopped = true;
-        clearInterval(autoPlay);
-        const target = document.getElementById('estimate');
-        if (target) target.scrollIntoView({ behavior: 'smooth' });
-        current = next;
-        slides[current].classList.add('active');
-        if (slideTexts.length) slideTexts[current].classList.add('active');
-        if (dots.length) dots[current].classList.add('active');
-        return;
-      }
-    }
-    current = next;
+    current = (idx + slides.length) % slides.length;
     slides[current].classList.add('active');
     if (slideTexts.length) slideTexts[current].classList.add('active');
     if (dots.length) dots[current].classList.add('active');
   };
 
-  const startAuto = () => {
-    autoPlay = setInterval(() => goTo(current + 1, true), 5000);
-  };
-  const stopAuto = () => { clearInterval(autoPlay); autoStopped = true; };
-
-  document.getElementById('slideNext').addEventListener('click', () => { stopAuto(); goTo(current + 1); startAuto(); });
-  document.getElementById('slidePrev').addEventListener('click', () => { stopAuto(); goTo(current - 1); startAuto(); });
+  document.getElementById('slideNext').addEventListener('click', () => goTo(current + 1));
+  document.getElementById('slidePrev').addEventListener('click', () => goTo(current - 1));
   dots.forEach(dot => {
-    dot.addEventListener('click', () => { stopAuto(); goTo(Number(dot.dataset.idx)); startAuto(); });
+    dot.addEventListener('click', () => goTo(Number(dot.dataset.idx)));
   });
-  startAuto();
 
   /* ── SCROLL TO TOP ── */
   const scrollTopBtn = document.getElementById('scrollTop');
