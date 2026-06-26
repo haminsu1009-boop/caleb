@@ -2286,6 +2286,25 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   object-fit: cover;
   z-index: 0;
 }
+.slide-yt-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+.slide-yt-bg iframe {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 177.78vh;
+  height: 56.25vw;
+  min-width: 100%;
+  min-height: 100%;
+  border: 0;
+  pointer-events: none;
+}
 .slide-2 {
   background-image: url('assets/hero-network.svg'), linear-gradient(125deg, #0d1d36 0%, #1f3a64 58%, #34548c 100%);
   background-repeat: no-repeat, no-repeat;
