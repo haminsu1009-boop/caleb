@@ -636,8 +636,8 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .stats.stats-light .stat-item:hover {
   transform: translateY(-4px); box-shadow: 0 14px 28px rgba(30,40,70,0.1);
 }
-.stats.stats-light .stat-num { color: var(--dark); }
-.stats.stats-light .stat-unit { color: var(--primary); }
+.stats.stats-light .stat-num { color: #111; }
+.stats.stats-light .stat-unit { color: #111; }
 .stats.stats-light .stat-item p { color: var(--text-light); font-weight: 500; }
 
 /* ============================================================
@@ -1403,20 +1403,20 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .fab-btn:hover { transform: translateY(-2px) scale(1.03); }
 .fab-btn-label { pointer-events: none; }
 .fab-phone {
-  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
-  box-shadow: 0 4px 20px rgba(22,163,74,0.42);
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 4px 20px rgba(5,150,105,0.38);
   animation: fabPhonePulse 3s ease-in-out infinite;
 }
 @keyframes fabPhonePulse {
-  0%,100% { box-shadow: 0 4px 20px rgba(22,163,74,0.42); }
-  50%      { box-shadow: 0 6px 28px rgba(22,163,74,0.6), 0 0 0 6px rgba(22,163,74,0.1); }
+  0%,100% { box-shadow: 0 4px 20px rgba(5,150,105,0.38); }
+  50%      { box-shadow: 0 6px 28px rgba(5,150,105,0.55), 0 0 0 6px rgba(5,150,105,0.1); }
 }
 .fab-chat {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  box-shadow: 0 4px 20px rgba(37,99,235,0.4);
+  background: linear-gradient(135deg, #1a3a7c 0%, #0f2456 100%);
+  box-shadow: 0 4px 20px rgba(26,58,124,0.4);
 }
-.fab-chat:hover { box-shadow: 0 6px 28px rgba(37,99,235,0.55); }
-.fab-chat.active { background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%); }
+.fab-chat:hover { box-shadow: 0 6px 28px rgba(26,58,124,0.55); }
+.fab-chat.active { background: linear-gradient(135deg, #0f2456 0%, #08183a 100%); }
 @media (max-width: 768px) {
   .fab-group { bottom: 20px; right: 16px; }
   .fab-btn { width: 50px; height: 50px; padding: 0; border-radius: 50%; justify-content: center; }
