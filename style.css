@@ -1389,31 +1389,39 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 
 /* ── Floating Action Button group ── */
 .fab-group {
-  position: fixed; bottom: 24px; right: 24px; z-index: 1000;
-  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  position: fixed; bottom: 28px; right: 24px; z-index: 1000;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
 }
 .fab-btn {
-  width: 52px; height: 52px; border-radius: 50%; border: none; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  text-decoration: none; outline: none;
-  transition: transform 0.18s cubic-bezier(.34,1.56,.64,1), box-shadow 0.18s;
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 18px 0 14px; height: 46px;
+  border-radius: 999px; border: none; cursor: pointer;
+  text-decoration: none; outline: none; color: #fff;
+  font-size: 0.82rem; font-weight: 600; letter-spacing: 0.01em; white-space: nowrap;
+  transition: transform 0.18s cubic-bezier(.34,1.56,.64,1), box-shadow 0.2s;
 }
-.fab-btn:hover { transform: scale(1.1); }
+.fab-btn:hover { transform: translateY(-2px) scale(1.03); }
+.fab-btn-label { pointer-events: none; }
 .fab-phone {
-  background: #1a9e4a; color: #fff;
-  box-shadow: 0 4px 18px rgba(26,158,74,0.5);
-  animation: fabPhonePulse 2.8s ease-in-out infinite;
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  box-shadow: 0 4px 20px rgba(22,163,74,0.42);
+  animation: fabPhonePulse 3s ease-in-out infinite;
 }
 @keyframes fabPhonePulse {
-  0%,100% { box-shadow: 0 4px 18px rgba(26,158,74,0.5); }
-  50%      { box-shadow: 0 4px 24px rgba(26,158,74,0.75), 0 0 0 8px rgba(26,158,74,0.12); }
+  0%,100% { box-shadow: 0 4px 20px rgba(22,163,74,0.42); }
+  50%      { box-shadow: 0 6px 28px rgba(22,163,74,0.6), 0 0 0 6px rgba(22,163,74,0.1); }
 }
 .fab-chat {
-  background: #2563eb; color: #fff;
-  box-shadow: 0 4px 18px rgba(37,99,235,0.45);
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  box-shadow: 0 4px 20px rgba(37,99,235,0.4);
 }
-.fab-chat:hover { box-shadow: 0 6px 24px rgba(37,99,235,0.6); }
-.fab-chat.active { background: #1d4ed8; }
+.fab-chat:hover { box-shadow: 0 6px 28px rgba(37,99,235,0.55); }
+.fab-chat.active { background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%); }
+@media (max-width: 768px) {
+  .fab-group { bottom: 20px; right: 16px; }
+  .fab-btn { width: 50px; height: 50px; padding: 0; border-radius: 50%; justify-content: center; }
+  .fab-btn-label { display: none; }
+}
 
 /* ── Chat Widget Panel ── */
 .chat-widget {
@@ -1554,7 +1562,6 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   .chat-widget { width: calc(100vw - 24px); right: 12px; bottom: 100px; }
   /* 풀스크린 모드: left:0 right:0 은 JS inline으로 설정 */
   .chat-widget.kb-open { border-radius: 0; }
-  .fab-group   { right: 16px; bottom: 20px; }
   .scroll-top  { right: 16px; bottom: 172px; }
 }
 /* iOS Safari auto-zoom 방지 — 입력 요소 font-size 16px 미만이면 확대됨 */
@@ -2234,19 +2241,6 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   .notice-search-wrap { flex-direction: column; align-items: flex-start; }
 }
 
-/* ── FAB 레이블 (PC에서 텍스트 표시) ── */
-.fab-label {
-  position: absolute; right: 60px; top: 50%;
-  transform: translateY(-50%);
-  background: rgba(0,0,0,0.72); color: #fff;
-  font-size: 0.72rem; font-weight: 600; white-space: nowrap;
-  padding: 4px 10px; border-radius: 6px;
-  opacity: 0; pointer-events: none;
-  transition: opacity 0.15s;
-}
-.fab-btn { position: relative; }
-.fab-btn:hover .fab-label { opacity: 1; }
-@media (max-width: 768px) { .fab-label { display: none; } }
 
 /* ============================================================
    HERO — 풀스크린 슬라이드

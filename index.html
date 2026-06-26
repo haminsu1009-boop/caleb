@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>(주)태인종합물류 - 신뢰와 혁신의 물류 파트너</title>
-  <link rel="stylesheet" href="style.css?v=43" />
+  <link rel="stylesheet" href="style.css?v=44" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
@@ -241,6 +241,9 @@
                   </optgroup>
                 </select>
               </div></div>
+              <div class="q-field"><label>물품명 / HS CODE <span class="q-optional">선택</span></label>
+                <input type="text" id="fcl-goods" placeholder="예: 기계부품 / 8479.89" />
+              </div>
               <div class="q-field"><label>인코텀즈</label>
                 <select id="fcl-incoterms">
                   <option value="">선택 (선택사항)</option>
@@ -282,6 +285,9 @@
                 </div>
                 <div class="q-field q-field--grow"><label>화물 중량</label><input type="text" id="lcl-weight" placeholder="예: 500 kg / 2 CBM" /></div>
               </div>
+              <div class="q-field"><label>물품명 / HS CODE <span class="q-optional">선택</span></label>
+                <input type="text" id="lcl-goods" placeholder="예: 기계부품 / 8479.89" />
+              </div>
               <div class="q-field"><label>인코텀즈</label>
                 <select id="lcl-incoterms">
                   <option value="">선택 (선택사항)</option>
@@ -318,6 +324,9 @@
                 </div>
               </div>
               <div class="q-field"><label>화물 중량</label><input type="text" id="air-weight" placeholder="예: 100 kg" /></div>
+              <div class="q-field"><label>물품명 / HS CODE <span class="q-optional">선택</span></label>
+                <input type="text" id="air-goods" placeholder="예: 기계부품 / 8479.89" />
+              </div>
               <div class="q-field"><label>인코텀즈</label>
                 <select id="air-incoterms">
                   <option value="">선택 (선택사항)</option>
@@ -356,6 +365,9 @@
                   <option>냉동/냉장</option><option>위험물</option>
                   <option>특수화물</option><option>기타</option>
                 </select>
+              </div>
+              <div class="q-field"><label>물품명 / HS CODE <span class="q-optional">선택</span></label>
+                <input type="text" id="land-goods" placeholder="예: 기계부품 / 8479.89" />
               </div>
               <div class="q-field"><label>인코텀즈</label>
                 <select id="land-incoterms">
@@ -501,19 +513,6 @@
           </div>
           <h3 data-i18n="svc.customs.title">통관</h3>
           <p data-i18n="svc.customs.desc">수출입 통관 대행, 포워딩, 관세 컨설팅 전문 서비스</p>
-          <span class="svc-card-more" data-i18n="svc.card.more">자세히 보기 →</span>
-        </a>
-        <a href="logistics-solutions.html" class="svc-card">
-          <div class="svc-card-icon">
-            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" width="40" height="40">
-              <rect x="4" y="26" width="10" height="16"/>
-              <rect x="19" y="18" width="10" height="24"/>
-              <rect x="34" y="10" width="10" height="32"/>
-              <path d="M4 22L14 14l10 6 10-12" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <h3 data-i18n="svc.solution.title">물류솔루션</h3>
-          <p data-i18n="svc.solution.desc">3PL·4PL 통합 물류관리, 창고운영 및 공급망 최적화</p>
           <span class="svc-card-more" data-i18n="svc.card.more">자세히 보기 →</span>
         </a>
       </div>
@@ -730,7 +729,7 @@
 
   <button class="scroll-top" id="scrollTop" aria-label="맨 위로">▲</button>
 
-  <script src="main.js?v=36"></script>
+  <script src="main.js?v=37"></script>
   <script>
     // Quote tab switcher
     document.querySelectorAll('.q-tab').forEach(function(btn) {

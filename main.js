@@ -324,16 +324,16 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="chat-overlay" id="chatOverlay"></div>
       <div class="fab-group" id="fabGroup">
         <a href="tel:02-3142-4051" class="fab-btn fab-phone" aria-label="전화 문의">
-          <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
-            <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1C9.61 21 3 14.39 3 6c0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.49 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.4 1.27h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9a16 16 0 0 0 6.29 6.29l1.09-1.76a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 15.92z"/>
           </svg>
-          <span class="fab-label">전화 문의</span>
+          <span class="fab-btn-label">전화 문의</span>
         </a>
         <button class="fab-btn fab-chat" id="fabChat" aria-label="실시간 상담">
-          <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
-            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
           </svg>
-          <span class="fab-label">상담 문의</span>
+          <span class="fab-btn-label">상담 문의</span>
         </button>
       </div>
 
