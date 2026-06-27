@@ -639,6 +639,14 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .stats.stats-light .stat-num { color: #111; }
 .stats.stats-light .stat-unit { color: #111; }
 .stats.stats-light .stat-item p { color: var(--text-light); font-weight: 500; }
+.stat-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 54px; height: 54px;
+  background: rgba(26,58,124,0.07);
+  border-radius: 14px;
+  margin: 0 auto 14px;
+  color: #1a3a7c;
+}
 
 /* ============================================================
    SERVICES
