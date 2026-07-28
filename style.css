@@ -243,24 +243,85 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .page-cta h2 { font-size: 2rem; font-weight: 900; margin-bottom: 16px; }
 .page-cta p { color: rgba(255,255,255,0.75); margin-bottom: 36px; font-size: 1rem; }
 
-/* Timeline (history page) */
-.timeline { position: relative; padding: 48px 0; }
+/* Timeline (history page) — premium two-column */
+.timeline { position: relative; padding: 40px 0 0; max-width: 900px; margin: 0 auto; }
 .timeline::before {
-  content: ''; position: absolute; left: 120px; top: 0; bottom: 0;
-  width: 2px; background: var(--border);
+  content: ''; position: absolute; left: 50%; transform: translateX(-50%);
+  top: 0; bottom: 0; width: 2px;
+  background: linear-gradient(to bottom, var(--primary) 0%, rgba(53,104,212,0.1) 100%);
 }
-.timeline-item { display: flex; gap: 40px; margin-bottom: 48px; position: relative; }
-.timeline-year {
-  width: 80px; flex-shrink: 0; font-size: 1.1rem; font-weight: 900;
-  color: var(--primary); text-align: right; padding-top: 4px;
+.timeline-item { position: relative; display: flex; align-items: flex-start; margin-bottom: 52px; }
+/* --- right: year left | card right --- */
+.timeline-item.timeline-right { flex-direction: row; }
+.timeline-item.timeline-right .timeline-year-wrap {
+  width: 50%; padding-right: 52px; padding-top: 14px;
+  display: flex; justify-content: flex-end; align-items: flex-start; flex-shrink: 0;
 }
+.timeline-item.timeline-right .timeline-content {
+  width: 50%; padding-left: 52px; position: relative; flex-shrink: 0;
+}
+.timeline-item.timeline-right .timeline-dot { position: absolute; left: -9px; top: 15px; }
+.timeline-item.timeline-right .timeline-dot-founding { left: -11px; top: 13px; }
+/* --- left: card left | year right --- */
+.timeline-item.timeline-left { flex-direction: row-reverse; }
+.timeline-item.timeline-left .timeline-year-wrap {
+  width: 50%; padding-left: 52px; padding-top: 14px;
+  display: flex; justify-content: flex-start; align-items: flex-start; flex-shrink: 0;
+}
+.timeline-item.timeline-left .timeline-content {
+  width: 50%; padding-right: 52px; position: relative; flex-shrink: 0;
+}
+.timeline-item.timeline-left .timeline-dot { position: absolute; right: -9px; top: 15px; }
+.timeline-item.timeline-left .timeline-dot-founding { right: -11px; top: 13px; }
+/* --- dot --- */
 .timeline-dot {
-  width: 16px; height: 16px; border-radius: 50%; background: var(--primary);
-  border: 3px solid var(--white); box-shadow: 0 0 0 2px var(--primary);
-  flex-shrink: 0; margin-top: 6px; position: relative; z-index: 1;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--primary); border: 3px solid #fff;
+  box-shadow: 0 0 0 2px var(--primary); z-index: 2; flex-shrink: 0;
 }
-.timeline-body h4 { font-size: 1rem; font-weight: 700; color: var(--dark); margin-bottom: 6px; }
-.timeline-body p { color: var(--text-light); font-size: 0.9rem; line-height: 1.7; }
+.timeline-dot-founding {
+  width: 22px; height: 22px; background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent);
+}
+/* --- year badge --- */
+.year-badge {
+  display: inline-block; background: var(--primary); color: #fff;
+  font-size: 0.88rem; font-weight: 700; padding: 6px 20px; border-radius: 999px;
+  white-space: nowrap; letter-spacing: -0.01em; box-shadow: 0 2px 8px rgba(53,104,212,0.25);
+}
+.year-badge.year-current { background: linear-gradient(135deg, var(--primary) 0%, var(--dark) 100%); }
+.year-badge.year-founding {
+  background: linear-gradient(135deg, var(--accent) 0%, #b85555 100%);
+  box-shadow: 0 2px 8px rgba(232,112,112,0.3);
+}
+/* --- card --- */
+.timeline-card {
+  background: #fff; border-radius: 14px; padding: 24px 24px 22px;
+  box-shadow: 0 3px 16px rgba(53,104,212,0.08), 0 1px 4px rgba(0,0,0,0.04);
+  border: 1px solid rgba(53,104,212,0.07); transition: box-shadow 0.25s;
+}
+.timeline-card:hover { box-shadow: 0 8px 30px rgba(53,104,212,0.14), 0 2px 8px rgba(0,0,0,0.06); }
+.timeline-card-founding {
+  border-color: rgba(232,112,112,0.15);
+  background: linear-gradient(135deg, #fff9f9 0%, #fff 100%);
+}
+.timeline-card-header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.timeline-card-header h3 { font-size: 1rem; font-weight: 700; color: var(--dark); line-height: 1.4; margin: 0; }
+/* --- tags --- */
+.timeline-tag {
+  display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 3px 10px;
+  border-radius: 999px; letter-spacing: 0.04em; white-space: nowrap;
+}
+.tag-present { background: rgba(5,150,105,0.09); color: #059669; border: 1px solid rgba(5,150,105,0.18); }
+.tag-founding { background: rgba(232,112,112,0.1); color: var(--accent); border: 1px solid rgba(232,112,112,0.18); }
+/* --- list --- */
+.timeline-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 7px; }
+.timeline-list li { font-size: 0.875rem; color: var(--text-light); line-height: 1.6; padding-left: 15px; position: relative; }
+.timeline-list li::before {
+  content: ''; position: absolute; left: 0; top: 8px;
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--primary); opacity: 0.35;
+}
 
 /* Office cards (directions page) */
 .office-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 48px; }
@@ -349,8 +410,22 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   .process-steps { flex-direction: column; }
   .process-step { border-radius: var(--radius) !important; }
   .process-step + .process-step::before { display: none; }
-  .timeline::before { left: 60px; }
-  .timeline-year { width: 40px; font-size: 0.85rem; }
+  .timeline::before { left: 22px; transform: none; }
+  .timeline-item.timeline-right, .timeline-item.timeline-left {
+    flex-direction: column; padding-left: 52px;
+  }
+  .timeline-right .timeline-year-wrap, .timeline-left .timeline-year-wrap {
+    width: 100%; padding: 0 0 12px 0; justify-content: flex-start;
+  }
+  .timeline-right .timeline-content, .timeline-left .timeline-content {
+    width: 100%; padding: 0; position: static;
+  }
+  .timeline-right .timeline-dot, .timeline-left .timeline-dot {
+    position: absolute; left: 13px; right: auto; top: 12px;
+  }
+  .timeline-right .timeline-dot-founding, .timeline-left .timeline-dot-founding {
+    left: 11px; top: 10px;
+  }
   .notice-table { font-size: 0.82rem; }
 }
 
