@@ -414,16 +414,20 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   .timeline-item.timeline-right, .timeline-item.timeline-left {
     flex-direction: column; padding-left: 52px;
   }
-  .timeline-right .timeline-year-wrap, .timeline-left .timeline-year-wrap {
+  .timeline-item.timeline-right .timeline-year-wrap,
+  .timeline-item.timeline-left .timeline-year-wrap {
     width: 100%; padding: 0 0 12px 0; justify-content: flex-start;
   }
-  .timeline-right .timeline-content, .timeline-left .timeline-content {
+  .timeline-item.timeline-right .timeline-content,
+  .timeline-item.timeline-left .timeline-content {
     width: 100%; padding: 0; position: static;
   }
-  .timeline-right .timeline-dot, .timeline-left .timeline-dot {
+  .timeline-item.timeline-right .timeline-dot,
+  .timeline-item.timeline-left .timeline-dot {
     position: absolute; left: 13px; right: auto; top: 12px;
   }
-  .timeline-right .timeline-dot-founding, .timeline-left .timeline-dot-founding {
+  .timeline-item.timeline-right .timeline-dot-founding,
+  .timeline-item.timeline-left .timeline-dot-founding {
     left: 11px; top: 10px;
   }
   .notice-table { font-size: 0.82rem; }
@@ -916,6 +920,50 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .notice-badge.new { background: var(--accent); color: var(--white); }
 .notice-badge.recruit { background: var(--primary); color: var(--white); }
 .notice-date { flex-shrink: 0; color: var(--text-light); font-size: 0.78rem; }
+
+/* === Philosophy / Directions CTA Section === */
+.philosophy-cta, .directions-cta { margin-top: 60px; }
+.philosophy-cta .cta-box, .directions-cta .cta-box {
+  background: linear-gradient(135deg, #1a3564 0%, #0d1f42 100%);
+  border-radius: 18px; padding: 52px 56px;
+  position: relative; overflow: hidden;
+  box-shadow: 0 8px 40px rgba(15,31,72,0.25);
+}
+.philosophy-cta .cta-box::after, .directions-cta .cta-box::after {
+  content: ''; position: absolute; top: -60px; right: -60px;
+  width: 260px; height: 260px; border-radius: 50%;
+  background: rgba(53,104,212,0.12); pointer-events: none;
+}
+.philosophy-cta .cta-box h3, .directions-cta .cta-box h3 {
+  font-size: 1.75rem; font-weight: 900; color: #fff; line-height: 1.3; margin-bottom: 12px;
+}
+.philosophy-cta .cta-box p, .directions-cta .cta-box p {
+  font-size: 0.95rem; color: rgba(255,255,255,0.72); line-height: 1.75; max-width: 520px;
+}
+.cta-buttons {
+  display: flex; align-items: center; gap: 14px; margin-top: 30px; flex-wrap: wrap;
+}
+.cta-buttons .btn-primary {
+  background: var(--accent); color: #fff; padding: 13px 30px;
+  border-radius: 8px; font-size: 0.95rem; font-weight: 700;
+  white-space: nowrap; transition: background 0.2s, transform 0.2s;
+  display: inline-block;
+}
+.cta-buttons .btn-primary:hover { background: #b52b2b; transform: translateY(-2px); }
+.btn-secondary {
+  display: inline-block; border: 1.5px solid rgba(255,255,255,0.45);
+  color: rgba(255,255,255,0.88); background: transparent;
+  padding: 12px 28px; border-radius: 8px;
+  font-size: 0.95rem; font-weight: 600; white-space: nowrap;
+  transition: border-color 0.2s, background 0.2s;
+}
+.btn-secondary:hover { border-color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.08); }
+@media (max-width: 600px) {
+  .philosophy-cta .cta-box, .directions-cta .cta-box { padding: 36px 24px; }
+  .philosophy-cta .cta-box h3, .directions-cta .cta-box h3 { font-size: 1.35rem; }
+  .cta-buttons { flex-direction: column; align-items: stretch; }
+  .cta-buttons .btn-primary, .btn-secondary { text-align: center; width: 100%; box-sizing: border-box; }
+}
 
 .cta-box {
   background: var(--primary); border-color: var(--primary);
