@@ -1557,6 +1557,37 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   .fab-btn-label { display: none; }
 }
 
+/* ── Phone Popup ── */
+.phone-popup {
+  position: fixed; bottom: 96px; right: 24px; z-index: 1001;
+  background: #fff; border-radius: 16px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.16);
+  padding: 22px 26px 18px;
+  min-width: 240px;
+  border-top: 3px solid #059669;
+  transform: scale(0.88) translateY(12px); opacity: 0; pointer-events: none;
+  transform-origin: bottom right;
+  transition: transform 0.25s cubic-bezier(.34,1.56,.64,1), opacity 0.18s;
+}
+.phone-popup.open { transform: scale(1) translateY(0); opacity: 1; pointer-events: all; }
+.phone-popup-close {
+  position: absolute; top: 10px; right: 12px;
+  background: none; border: none; cursor: pointer; font-size: 1rem; color: #aaa; line-height: 1;
+  transition: color 0.15s;
+}
+.phone-popup-close:hover { color: #333; }
+.phone-popup-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #059669; margin-bottom: 6px; }
+.phone-popup-number {
+  display: block; font-size: 1.55rem; font-weight: 800; color: #1a3564; letter-spacing: -0.02em;
+  margin-bottom: 10px; text-decoration: none; transition: color 0.15s;
+}
+.phone-popup-number:hover { color: #059669; }
+.phone-popup-sub { font-size: 0.8rem; color: #555; margin-bottom: 4px; }
+.phone-popup-hours { font-size: 0.76rem; color: #999; }
+@media (max-width: 768px) {
+  .phone-popup { right: 16px; bottom: 88px; }
+}
+
 /* ── Chat Widget Panel ── */
 .chat-widget {
   position: fixed; bottom: 96px; right: 24px; z-index: 1002;

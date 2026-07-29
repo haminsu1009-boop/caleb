@@ -322,13 +322,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.body.insertAdjacentHTML('beforeend', `
       <div class="chat-overlay" id="chatOverlay"></div>
+      <div class="phone-popup" id="phonePopup" aria-hidden="true">
+        <button class="phone-popup-close" id="phonePopupClose" aria-label="닫기">✕</button>
+        <p class="phone-popup-label">대표전화</p>
+        <a href="tel:02-3142-4051" class="phone-popup-number">02-3142-4051</a>
+        <p class="phone-popup-sub">📧 op@ttt3.co.kr</p>
+        <p class="phone-popup-hours">영업시간: 평일 09:00 ~ 18:00</p>
+      </div>
       <div class="fab-group" id="fabGroup">
-        <a href="tel:02-3142-4051" class="fab-btn fab-phone" aria-label="전화 문의">
+        <button class="fab-btn fab-phone" id="fabPhone" aria-label="전화 문의">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.49 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.4 1.27h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9a16 16 0 0 0 6.29 6.29l1.09-1.76a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 15.92z"/>
           </svg>
           <span class="fab-btn-label">전화 문의</span>
-        </a>
+        </button>
         <button class="fab-btn fab-chat" id="fabChat" aria-label="실시간 상담">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -535,6 +542,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const choicePanel = document.getElementById('chatChoicePanel');
+    const phonePopup  = document.getElementById('phonePopup');
     const openChoice = () => {
       choicePanel.classList.add('open');
       fabChat.classList.add('active');
@@ -543,6 +551,15 @@ document.addEventListener('DOMContentLoaded', () => {
       choicePanel.classList.remove('open');
       if (!widget.classList.contains('open')) fabChat.classList.remove('active');
     };
+
+    document.getElementById('fabPhone').addEventListener('click', () => {
+      const wasOpen = phonePopup.classList.contains('open');
+      if (!wasOpen && choicePanel.classList.contains('open')) closeChoice();
+      if (!wasOpen && widget.classList.contains('open')) closeChat();
+      phonePopup.classList.toggle('open', !wasOpen);
+    });
+    document.getElementById('phonePopupClose').addEventListener('mousedown', e => e.preventDefault());
+    document.getElementById('phonePopupClose').addEventListener('click', () => phonePopup.classList.remove('open'));
 
     fabChat.addEventListener('click', () => {
       if (widget.classList.contains('open')) { closeChat(); return; }
@@ -555,7 +572,7 @@ document.addEventListener('DOMContentLoaded', () => {
       openChat();
     });
 
-    overlay.addEventListener('click', () => { closeChat(); closeChoice(); });
+    overlay.addEventListener('click', () => { closeChat(); closeChoice(); phonePopup.classList.remove('open'); });
 
     document.getElementById('chatClose').addEventListener('mousedown', e => e.preventDefault());
     document.getElementById('chatClose').addEventListener('click', closeChat);
