@@ -132,16 +132,20 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   margin-bottom: 14px; padding-bottom: 10px;
   border-bottom: 2px solid var(--primary);
 }
-.gnb-drop .mega-col a {
-  display: block; padding: 7px 8px; color: var(--text);
+/* Override header's white link color inside dropdowns (needs higher specificity than #header .gnb ul li a) */
+#header .gnb .gnb-drop a, #header.scrolled .gnb .gnb-drop a {
+  display: block; padding: 7px 8px; color: var(--text) !important;
   font-size: 0.9rem; border-radius: 4px; font-weight: 500;
+  background: transparent;
 }
-.gnb-drop .mega-col a.mega-sub {
-  font-size: 0.82rem; color: var(--text-light); padding: 5px 8px 5px 16px;
+#header .gnb .gnb-drop a.mega-sub {
+  font-size: 0.82rem; color: var(--text-light) !important; padding: 5px 8px 5px 16px;
   position: relative; font-weight: 400;
 }
-.gnb-drop .mega-col a.mega-sub::before { content: '—'; position: absolute; left: 4px; color: var(--border); font-size: 0.7rem; }
-.gnb-drop .mega-col a:hover { color: var(--primary); background: var(--bg); }
+#header .gnb .gnb-drop a.mega-sub::before { content: '—'; position: absolute; left: 4px; color: var(--border); font-size: 0.7rem; }
+#header .gnb .gnb-drop a:hover { color: var(--primary) !important; background: var(--bg); }
+/* Small dropdown links */
+#header .gnb .gnb-drop-sm a { padding: 10px 20px; margin: 1px 8px; border-radius: 6px; }
 
 /* Mobile accordion menu */
 .mobile-accordion { border-bottom: 1px solid rgba(255,255,255,0.08); }
