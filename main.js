@@ -557,9 +557,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!wasOpen && choicePanel.classList.contains('open')) closeChoice();
       if (!wasOpen && widget.classList.contains('open')) closeChat();
       phonePopup.classList.toggle('open', !wasOpen);
+      overlay.classList.toggle('active', !wasOpen);
     });
     document.getElementById('phonePopupClose').addEventListener('mousedown', e => e.preventDefault());
-    document.getElementById('phonePopupClose').addEventListener('click', () => phonePopup.classList.remove('open'));
+    document.getElementById('phonePopupClose').addEventListener('click', () => {
+      phonePopup.classList.remove('open');
+      overlay.classList.remove('active');
+    });
 
     fabChat.addEventListener('click', () => {
       if (widget.classList.contains('open')) { closeChat(); return; }
