@@ -898,29 +898,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* ── 선박 영상 4개 끊김없이 순차 재생 ── */
   (function initSeaVideos() {
-    var ids = ['seaVid1', 'seaVid2', 'seaVid3', 'seaVid4'];
-    var vids = ids.map(function(id) { return document.getElementById(id); }).filter(Boolean);
-    if (vids.length < 2) return;
+    var SRCS = [
+      'assets/sea-video-1.mov',
+      'assets/sea-video-2.mov',
+      'assets/sea-video-3.mov',
+      'assets/sea-video-4.mov'
+    ];
+    var ids  = ['seaVid1','seaVid2','seaVid3','seaVid4'];
+    var vids = ids.map(function(id){ return document.getElementById(id); }).filter(Boolean);
+    if (!vids.length) return;
 
-    var cur = 0;
-    var switching = false;
+    /* ── iOS Safari 풀스크린 높이 보정 ── */
+    function fixHeroH() {
+      var hero = document.getElementById('home');
+      if (hero) hero.style.height = window.innerHeight + 'px';
+    }
+    fixHeroH();
+    window.addEventListener('resize', fixHeroH);
 
-    /* 모든 영상 즉시 강제 로드 시작 */
-    vids.forEach(function(v) { v.load(); });
+    var cur = 0, switching = false;
 
-    /* 다음 영상이 준비되면 즉시 전환, 아직 미준비면 canplay 대기 */
+    /* fetch() 로 Blob URL 생성 → 모바일 preload 한계 완전 우회 */
+    var blobs = [null, null, null, null];
+    SRCS.slice(1).forEach(function(src, i) {
+      var idx = i + 1;
+      fetch(src)
+        .then(function(r){ return r.blob(); })
+        .then(function(blob){
+          blobs[idx] = URL.createObjectURL(blob);
+          vids[idx].src = blobs[idx];
+          vids[idx].load();
+        })
+        .catch(function(){
+          /* fetch 실패 시 직접 src 할당으로 fallback */
+          vids[idx].src = src;
+          vids[idx].load();
+        });
+    });
+
     function doSwitch(nextIdx) {
-      var prev = vids[cur];
-      var nxt  = vids[nextIdx];
+      var prev = vids[cur], nxt = vids[nextIdx];
       nxt.currentTime = 0;
       nxt.play().catch(function(){});
       nxt.classList.add('sea-vid--active');
-      setTimeout(function() {
+      setTimeout(function(){
         prev.classList.remove('sea-vid--active');
-        prev.pause();
-        prev.currentTime = 0;
-        cur = nextIdx;
-        switching = false;
+        prev.pause(); prev.currentTime = 0;
+        cur = nextIdx; switching = false;
       }, 250);
     }
 
@@ -931,29 +955,21 @@ document.addEventListener('DOMContentLoaded', () => {
       if (nxt.readyState >= 3) {
         doSwitch(nextIdx);
       } else {
-        /* 버퍼가 아직 안 찼으면 canplay 이벤트 후 전환 */
-        nxt.addEventListener('canplay', function() { doSwitch(nextIdx); }, { once: true });
-        nxt.load();
+        nxt.addEventListener('canplay', function(){ doSwitch(nextIdx); }, { once: true });
+        /* src 아직 없으면 직접 할당 */
+        if (!nxt.src) { nxt.src = SRCS[nextIdx]; nxt.load(); }
       }
     }
 
     vids.forEach(function(v, i) {
-      /* 현재 영상 끝나기 1초 전에 다음 영상 미리 시작 */
-      v.addEventListener('timeupdate', function() {
-        if (cur === i && !switching && v.duration && (v.duration - v.currentTime) < 1.0) {
-          switchTo((i + 1) % vids.length);
-        }
+      v.addEventListener('timeupdate', function(){
+        if (cur===i && !switching && v.duration && (v.duration - v.currentTime) < 1.0)
+          switchTo((i+1) % vids.length);
       });
-      v.addEventListener('ended', function() {
-        if (cur === i && !switching) switchTo((i + 1) % vids.length);
+      v.addEventListener('ended', function(){
+        if (cur===i && !switching) switchTo((i+1) % vids.length);
       });
     });
-
-    /* 페이지 로드 2초 후 3·4번 영상 추가 강제 로드 (모바일 브라우저 preload 제한 우회) */
-    setTimeout(function() {
-      if (vids[2]) vids[2].load();
-      if (vids[3]) vids[3].load();
-    }, 2000);
   })();
 
 });
