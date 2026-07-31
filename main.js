@@ -918,19 +918,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     var cur = 0, switching = false;
 
+    /* 영상별 시작 오프셋 (초) — 4번 영상 0.5초 스킵으로 초기 스터터 방지 */
+    var SKIP = [0, 0, 0, 0.5];
+
     /* fetch() 로 Blob URL 생성 → 모바일 preload 한계 완전 우회 */
-    var blobs = [null, null, null, null];
     SRCS.slice(1).forEach(function(src, i) {
       var idx = i + 1;
       fetch(src)
         .then(function(r){ return r.blob(); })
         .then(function(blob){
-          blobs[idx] = URL.createObjectURL(blob);
-          vids[idx].src = blobs[idx];
+          var url = URL.createObjectURL(blob);
+          vids[idx].src = url;
           vids[idx].load();
+          /* 블롭 로드 완료 후 시작지점으로 미리 seek → 디코더 워밍업 */
+          vids[idx].addEventListener('canplaythrough', function(){
+            vids[idx].currentTime = SKIP[idx];
+          }, { once: true });
         })
         .catch(function(){
-          /* fetch 실패 시 직접 src 할당으로 fallback */
           vids[idx].src = src;
           vids[idx].load();
         });
@@ -938,12 +943,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function doSwitch(nextIdx) {
       var prev = vids[cur], nxt = vids[nextIdx];
-      nxt.currentTime = 0;
+      nxt.currentTime = SKIP[nextIdx];
       nxt.play().catch(function(){});
       nxt.classList.add('sea-vid--active');
       setTimeout(function(){
         prev.classList.remove('sea-vid--active');
-        prev.pause(); prev.currentTime = 0;
+        prev.pause();
+        prev.currentTime = SKIP[cur] || 0;
         cur = nextIdx; switching = false;
       }, 250);
     }
@@ -956,7 +962,6 @@ document.addEventListener('DOMContentLoaded', () => {
         doSwitch(nextIdx);
       } else {
         nxt.addEventListener('canplay', function(){ doSwitch(nextIdx); }, { once: true });
-        /* src 아직 없으면 직접 할당 */
         if (!nxt.src) { nxt.src = SRCS[nextIdx]; nxt.load(); }
       }
     }
