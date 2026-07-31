@@ -1846,6 +1846,17 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   background: radial-gradient(circle, rgba(204,43,43,0.18) 0%, transparent 70%);
 }
 .page-hero .container { position: relative; z-index: 2; }
+.page-hero--photo { background: #050f28; }
+.page-hero--photo::before, .page-hero--photo::after { display: none; }
+.page-hero-img {
+  position: absolute; inset: 0; z-index: 0;
+  background-size: cover; background-position: center;
+}
+.page-hero-img::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(3,10,30,0.80) 0%, rgba(10,25,60,0.55) 100%);
+}
 .page-hero-label {
   display: inline-block;
   color: var(--accent2);
