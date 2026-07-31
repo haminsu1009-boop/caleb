@@ -918,8 +918,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     var cur = 0, switching = false;
 
-    /* 영상별 시작 오프셋 (초) — 4번 영상 0.5초 스킵으로 초기 스터터 방지 */
-    var SKIP = [0, 0, 0, 0.5];
+    /* 영상별 시작 오프셋 (초) — 3·4번 영상 0.5초 스킵으로 초기 스터터 방지 */
+    var SKIP = [0, 0, 0.5, 0.5];
+
+    /* 영상별 오버레이 텍스트 */
+    var LABELS = ['OCEAN FREIGHT', 'OCEAN FREIGHT', 'OCEAN FREIGHT', 'OCEAN FREIGHT'];
+    var labelEl = document.getElementById('heroVideoLabel');
 
     /* fetch() 로 Blob URL 생성 → 모바일 preload 한계 완전 우회 */
     SRCS.slice(1).forEach(function(src, i) {
@@ -946,6 +950,7 @@ document.addEventListener('DOMContentLoaded', () => {
       nxt.currentTime = SKIP[nextIdx];
       nxt.play().catch(function(){});
       nxt.classList.add('sea-vid--active');
+      if (labelEl) labelEl.textContent = LABELS[nextIdx];
       setTimeout(function(){
         prev.classList.remove('sea-vid--active');
         prev.pause();
