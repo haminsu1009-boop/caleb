@@ -896,4 +896,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   })();
 
+  /* ── 선박 영상 끊김없이 교차 재생 ── */
+  (function initSeaVideos() {
+    var v1 = document.getElementById('seaVid1');
+    var v2 = document.getElementById('seaVid2');
+    if (!v1 || !v2) return;
+    v1.addEventListener('ended', function() {
+      v1.classList.remove('sea-vid--active');
+      v2.currentTime = 0;
+      v2.play().catch(function(){});
+      v2.classList.add('sea-vid--active');
+    });
+    v2.addEventListener('ended', function() {
+      v2.classList.remove('sea-vid--active');
+      v1.currentTime = 0;
+      v1.play().catch(function(){});
+      v1.classList.add('sea-vid--active');
+    });
+  })();
+
 });
