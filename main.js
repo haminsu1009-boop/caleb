@@ -630,6 +630,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
   })();
 
+  /* ── BUSINESS SLIDER ── */
+  (function initBizSlider() {
+    const slider = document.getElementById('bizSlider');
+    const bar    = document.getElementById('bizProgressBar');
+    if (!slider || !bar) return;
+    slider.addEventListener('scroll', () => {
+      const max = slider.scrollWidth - slider.clientWidth;
+      if (max <= 0) return;
+      bar.style.width = (25 + (slider.scrollLeft / max) * 75) + '%';
+    }, { passive: true });
+    let isDown = false, startX, scrollLeft;
+    slider.addEventListener('mousedown', e => {
+      isDown = true; slider.classList.add('grabbing');
+      startX = e.pageX - slider.offsetLeft; scrollLeft = slider.scrollLeft;
+    });
+    ['mouseleave','mouseup'].forEach(ev => slider.addEventListener(ev, () => {
+      isDown = false; slider.classList.remove('grabbing');
+    }));
+    slider.addEventListener('mousemove', e => {
+      if (!isDown) return;
+      e.preventDefault();
+      slider.scrollLeft = scrollLeft - (e.pageX - slider.offsetLeft - startX);
+    });
+  })();
+
   /* ── LANGUAGE TOGGLE ── */
   (function initLang() {
     const LANGS = {

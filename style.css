@@ -2846,6 +2846,67 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   .svc-card-icon { width: 56px; height: 56px; margin-bottom: 14px; }
 }
 
+/* ── Business Slider (사업영역 가로 슬라이드) ── */
+.biz-slider-wrap { overflow: hidden; margin-bottom: 40px; }
+.biz-slider {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  gap: 16px;
+  padding: 0 24px;
+  cursor: grab;
+}
+.biz-slider::-webkit-scrollbar { display: none; }
+.biz-slider.grabbing { cursor: grabbing; user-select: none; }
+.biz-card {
+  flex: 0 0 82vw;
+  max-width: 480px;
+  height: 420px;
+  scroll-snap-align: start;
+  border-radius: 14px;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  overflow: hidden;
+  display: block;
+  text-decoration: none;
+  transition: transform 0.3s;
+}
+.biz-card:hover { transform: scale(1.02); }
+.biz-card-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.08) 55%);
+}
+.biz-card-content {
+  position: absolute; bottom: 28px; left: 28px; right: 28px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.biz-card-name { color: #fff; font-size: 1.45rem; font-weight: 700; letter-spacing: -0.02em; }
+.biz-card-arrow {
+  width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(255,255,255,0.18); border: 1.5px solid rgba(255,255,255,0.5);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 1.1rem;
+  transition: background 0.2s;
+}
+.biz-card:hover .biz-card-arrow { background: rgba(255,255,255,0.35); }
+.biz-card-sea     { background: url('assets/svc-sea.jpg') center/cover, linear-gradient(135deg,#0a3878,#2080c0); }
+.biz-card-air     { background: url('assets/svc-air.jpg') center/cover, linear-gradient(135deg,#1a4a8a,#4090d0); }
+.biz-card-land    { background: url('assets/svc-land.jpg') center/cover, linear-gradient(135deg,#14532d,#15803d); }
+.biz-card-customs { background: url('assets/svc-customs.jpg') center/cover, linear-gradient(135deg,#1e1b4b,#4338ca); }
+.biz-progress { height: 3px; background: #e8ecf4; margin: 20px 24px 0; border-radius: 2px; overflow: hidden; }
+.biz-progress-bar { height: 100%; background: var(--primary); width: 25%; border-radius: 2px; transition: width 0.12s linear; }
+@media (min-width: 768px) {
+  .biz-card { flex: 0 0 calc(50% - 20px); max-width: none; height: 460px; }
+  .biz-slider { padding: 0 32px; gap: 20px; }
+  .biz-progress { margin: 24px 32px 0; }
+}
+@media (min-width: 1100px) {
+  .biz-card { flex: 0 0 calc(33.333% - 14px); height: 480px; }
+}
+
 /* ============================================================
    공지사항 섹션 (메인 페이지)
    ============================================================ */
