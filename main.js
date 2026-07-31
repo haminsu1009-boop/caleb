@@ -896,22 +896,46 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   })();
 
-  /* ── 선박 영상 끊김없이 교차 재생 ── */
+  /* ── 선박 영상 4개 끊김없이 순차 재생 ── */
   (function initSeaVideos() {
-    var v1 = document.getElementById('seaVid1');
-    var v2 = document.getElementById('seaVid2');
-    if (!v1 || !v2) return;
-    v1.addEventListener('ended', function() {
-      v1.classList.remove('sea-vid--active');
-      v2.currentTime = 0;
-      v2.play().catch(function(){});
-      v2.classList.add('sea-vid--active');
-    });
-    v2.addEventListener('ended', function() {
-      v2.classList.remove('sea-vid--active');
-      v1.currentTime = 0;
-      v1.play().catch(function(){});
-      v1.classList.add('sea-vid--active');
+    var ids = ['seaVid1', 'seaVid2', 'seaVid3', 'seaVid4'];
+    var vids = ids.map(function(id) { return document.getElementById(id); }).filter(Boolean);
+    if (vids.length < 2) return;
+
+    var cur = 0;
+    var switching = false;
+
+    function switchTo(nextIdx) {
+      if (switching) return;
+      switching = true;
+      var prev = vids[cur];
+      var nxt  = vids[nextIdx];
+      nxt.currentTime = 0;
+      nxt.play().catch(function(){});
+      nxt.classList.add('sea-vid--active');
+      /* 직전 영상은 짧은 크로스페이드 후 숨김 */
+      setTimeout(function() {
+        prev.classList.remove('sea-vid--active');
+        prev.pause();
+        prev.currentTime = 0;
+        cur = nextIdx;
+        switching = false;
+      }, 300);
+    }
+
+    vids.forEach(function(v, i) {
+      /* ended 직전 0.35초에 미리 다음 영상 시작 → 멈춤 방지 */
+      v.addEventListener('timeupdate', function() {
+        if (cur === i && !switching && v.duration && (v.duration - v.currentTime) < 0.35) {
+          switchTo((i + 1) % vids.length);
+        }
+      });
+      /* 혹시 timeupdate 를 놓친 경우 ended 로 fallback */
+      v.addEventListener('ended', function() {
+        if (cur === i && !switching) {
+          switchTo((i + 1) % vids.length);
+        }
+      });
     });
   })();
 
