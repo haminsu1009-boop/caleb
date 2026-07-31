@@ -905,38 +905,55 @@ document.addEventListener('DOMContentLoaded', () => {
     var cur = 0;
     var switching = false;
 
-    function switchTo(nextIdx) {
-      if (switching) return;
-      switching = true;
+    /* 모든 영상 즉시 강제 로드 시작 */
+    vids.forEach(function(v) { v.load(); });
+
+    /* 다음 영상이 준비되면 즉시 전환, 아직 미준비면 canplay 대기 */
+    function doSwitch(nextIdx) {
       var prev = vids[cur];
       var nxt  = vids[nextIdx];
       nxt.currentTime = 0;
       nxt.play().catch(function(){});
       nxt.classList.add('sea-vid--active');
-      /* 직전 영상은 짧은 크로스페이드 후 숨김 */
       setTimeout(function() {
         prev.classList.remove('sea-vid--active');
         prev.pause();
         prev.currentTime = 0;
         cur = nextIdx;
         switching = false;
-      }, 300);
+      }, 250);
+    }
+
+    function switchTo(nextIdx) {
+      if (switching) return;
+      switching = true;
+      var nxt = vids[nextIdx];
+      if (nxt.readyState >= 3) {
+        doSwitch(nextIdx);
+      } else {
+        /* 버퍼가 아직 안 찼으면 canplay 이벤트 후 전환 */
+        nxt.addEventListener('canplay', function() { doSwitch(nextIdx); }, { once: true });
+        nxt.load();
+      }
     }
 
     vids.forEach(function(v, i) {
-      /* ended 직전 0.35초에 미리 다음 영상 시작 → 멈춤 방지 */
+      /* 현재 영상 끝나기 1초 전에 다음 영상 미리 시작 */
       v.addEventListener('timeupdate', function() {
-        if (cur === i && !switching && v.duration && (v.duration - v.currentTime) < 0.35) {
+        if (cur === i && !switching && v.duration && (v.duration - v.currentTime) < 1.0) {
           switchTo((i + 1) % vids.length);
         }
       });
-      /* 혹시 timeupdate 를 놓친 경우 ended 로 fallback */
       v.addEventListener('ended', function() {
-        if (cur === i && !switching) {
-          switchTo((i + 1) % vids.length);
-        }
+        if (cur === i && !switching) switchTo((i + 1) % vids.length);
       });
     });
+
+    /* 페이지 로드 2초 후 3·4번 영상 추가 강제 로드 (모바일 브라우저 preload 제한 우회) */
+    setTimeout(function() {
+      if (vids[2]) vids[2].load();
+      if (vids[3]) vids[3].load();
+    }, 2000);
   })();
 
 });

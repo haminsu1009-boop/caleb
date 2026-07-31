@@ -2424,7 +2424,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .hero {
   position: relative;
   width: 100%;
-  height: 72vh;
+  height: 100dvh;
   min-height: 520px;
   overflow: hidden;
   display: flex;
@@ -3138,12 +3138,12 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 }
 .sea-vid {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  inset: -5%;
+  width: 110%;
+  height: 110%;
   object-fit: cover;
   opacity: 0;
-  transition: opacity 0.4s ease;
+  transition: opacity 0.25s ease;
 }
 .sea-vid--active { opacity: 1; }
 .sea-video-overlay {
