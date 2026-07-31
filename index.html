@@ -130,8 +130,13 @@
   <section id="home" class="hero">
     <div class="hero-slides">
       <div class="slide slide-1 active">
-        <video class="slide-video" autoplay muted loop playsinline preload="auto">
-          <source src="assets/hero-video.mp4" type="video/mp4">
+        <video id="seaVid1" class="slide-video sea-vid sea-vid--active" autoplay muted playsinline preload="auto">
+          <source src="assets/sea-video-1.mov" type="video/quicktime" />
+          <source src="assets/sea-video-1.mov" type="video/mp4" />
+        </video>
+        <video id="seaVid2" class="slide-video sea-vid" muted playsinline preload="auto">
+          <source src="assets/sea-video-2.mov" type="video/quicktime" />
+          <source src="assets/sea-video-2.mov" type="video/mp4" />
         </video>
       </div>
       <div class="slide slide-2"></div>
@@ -480,27 +485,6 @@
           </div>
           <div class="stat-num"><span class="stat-num-value" data-target="200">200</span><span class="stat-unit">개사+</span></div>
           <p>주요 거래처</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 선박 영상 섹션 -->
-  <section class="sea-video-section">
-    <div class="sea-video-wrap">
-      <video id="seaVid1" autoplay muted playsinline preload="auto" class="sea-vid sea-vid--active">
-        <source src="assets/sea-video-1.mov" type="video/quicktime" />
-        <source src="assets/sea-video-1.mov" type="video/mp4" />
-      </video>
-      <video id="seaVid2" muted playsinline preload="auto" class="sea-vid">
-        <source src="assets/sea-video-2.mov" type="video/quicktime" />
-        <source src="assets/sea-video-2.mov" type="video/mp4" />
-      </video>
-      <div class="sea-video-overlay">
-        <div class="sea-video-caption">
-          <span class="sea-video-label">SEA FREIGHT</span>
-          <h2 class="sea-video-title">글로벌 해상 물류 네트워크</h2>
-          <p class="sea-video-desc">전 세계 주요 항만을 연결하는 안정적인 선복 서비스</p>
         </div>
       </div>
     </div>
