@@ -3119,3 +3119,171 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   .ic-agree { font-size: 0.88rem; padding: 14px 16px; }
   .ic-agree-all { padding: 14px 16px; }
 }
+
+/* ============================================================
+   Air Transport Page — air-transport.html
+   ============================================================ */
+
+.air-stats-band {
+  background: linear-gradient(135deg, #050f28 0%, #0a1e4a 100%);
+  padding: 48px 0;
+}
+.air-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+.air-stat-item {
+  text-align: center;
+  padding: 20px 16px;
+  border-right: 1px solid rgba(255,255,255,0.1);
+}
+.air-stat-item:last-child { border-right: none; }
+.air-stat-num {
+  display: block;
+  font-size: 2.8rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+  margin-bottom: 10px;
+  letter-spacing: -0.03em;
+}
+.air-stat-plus { font-size: 1.6rem; color: #34d399; }
+.air-stat-label {
+  display: block;
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.6);
+  letter-spacing: 0.07em;
+}
+@media (max-width: 768px) {
+  .air-stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .air-stat-item { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .air-stat-item:nth-child(odd) { border-right: 1px solid rgba(255,255,255,0.1); }
+  .air-stat-item:nth-child(3), .air-stat-item:nth-child(4) { border-bottom: none; }
+  .air-stat-num { font-size: 2.2rem; }
+}
+
+/* Air service type cards */
+.air-type-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 48px;
+}
+@media (max-width: 900px) { .air-type-grid { grid-template-columns: 1fr; } }
+
+.air-type-card {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.09);
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+}
+.air-type-card-top { padding: 28px 24px 22px; }
+.air-type-card--general .air-type-card-top {
+  background: linear-gradient(135deg, #1a3564, #3568d4);
+  color: #fff;
+}
+.air-type-card--express .air-type-card-top {
+  background: linear-gradient(135deg, #1d4ed8, #0ea5e9);
+  color: #fff;
+}
+.air-type-card--special .air-type-card-top {
+  background: linear-gradient(135deg, #4338ca, #7c3aed);
+  color: #fff;
+}
+.air-type-card-icon {
+  font-size: 2.2rem;
+  margin-bottom: 12px;
+  display: block;
+}
+.air-type-card-sub {
+  font-size: 0.7rem;
+  opacity: 0.7;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 6px;
+}
+.air-type-card-title { font-size: 1.2rem; font-weight: 700; margin: 0; }
+.air-type-card-body {
+  padding: 22px 24px 26px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.air-type-card-desc {
+  font-size: 0.875rem;
+  color: #555;
+  line-height: 1.75;
+  margin-bottom: 16px;
+}
+.air-type-card-list {
+  list-style: none;
+  padding: 0;
+  border-top: 1px solid #f0f0f0;
+  padding-top: 14px;
+  margin: 0;
+}
+.air-type-card-list li {
+  font-size: 0.84rem;
+  color: #374151;
+  padding: 7px 0;
+  border-bottom: 1px solid #f5f5f5;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.air-type-card-list li::before {
+  content: '→';
+  color: #3568d4;
+  flex-shrink: 0;
+  font-weight: 600;
+}
+.air-type-card-list li:last-child { border-bottom: none; }
+
+/* Air strengths section */
+.air-strength-band {
+  background: #f4f6fb;
+  padding: 72px 0;
+}
+.air-strength-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-top: 48px;
+}
+@media (max-width: 768px) { .air-strength-grid { grid-template-columns: 1fr; } }
+.air-strength-item {
+  background: #fff;
+  border-radius: 14px;
+  padding: 28px 24px;
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  transition: box-shadow 0.2s;
+}
+.air-strength-item:hover { box-shadow: 0 6px 24px rgba(53,104,212,0.12); }
+.air-strength-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1a3564, #3568d4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+.air-strength-content h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a3564;
+  margin-bottom: 8px;
+}
+.air-strength-content p {
+  font-size: 0.86rem;
+  color: #555;
+  line-height: 1.75;
+}
