@@ -918,8 +918,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     var cur = 0, switching = false;
 
-    /* 영상별 시작 오프셋 (초) — 3·4번 영상 1초 스킵 */
-    var SKIP = [0, 0, 1.0, 1.0];
+    /* 영상별 시작 오프셋 (초) — 2·3·4번 영상 1초 스킵 */
+    var SKIP = [0, 1.0, 1.0, 1.0];
 
     /* fetch() 로 Blob URL 생성 → 모바일 preload 한계 완전 우회 */
     SRCS.slice(1).forEach(function(src, i) {
