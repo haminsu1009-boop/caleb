@@ -908,14 +908,6 @@ document.addEventListener('DOMContentLoaded', () => {
     var vids = ids.map(function(id){ return document.getElementById(id); }).filter(Boolean);
     if (!vids.length) return;
 
-    /* ── iOS Safari 풀스크린 높이 보정 ── */
-    function fixHeroH() {
-      var hero = document.getElementById('home');
-      if (hero) hero.style.height = window.innerHeight + 'px';
-    }
-    fixHeroH();
-    window.addEventListener('resize', fixHeroH);
-
     var cur = 0, switching = false;
 
     /* 영상별 시작 오프셋 (초) — 2·3·4번 영상 1초 스킵 */
