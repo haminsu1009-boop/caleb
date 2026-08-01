@@ -867,31 +867,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (form) {
-      form.addEventListener('submit', async function(e) {
+      form.addEventListener('submit', function(e) {
         e.preventDefault();
-        var btn = form.querySelector('.ic-submit');
-        var orig = btn.textContent;
-        btn.textContent = '전송 중...'; btn.disabled = true;
-        try {
-          var resp = await fetch('https://formspree.io/f/xpwrjvrd', {
-            method: 'POST', body: new FormData(form),
-            headers: { 'Accept': 'application/json' }
-          });
-          if (resp.ok) {
-            btn.textContent = '접수 완료 ✓'; btn.style.background = '#2e7d32';
-            setTimeout(function() {
-              form.reset(); panel.style.display = 'none';
-              var panes = document.querySelector('.q-panes');
-              var tabs  = document.querySelector('.q-tabs');
-              if (panes) panes.style.display = '';
-              if (tabs)  tabs.style.display  = '';
-              btn.textContent = orig; btn.style.background = ''; btn.disabled = false;
-            }, 2000);
-          } else { throw new Error(); }
-        } catch {
-          btn.textContent = '전송 실패 — 다시 시도해주세요'; btn.style.background = '#c62828';
-          setTimeout(function() { btn.textContent = orig; btn.style.background = ''; btn.disabled = false; }, 3000);
-        }
+        var name    = (document.getElementById('ic-name')    || {}).value || '';
+        var email   = (document.getElementById('ic-email')   || {}).value || '';
+        var phone   = (document.getElementById('ic-phone')   || {}).value || '';
+        var company = (document.getElementById('ic-company') || {}).value || '';
+        var detail  = (document.getElementById('ic-detail')  || {}).value || '';
+
+        var subject = '[태인종합물류 견적 문의] ' + (company || name);
+        var body =
+          '■ 이름: '   + name    + '\n' +
+          '■ 이메일: ' + email   + '\n' +
+          '■ 연락처: ' + phone   + '\n' +
+          '■ 회사명: ' + company + '\n' +
+          (detail ? '■ 문의 내용: ' + detail + '\n' : '');
+
+        window.location.href =
+          'mailto:caleb@ttt3.co.kr' +
+          '?subject=' + encodeURIComponent(subject) +
+          '&body='    + encodeURIComponent(body);
       });
     }
   })();
