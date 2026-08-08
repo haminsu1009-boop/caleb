@@ -119,8 +119,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* ── HEADER: scroll effect ── */
   const header = document.getElementById('header');
+  // 홈(index.html)이 아닌 서브페이지는 처음부터 흰 헤더 고정
+  const isHomePage = location.pathname === '/' || location.pathname.endsWith('index.html') || location.pathname === '';
+  if (!isHomePage) header.classList.add('scrolled');
   const onScroll = () => {
-    header.classList.toggle('scrolled', window.scrollY > 60);
+    if (isHomePage) header.classList.toggle('scrolled', window.scrollY > 60);
     scrollTopBtn.classList.toggle('visible', window.scrollY > 400);
   };
   window.addEventListener('scroll', onScroll, { passive: true });
