@@ -2175,7 +2175,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   .svc-cards { grid-template-columns: 1fr; }
   .benefits-grid { grid-template-columns: 1fr 1fr; }
   .page-hero { padding: 120px 0 56px; }
-  .sub-page-content { padding: 56px 0; }
+  .sub-page-content { padding: 96px 0 56px; }
   .feature-list li { flex-direction: column; gap: 12px; }
 }
 @media (max-width: 480px) {
