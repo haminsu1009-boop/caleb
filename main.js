@@ -123,22 +123,40 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!isHomePage) header.classList.add('scrolled');
 
   let lastScrollY = window.scrollY;
+  let scrollTicking = false;
+
   const onScroll = () => {
-    const cur = window.scrollY;
-    const goingDown = cur > lastScrollY;
+    if (scrollTicking) return;
+    scrollTicking = true;
+    requestAnimationFrame(() => {
+      const cur = window.scrollY;
+      const goingDown = cur > lastScrollY + 2; // 노이즈 방지 (2px 이상 차이)
+      const goingUp   = cur < lastScrollY - 2;
 
-    // 홈: 투명→흰 전환
-    if (isHomePage) header.classList.toggle('scrolled', cur > 60);
+      if (isHomePage) {
+        if (goingDown && cur > 30) {
+          // 홈: 다운 시 흰색 변환 없이 바로 숨김
+          header.classList.add('header-hidden');
+        } else if (goingUp) {
+          header.classList.remove('header-hidden');
+          // 올라올 때만 스크롤 위치에 따라 흰/투명 결정
+          header.classList.toggle('scrolled', cur > 60);
+        } else if (cur <= 30) {
+          header.classList.remove('header-hidden', 'scrolled');
+        }
+      } else {
+        // 서브페이지: 항상 흰색, 다운 시 즉시 숨김
+        if (goingDown && cur > 30) {
+          header.classList.add('header-hidden');
+        } else if (goingUp || cur <= 30) {
+          header.classList.remove('header-hidden');
+        }
+      }
 
-    // 스크롤 100px 이상 내려가면 헤더 숨김, 올라오면 표시
-    if (cur > 100) {
-      header.classList.toggle('header-hidden', goingDown);
-    } else {
-      header.classList.remove('header-hidden');
-    }
-
-    scrollTopBtn.classList.toggle('visible', cur > 400);
-    lastScrollY = cur;
+      scrollTopBtn.classList.toggle('visible', cur > 400);
+      lastScrollY = cur;
+      scrollTicking = false;
+    });
   };
   window.addEventListener('scroll', onScroll, { passive: true });
 
