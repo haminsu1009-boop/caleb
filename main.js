@@ -117,16 +117,68 @@ document.addEventListener('DOMContentLoaded', () => {
     draw();
   })();
 
-  /* ── HEADER: scroll effect ── */
+  /* ── HEADER: scroll effect + hide-on-down / show-on-up ── */
   const header = document.getElementById('header');
-  // 홈(index.html)이 아닌 서브페이지는 처음부터 흰 헤더 고정
   const isHomePage = location.pathname === '/' || location.pathname.endsWith('index.html') || location.pathname === '';
   if (!isHomePage) header.classList.add('scrolled');
+
+  let lastScrollY = window.scrollY;
   const onScroll = () => {
-    if (isHomePage) header.classList.toggle('scrolled', window.scrollY > 60);
-    scrollTopBtn.classList.toggle('visible', window.scrollY > 400);
+    const cur = window.scrollY;
+    const goingDown = cur > lastScrollY;
+
+    // 홈: 투명→흰 전환
+    if (isHomePage) header.classList.toggle('scrolled', cur > 60);
+
+    // 스크롤 100px 이상 내려가면 헤더 숨김, 올라오면 표시
+    if (cur > 100) {
+      header.classList.toggle('header-hidden', goingDown);
+    } else {
+      header.classList.remove('header-hidden');
+    }
+
+    scrollTopBtn.classList.toggle('visible', cur > 400);
+    lastScrollY = cur;
   };
   window.addEventListener('scroll', onScroll, { passive: true });
+
+  /* ── FADE-IN on scroll (IntersectionObserver) ── */
+  (function initFadeIn() {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('fade-visible');
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.12 });
+
+    // 자동으로 fade-in 적용할 선택자
+    const SEL = [
+      '.sub-page-content section',
+      '.section-header',
+      '.stat-item',
+      '.svc-card',
+      '.strength-card',
+      '.service-type-card',
+      '.timeline-item',
+      '.info-box',
+      '.dir-card',
+      '.faq-item',
+      '.notice-item',
+      '.network-region',
+      '.biz-slide',
+      '.about-text',
+      '.ceo-greeting > *',
+      '.philosophy-block',
+    ].join(',');
+
+    document.querySelectorAll(SEL).forEach((el, i) => {
+      el.classList.add('fade-in');
+      el.style.transitionDelay = Math.min(i % 4 * 0.08, 0.24) + 's';
+      io.observe(el);
+    });
+  })();
 
   /* ── HAMBURGER MENU ── */
   const hamburger  = document.getElementById('hamburger');

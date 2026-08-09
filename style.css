@@ -55,8 +55,10 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 #header {
   position: fixed; top: 0; left: 0; width: 100%; z-index: 1000;
   background: transparent; box-shadow: none;
-  transition: background var(--transition), box-shadow var(--transition);
+  transition: background var(--transition), box-shadow var(--transition),
+              transform 0.35s cubic-bezier(0.4,0,0.2,1);
 }
+#header.header-hidden { transform: translateY(-100%); }
 #header.scrolled {
   background: var(--white);
   box-shadow: 0 2px 16px rgba(0,0,0,0.13);
@@ -3360,4 +3362,23 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   font-size: 0.86rem;
   color: #555;
   line-height: 1.75;
+}
+
+/* ── Scroll hide-on-down / show-on-up header ─────────────────── */
+/* handled via JS: .header-hidden class added above              */
+
+/* ── Fade-in on scroll ──────────────────────────────────────── */
+.fade-in {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.65s ease, transform 0.65s ease;
+}
+.fade-in.fade-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 섹션 앵커가 헤더에 가려지지 않도록 */
+section[id], .estimate-section {
+  scroll-margin-top: 80px;
 }
