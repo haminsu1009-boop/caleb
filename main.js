@@ -284,44 +284,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
   statNums.forEach(el => countObserver.observe(el));
 
-  /* ── CONTACT FORM (Formspree) ── */
-  const form = document.getElementById('homeInquiryForm');
-  if (form) {
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const btn = form.querySelector('.btn-submit');
-      const origText = btn.textContent;
-      btn.textContent = '전송 중...';
-      btn.disabled = true;
-      try {
-        const resp = await fetch('https://formspree.io/f/xpwrjvrd', {
-          method: 'POST',
-          body: new FormData(form),
-          headers: { 'Accept': 'application/json' }
-        });
-        if (resp.ok) {
-          btn.textContent = '문의가 접수되었습니다 ✓';
-          btn.style.background = '#2e7d32';
-          setTimeout(() => {
-            form.reset();
-            btn.textContent = origText;
-            btn.style.background = '';
-            btn.disabled = false;
-          }, 3000);
-        } else {
-          throw new Error('submit failed');
-        }
-      } catch {
-        btn.textContent = '전송 실패 — 다시 시도해주세요';
-        btn.style.background = '#c62828';
+  /* ── CONTACT FORM (Formspree) — 홈 + 고객센터 공통 ── */
+  async function submitToFormspree(formEl) {
+    const btn = formEl.querySelector('.btn-submit');
+    const origText = btn ? btn.textContent : '';
+    if (btn) { btn.textContent = '전송 중...'; btn.disabled = true; }
+    try {
+      const resp = await fetch('https://formspree.io/f/xpwrjvrd', {
+        method: 'POST',
+        body: new FormData(formEl),
+        headers: { 'Accept': 'application/json' }
+      });
+      if (resp.ok) {
+        if (btn) { btn.textContent = '문의가 접수되었습니다 ✓'; btn.style.background = '#2e7d32'; }
         setTimeout(() => {
-          btn.textContent = origText;
-          btn.style.background = '';
-          btn.disabled = false;
+          formEl.reset();
+          if (btn) { btn.textContent = origText; btn.style.background = ''; btn.disabled = false; }
         }, 3000);
-      }
-    });
+      } else { throw new Error('fail'); }
+    } catch {
+      if (btn) { btn.textContent = '전송 실패 — 다시 시도해주세요'; btn.style.background = '#c62828'; }
+      setTimeout(() => {
+        if (btn) { btn.textContent = origText; btn.style.background = ''; btn.disabled = false; }
+      }, 3000);
+    }
   }
+
+  ['homeInquiryForm', 'contactForm'].forEach(id => {
+    const form = document.getElementById(id);
+    if (form) form.addEventListener('submit', e => { e.preventDefault(); submitToFormspree(form); });
+  });
 
   /* ── ACTIVE NAV highlight on scroll ── */
   const sections = document.querySelectorAll('section[id]');
@@ -715,7 +707,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ko: {
         /* ── 내비게이션 ── */
         'nav.company':'회사소개','nav.services':'사업영역','nav.network':'글로벌 네트워크',
-        'nav.notice':'공지사항','nav.support':'고객센터','nav.estimate':'빠른 견적','nav.consult':'상담 문의',
+        'nav.notice':'공지사항','nav.support':'고객센터','nav.estimate':'빠른견적문의','nav.consult':'상담 문의',
         /* ── 히어로 ── */
         'hero1.h1':'신뢰와 열정으로<br/>세계를 연결합니다',
         'hero1.desc':'TAEIN TOTAL TRANSPORTATION CO.,LTD<br/>해상·항공 수출입, 통관, 운송의 글로벌 종합물류 기업',
@@ -991,7 +983,7 @@ document.addEventListener('DOMContentLoaded', () => {
       en: {
         /* ── Navigation ── */
         'nav.company':'About Us','nav.services':'Services','nav.network':'Global Network',
-        'nav.notice':'Notice','nav.support':'Customer Support','nav.estimate':'Quick Quote','nav.consult':'Contact Us',
+        'nav.notice':'Notice','nav.support':'Customer Support','nav.estimate':'Quick Inquiry','nav.consult':'Contact Us',
         /* ── Hero ── */
         'hero1.h1':'Connecting the World<br/>with Trust & Passion',
         'hero1.desc':'TAEIN TOTAL TRANSPORTATION CO.,LTD<br/>Your Global Partner for Sea, Air & Customs',
@@ -1421,26 +1413,35 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (form) {
-      form.addEventListener('submit', function(e) {
+      form.addEventListener('submit', async function(e) {
         e.preventDefault();
-        var name    = (document.getElementById('ic-name')    || {}).value || '';
-        var email   = (document.getElementById('ic-email')   || {}).value || '';
-        var phone   = (document.getElementById('ic-phone')   || {}).value || '';
-        var company = (document.getElementById('ic-company') || {}).value || '';
-        var detail  = (document.getElementById('ic-detail')  || {}).value || '';
+        var btn = form.querySelector('.ic-submit') || form.querySelector('.q-submit');
+        var origText = btn ? btn.textContent : '';
+        if (btn) { btn.textContent = '전송 중...'; btn.disabled = true; }
 
-        var subject = '[태인종합물류 견적 문의] ' + (company || name);
-        var body =
-          '■ 이름: '   + name    + '\n' +
-          '■ 이메일: ' + email   + '\n' +
-          '■ 연락처: ' + phone   + '\n' +
-          '■ 회사명: ' + company + '\n' +
-          (detail ? '■ 문의 내용: ' + detail + '\n' : '');
+        var data = new FormData(form);
+        // 서비스 유형 레이블 추가
+        var typeLabel = form.dataset.quoteType ? '[' + form.dataset.quoteType.toUpperCase() + ' 견적]' : '[빠른 견적]';
+        data.append('_subject', typeLabel + ' ' + (data.get('company') || data.get('name') || ''));
 
-        window.location.href =
-          'mailto:caleb@ttt3.co.kr' +
-          '?subject=' + encodeURIComponent(subject) +
-          '&body='    + encodeURIComponent(body);
+        try {
+          var resp = await fetch('https://formspree.io/f/xpwrjvrd', {
+            method: 'POST', body: data,
+            headers: { 'Accept': 'application/json' }
+          });
+          if (resp.ok) {
+            if (btn) { btn.textContent = '문의 접수 완료 ✓'; btn.style.background = '#2e7d32'; }
+            setTimeout(function() {
+              form.reset();
+              if (btn) { btn.textContent = origText; btn.style.background = ''; btn.disabled = false; }
+            }, 3000);
+          } else { throw new Error('fail'); }
+        } catch (err) {
+          if (btn) { btn.textContent = '전송 실패 — 다시 시도'; btn.style.background = '#c62828'; }
+          setTimeout(function() {
+            if (btn) { btn.textContent = origText; btn.style.background = ''; btn.disabled = false; }
+          }, 3000);
+        }
       });
     }
   })();
