@@ -321,6 +321,56 @@ document.addEventListener('DOMContentLoaded', () => {
     if (form) form.addEventListener('submit', e => { e.preventDefault(); submitForm(form); });
   });
 
+  // 인라인 견적 폼: 이메일 포맷을 직접 구성 (체크박스 "on" 제거, 항목 정리)
+  const icForm = document.getElementById('inlineContactForm');
+  if (icForm) {
+    icForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const btn = icForm.querySelector('.ic-submit');
+      const origText = btn ? btn.textContent : '';
+      if (btn) { btn.textContent = '전송 중...'; btn.disabled = true; }
+      try {
+        const name    = (document.getElementById('ic-name')||{}).value||'';
+        const email   = (document.getElementById('ic-email')||{}).value||'';
+        const phone   = (document.getElementById('ic-phone')||{}).value||'';
+        const company = (document.getElementById('ic-company')||{}).value||'';
+        const detail  = (document.getElementById('ic-detail')||{}).value||'';
+        const note    = (document.getElementById('ic-note')||{}).value||'';
+        const mktg    = (document.getElementById('ic-marketing')||{}).checked ? '동의' : '비동의';
+
+        const msgLines = [];
+        if (detail) { msgLines.push('■ 견적 문의 내용'); detail.split('\n').forEach(l => msgLines.push('  ' + l)); msgLines.push(''); }
+        if (note)   { msgLines.push('■ 기타 문의사항'); msgLines.push('  ' + note); msgLines.push(''); }
+        msgLines.push('■ 고객 정보');
+        msgLines.push('  이름: ' + name);
+        msgLines.push('  연락처: ' + phone);
+        if (company) msgLines.push('  회사명: ' + company);
+        msgLines.push('  이메일: ' + email);
+        msgLines.push('  마케팅 수신: ' + mktg);
+
+        const data = new FormData();
+        data.append('access_key', W3F_KEY);
+        data.append('from_name', '태인종합물류 홈페이지');
+        data.append('subject', '[빠른 견적 문의] ' + (company || name));
+        data.append('name', name);
+        data.append('email', email);
+        data.append('message', msgLines.join('\n'));
+
+        const resp = await fetch('https://api.web3forms.com/submit', {
+          method: 'POST', body: data, headers: { 'Accept': 'application/json' }
+        });
+        const json = await resp.json();
+        if (json.success) {
+          if (btn) { btn.textContent = '문의 접수 완료 ✓'; btn.style.background = '#2e7d32'; }
+          setTimeout(() => { icForm.reset(); if (btn) { btn.textContent = origText; btn.style.background = ''; btn.disabled = false; } }, 3000);
+        } else { throw new Error('fail'); }
+      } catch {
+        if (btn) { btn.textContent = '전송 실패 — 다시 시도'; btn.style.background = '#c62828'; }
+        setTimeout(() => { if (btn) { btn.textContent = origText; btn.style.background = ''; btn.disabled = false; } }, 3000);
+      }
+    });
+  }
+
   /* ── ACTIVE NAV highlight on scroll ── */
   const sections = document.querySelectorAll('section[id]');
   const navLinks = document.querySelectorAll('.gnb a');
@@ -1431,38 +1481,61 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ── 견적 인라인 연락처 전환 ── */
   window.openQuoteModal = function(type) {
     var labelMap = { fcl:'해운 FCL', lcl:'해운 LCL', air:'항공운송', land:'육상운송' };
-    var from = '', to = '', detail = '', qty = '';
+    var from = '', to = '', detail = '', qty = '', goods = '', incoterms = '';
 
     if (type === 'fcl') {
-      from   = (document.getElementById('fcl-from')||{}).value||'';
-      to     = (document.getElementById('fcl-to')||{}).value||'';
-      detail = (document.getElementById('fcl-container')||{}).value||'';
-      qty    = (document.getElementById('fcl-qty')||{}).value||'1';
+      from      = (document.getElementById('fcl-from')||{}).value||'';
+      to        = (document.getElementById('fcl-to')||{}).value||'';
+      detail    = (document.getElementById('fcl-container')||{}).value||'';
+      qty       = (document.getElementById('fcl-qty')||{}).value||'1';
+      goods     = (document.getElementById('fcl-goods')||{}).value||'';
+      incoterms = (document.getElementById('fcl-incoterms')||{}).value||'';
     } else if (type === 'lcl') {
-      from   = (document.getElementById('lcl-from')||{}).value||'';
-      to     = (document.getElementById('lcl-to')||{}).value||'';
-      detail = (document.getElementById('lcl-weight')||{}).value||'';
-      qty    = (document.getElementById('lcl-qty')||{}).value||'1';
+      from      = (document.getElementById('lcl-from')||{}).value||'';
+      to        = (document.getElementById('lcl-to')||{}).value||'';
+      detail    = (document.getElementById('lcl-weight')||{}).value||'';
+      qty       = (document.getElementById('lcl-qty')||{}).value||'1';
+      goods     = (document.getElementById('lcl-goods')||{}).value||'';
+      incoterms = (document.getElementById('lcl-incoterms')||{}).value||'';
     } else if (type === 'air') {
-      from   = (document.getElementById('air-from')||{}).value||'';
-      to     = (document.getElementById('air-to')||{}).value||'';
-      detail = (document.getElementById('air-weight')||{}).value||'';
+      from      = (document.getElementById('air-from')||{}).value||'';
+      to        = (document.getElementById('air-to')||{}).value||'';
+      detail    = (document.getElementById('air-weight')||{}).value||'';
+      goods     = (document.getElementById('air-goods')||{}).value||'';
+      incoterms = (document.getElementById('air-incoterms')||{}).value||'';
     } else if (type === 'land') {
-      from   = (document.getElementById('land-from')||{}).value||'';
-      to     = (document.getElementById('land-to')||{}).value||'';
-      detail = (document.getElementById('land-cargo')||{}).value||'';
+      from      = (document.getElementById('land-from')||{}).value||'';
+      to        = (document.getElementById('land-to')||{}).value||'';
+      detail    = (document.getElementById('land-cargo')||{}).value||'';
+      goods     = (document.getElementById('land-goods')||{}).value||'';
+      incoterms = (document.getElementById('land-incoterms')||{}).value||'';
     }
 
+    // 이메일에 표시될 견적 정보 (줄바꿈 포맷)
+    var detailLines = ['서비스: ' + labelMap[type]];
+    if (from && to) detailLines.push('구간: ' + from + ' → ' + to);
+    if (qty && (type==='fcl'||type==='lcl')) detailLines.push('수량: ' + qty);
+    if (detail) {
+      var dLabel = type==='fcl' ? '컨테이너' : type==='land' ? '화물 종류' : '화물 중량';
+      detailLines.push(dLabel + ': ' + detail);
+    }
+    if (goods)     detailLines.push('물품명/HS Code: ' + goods);
+    if (incoterms) detailLines.push('인코텀즈: ' + incoterms);
+    var formattedDetail = detailLines.join('\n');
+
+    // 요약 (화면 표시용 한 줄)
     var parts = [labelMap[type]];
     if (from && to) parts.push(from + ' → ' + to);
     if (qty && (type==='fcl'||type==='lcl')) parts.push('수량: ' + qty);
     if (detail) parts.push(detail);
+    if (goods) parts.push(goods);
+    if (incoterms) parts.push(incoterms);
     var summary = parts.join(' | ');
 
     var summaryEl = document.getElementById('inline-contact-summary');
     var detailEl  = document.getElementById('ic-detail');
     if (summaryEl) summaryEl.textContent = summary;
-    if (detailEl)  detailEl.value = summary;
+    if (detailEl)  detailEl.value = formattedDetail;
 
     // 탭/pane 숨기고 인라인 패널 표시
     var panes = document.querySelector('.q-panes');
