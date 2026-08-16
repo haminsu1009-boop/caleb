@@ -342,10 +342,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (detail) { msgLines.push('■ 견적 문의 내용'); detail.split('\n').forEach(l => msgLines.push('  ' + l)); msgLines.push(''); }
         if (note)   { msgLines.push('■ 기타 문의사항'); msgLines.push('  ' + note); msgLines.push(''); }
         msgLines.push('■ 고객 정보');
-        msgLines.push('  이름: ' + name);
         msgLines.push('  연락처: ' + phone);
         if (company) msgLines.push('  회사명: ' + company);
-        msgLines.push('  이메일: ' + email);
         msgLines.push('  마케팅 수신: ' + mktg);
 
         const data = new FormData();

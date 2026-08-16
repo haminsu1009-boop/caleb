@@ -490,20 +490,20 @@
 
             <div class="ic-agree-section">
               <label class="ic-agree-all">
-                <input type="checkbox" id="ic-agree-all" required />
+                <input type="checkbox" id="ic-agree-all" />
                 <span>모두 동의하기</span>
               </label>
               <hr class="ic-agree-divider" />
               <label class="ic-agree">
-                <input type="checkbox" id="ic-terms" name="terms" />
+                <input type="checkbox" id="ic-terms" name="terms" required />
                 <span><a href="#" onclick="return false">이용약관</a>에 동의합니다.<em>(필수)</em></span>
               </label>
               <label class="ic-agree">
-                <input type="checkbox" id="ic-privacy" name="privacy" />
+                <input type="checkbox" id="ic-privacy" name="privacy" required />
                 <span><a href="#" onclick="return false">개인정보 수집 및 이용</a>에 동의합니다.<em>(필수)</em></span>
               </label>
               <label class="ic-agree">
-                <input type="checkbox" id="ic-age" name="age" />
+                <input type="checkbox" id="ic-age" name="age" required />
                 <span>만 14세 이상임을 확인하고 동의합니다.<em>(필수)</em></span>
               </label>
               <label class="ic-agree">
@@ -826,7 +826,7 @@
 
   <button class="scroll-top" id="scrollTop" aria-label="맨 위로">▲</button>
 
-  <script src="main.js?v=59"></script>
+  <script src="main.js?v=60"></script>
   <script>
     // Quote tab switcher
     document.querySelectorAll('.q-tab').forEach(function(btn) {
