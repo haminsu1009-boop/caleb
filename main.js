@@ -284,24 +284,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
   statNums.forEach(el => countObserver.observe(el));
 
-  /* ── CONTACT FORM (Formspree) — 홈 + 고객센터 공통 ── */
-  async function submitToFormspree(formEl) {
+  /* ── CONTACT FORM (Web3Forms → op@ttt3.co.kr) ── */
+  const W3F_KEY = '864a9780-df02-4040-ae0e-c595d296e613';
+
+  async function submitForm(formEl) {
     const btn = formEl.querySelector('.btn-submit');
     const origText = btn ? btn.textContent : '';
     if (btn) { btn.textContent = '전송 중...'; btn.disabled = true; }
     try {
-      const resp = await fetch('https://formspree.io/f/xpwrjvrd', {
+      const data = new FormData(formEl);
+      data.append('access_key', W3F_KEY);
+      data.append('from_name', '태인종합물류 홈페이지');
+      const resp = await fetch('https://api.web3forms.com/submit', {
         method: 'POST',
-        body: new FormData(formEl),
+        body: data,
         headers: { 'Accept': 'application/json' }
       });
-      if (resp.ok) {
+      const json = await resp.json();
+      if (json.success) {
         if (btn) { btn.textContent = '문의가 접수되었습니다 ✓'; btn.style.background = '#2e7d32'; }
         setTimeout(() => {
           formEl.reset();
           if (btn) { btn.textContent = origText; btn.style.background = ''; btn.disabled = false; }
         }, 3000);
-      } else { throw new Error('fail'); }
+      } else { throw new Error(json.message || 'fail'); }
     } catch {
       if (btn) { btn.textContent = '전송 실패 — 다시 시도해주세요'; btn.style.background = '#c62828'; }
       setTimeout(() => {
@@ -312,7 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   ['homeInquiryForm', 'contactForm'].forEach(id => {
     const form = document.getElementById(id);
-    if (form) form.addEventListener('submit', e => { e.preventDefault(); submitToFormspree(form); });
+    if (form) form.addEventListener('submit', e => { e.preventDefault(); submitForm(form); });
   });
 
   /* ── ACTIVE NAV highlight on scroll ── */
@@ -1516,16 +1522,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (btn) { btn.textContent = '전송 중...'; btn.disabled = true; }
 
         var data = new FormData(form);
-        // 서비스 유형 레이블 추가
         var typeLabel = form.dataset.quoteType ? '[' + form.dataset.quoteType.toUpperCase() + ' 견적]' : '[빠른 견적]';
-        data.append('_subject', typeLabel + ' ' + (data.get('company') || data.get('name') || ''));
+        data.append('access_key', '864a9780-df02-4040-ae0e-c595d296e613');
+        data.append('from_name', '태인종합물류 홈페이지');
+        data.append('subject', typeLabel + ' ' + (data.get('company') || data.get('name') || ''));
 
         try {
-          var resp = await fetch('https://formspree.io/f/xpwrjvrd', {
+          var resp = await fetch('https://api.web3forms.com/submit', {
             method: 'POST', body: data,
             headers: { 'Accept': 'application/json' }
           });
-          if (resp.ok) {
+          var json = await resp.json();
+          if (json.success) {
             if (btn) { btn.textContent = '문의 접수 완료 ✓'; btn.style.background = '#2e7d32'; }
             setTimeout(function() {
               form.reset();
