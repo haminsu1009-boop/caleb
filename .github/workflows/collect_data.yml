@@ -1,0 +1,37 @@
+name: 📥 Bybit 분봉 데이터 수집
+
+on:
+  schedule:
+    - cron: '0 1 * * *'   # 매일 오전 10시 (KST = UTC+9)
+  workflow_dispatch:        # 수동 실행 버튼
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 레포 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Python 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 패키지 설치
+        run: pip install pybit pandas python-dotenv
+
+      - name: 데이터 수집 (BTCUSDT 5분봉 - 최근 30일)
+        run: python bybit/collect_bybit.py --symbol BTCUSDT --interval 5 --days 30
+
+      - name: 데이터 수집 (ETHUSDT 5분봉 - 최근 30일)
+        run: python bybit/collect_bybit.py --symbol ETHUSDT --interval 5 --days 30
+
+      - name: CSV 파일 커밋
+        run: |
+          git config user.name  "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add data/*.csv
+          git diff --staged --quiet || git commit -m "📊 자동 데이터 업데이트: $(date '+%Y-%m-%d')"
+          git push
