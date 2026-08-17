@@ -13,10 +13,13 @@ bybit/collect_indicators.py
   ⑧ 구글 트렌드      — pytrends (키워드: bitcoin)
   ⑨ BTC 해시레이트   — blockchain.com 공개 API
   ⑩ BTC 활성주소수   — blockchain.com 공개 API
-  ⑪ 거래소 잔고변화  — CoinGecko
+  ⑪ BTC 가격(CoinGecko) — 보조
+  ⑫ 거시경제 지표    — Yahoo Finance (S&P500, NASDAQ, Gold, DXY, VIX, 10Y국채)
+  ⑬ 청산 데이터      — Binance 공개 아카이브 (일별 청산 집계)
+  ⑭ Binance 선물 메트릭 — OI/펀딩비 아카이브 (분봉/시봉 대응)
 """
 
-import os, sys, time, requests
+import os, sys, time, requests, io, zipfile
 import pandas as pd
 from datetime import datetime, timedelta, date
 
@@ -339,31 +342,183 @@ def fetch_coingecko_btc_price(days: int = 3650):
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ⑫ 거시경제 지표 (Yahoo Finance)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+def fetch_yahoo_finance(days: int = 3650):
+    """S&P500, NASDAQ, Gold, DXY, VIX, 미국10년물 — Yahoo Finance (yfinance)"""
+    print(f"\n📥 거시경제 지표 (Yahoo Finance)...")
+    try:
+        import yfinance as yf
+    except ImportError:
+        print("  pip install yfinance 필요"); return pd.DataFrame()
+
+    tickers = {
+        "sp500":   "SPY",       # S&P 500
+        "nasdaq":  "QQQ",       # NASDAQ 100
+        "gold":    "GC=F",      # 금 선물
+        "dxy":     "DX-Y.NYB",  # 달러 인덱스
+        "vix":     "^VIX",      # VIX 변동성지수
+        "us10y":   "^TNX",      # 미국 10년물 국채 금리
+    }
+
+    start = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d")
+    frames = {}
+    for name, ticker in tickers.items():
+        try:
+            raw = yf.download(ticker, start=start, progress=False, auto_adjust=True)
+            if raw.empty:
+                print(f"  ⚠️  {name} ({ticker}) 없음"); continue
+            s = raw["Close"]
+            if hasattr(s, "squeeze"):
+                s = s.squeeze()
+            s.index = pd.to_datetime(s.index).strftime("%Y-%m-%d")
+            frames[name] = s
+            print(f"  ✅ {name} ({ticker}): {len(s):,}일치")
+            time.sleep(0.3)
+        except Exception as e:
+            print(f"  ⚠️  {name} ({ticker}) 실패: {e}")
+
+    if not frames:
+        return pd.DataFrame()
+
+    df = pd.DataFrame(frames)
+    df.index.name = "date"
+    df = df.reset_index().sort_values("date")
+    save(df, "macro_yahoo_finance")
+    return df
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ⑬ 청산 데이터 (Binance 공개 아카이브)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+def fetch_binance_liquidations(symbol: str = "BTCUSDT", days: int = 365):
+    """바이낸스 선물 청산 스냅샷 일별 집계 (공개 아카이브, 무료)"""
+    print(f"\n📥 청산 데이터 ({symbol}, 최근 {days}일)...")
+    BASE = "https://data.binance.vision/data/futures/um/daily/liquidationSnapshot"
+    rows = []
+    today = date.today()
+
+    for d in range(days):
+        target = today - timedelta(days=d + 1)
+        url = f"{BASE}/{symbol}/{symbol}-liquidationSnapshot-{target}.zip"
+        try:
+            r = requests.get(url, timeout=60)
+            if r.status_code == 404:
+                continue
+            r.raise_for_status()
+            with zipfile.ZipFile(io.BytesIO(r.content)) as z:
+                df_day = pd.read_csv(z.open(z.namelist()[0]), header=None,
+                    names=["symbol","side","order_type","time_in_force",
+                           "original_qty","price","average_price","order_status",
+                           "last_fill_qty","accumulated_fill_qty","trade_time"])
+
+            # SELL side = 롱 포지션 청산 (매도 청산)
+            # BUY  side = 숏 포지션 청산 (매수 청산)
+            long_df  = df_day[df_day["side"] == "SELL"].copy()
+            short_df = df_day[df_day["side"] == "BUY"].copy()
+            for x in [long_df, short_df]:
+                x["usd_val"] = pd.to_numeric(x["average_price"], errors="coerce") * \
+                               pd.to_numeric(x["accumulated_fill_qty"], errors="coerce")
+            rows.append({
+                "date":           str(target),
+                "liq_long_usd":   long_df["usd_val"].sum(),
+                "liq_short_usd":  short_df["usd_val"].sum(),
+                "liq_total_usd":  long_df["usd_val"].sum() + short_df["usd_val"].sum(),
+                "liq_count_long": len(long_df),
+                "liq_count_short":len(short_df),
+            })
+            time.sleep(0.1)
+        except Exception:
+            continue
+
+    if not rows:
+        print("  ⚠️  청산 데이터 없음"); return pd.DataFrame()
+
+    df = pd.DataFrame(rows).sort_values("date").reset_index(drop=True)
+    print(f"  ✅ {len(df):,}일치  {df['date'].iloc[0]} ~ {df['date'].iloc[-1]}")
+    save(df, f"{symbol[:3]}_liquidations_daily")
+    return df
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ⑭ Binance 선물 메트릭 (월별 아카이브 — OI/펀딩비/거래량)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+def fetch_binance_futures_metrics(symbol: str = "BTCUSDT",
+                                   interval: str = "1h",
+                                   start_year: int = 2021):
+    """
+    Binance 선물 메트릭 아카이브
+    컬럼: open_time, open, high, low, close, volume, close_time,
+          quote_asset_volume, n_trades, taker_buy_base, taker_buy_quote,
+          open_interest  ← 시간별 OI 포함!
+    """
+    print(f"\n📥 Binance 선물 메트릭 ({symbol} {interval})...")
+    BASE = "https://data.binance.vision/data/futures/um/monthly/metrics"
+    rows = []
+    today = date.today()
+    yr, mo = start_year, 1
+
+    while (yr, mo) <= (today.year, today.month):
+        url = f"{BASE}/{symbol}/{interval}/{symbol}-{interval}-metrics-{yr}-{mo:02d}.zip"
+        try:
+            r = requests.get(url, timeout=90)
+            if r.status_code == 404:
+                if mo == 12: yr += 1; mo = 1
+                else: mo += 1
+                continue
+            r.raise_for_status()
+            with zipfile.ZipFile(io.BytesIO(r.content)) as z:
+                df_m = pd.read_csv(z.open(z.namelist()[0]))
+            rows.append(df_m)
+            print(f"    {yr}-{mo:02d}: {len(df_m):,}행")
+        except Exception as e:
+            print(f"    ⚠️  {yr}-{mo:02d}: {e}")
+        if mo == 12: yr += 1; mo = 1
+        else: mo += 1
+        time.sleep(0.2)
+
+    if not rows:
+        print("  ⚠️  데이터 없음"); return pd.DataFrame()
+
+    df = pd.concat(rows, ignore_index=True)
+    if "open_time" in df.columns:
+        df["timestamp"] = pd.to_datetime(df["open_time"], unit="ms")
+    df = df.sort_values("timestamp").drop_duplicates("timestamp").reset_index(drop=True)
+    print(f"  ✅ {len(df):,}행  {df['timestamp'].iloc[0]} ~ {df['timestamp'].iloc[-1]}")
+    save(df, f"{symbol[:3]}_futures_metrics_{interval}")
+    return df
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # 메인
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 def collect_all_indicators():
-    print("=" * 56)
-    print("  📊 외부 시장 지표 전체 수집")
-    print("=" * 56)
+    print("=" * 60)
+    print("  📊 외부 시장 지표 전체 수집 (14종)")
+    print("=" * 60)
 
     tasks = [
-        ("① 공포탐욕지수",            fetch_fear_greed,                  {}),
-        ("② BTC 자금조달비율",         fetch_funding_rate,                {"symbol":"BTCUSDT","days":730}),
-        ("③ ETH 자금조달비율",         fetch_funding_rate,                {"symbol":"ETHUSDT","days":730}),
-        ("④ BTC 미결제약정(1h)",       fetch_open_interest,               {"symbol":"BTCUSDT","interval":"1h","days":365}),
-        ("⑤ BTC 롱숏비율(1h)",        fetch_long_short_ratio,            {"symbol":"BTCUSDT","period":"1h","days":365}),
-        ("⑥ BTC 도미넌스/시총",        fetch_coingecko_global,            {"days":365}),
-        ("⑦ 구글 트렌드",             fetch_google_trends,               {}),
-        ("⑧ 해시레이트/난이도",        fetch_hash_rate,                   {}),
-        ("⑨ 온체인 지표",             fetch_onchain_metrics,             {}),
-        ("⑩ BTC 가격(CoinGecko)",     fetch_coingecko_btc_price,        {"days":3650}),
+        ("① 공포탐욕지수",              fetch_fear_greed,                {}),
+        ("② BTC 자금조달비율",           fetch_funding_rate,              {"symbol":"BTCUSDT","days":730}),
+        ("③ ETH 자금조달비율",           fetch_funding_rate,              {"symbol":"ETHUSDT","days":730}),
+        ("④ BTC 미결제약정(1h)",         fetch_open_interest,             {"symbol":"BTCUSDT","interval":"1h","days":365}),
+        ("⑤ BTC 롱숏비율(1h)",          fetch_long_short_ratio,          {"symbol":"BTCUSDT","period":"1h","days":365}),
+        ("⑥ BTC 도미넌스/시총",          fetch_coingecko_global,          {"days":365}),
+        ("⑦ 구글 트렌드",               fetch_google_trends,             {}),
+        ("⑧ 해시레이트/난이도",          fetch_hash_rate,                 {}),
+        ("⑨ 온체인 지표",               fetch_onchain_metrics,           {}),
+        ("⑩ BTC 가격(CoinGecko)",       fetch_coingecko_btc_price,      {"days":3650}),
+        ("⑪ 거시경제(Yahoo Finance)",    fetch_yahoo_finance,             {"days":3650}),
+        ("⑫ BTC 청산 데이터",           fetch_binance_liquidations,      {"symbol":"BTCUSDT","days":365}),
+        ("⑬ ETH 청산 데이터",           fetch_binance_liquidations,      {"symbol":"ETHUSDT","days":365}),
+        ("⑭ BTC 선물메트릭(1h)",        fetch_binance_futures_metrics,   {"symbol":"BTCUSDT","interval":"1h","start_year":2021}),
     ]
 
     success, fail = 0, 0
     for label, fn, kwargs in tasks:
         try:
             result = fn(**kwargs)
-            if result is not None and not (hasattr(result,"empty") and result.empty):
+            if result is not None and not (hasattr(result, "empty") and result.empty):
                 success += 1
             else:
                 fail += 1
@@ -371,13 +526,13 @@ def collect_all_indicators():
             print(f"  ❌ {label}: {e}")
             fail += 1
 
-    print(f"\n{'='*56}")
+    print(f"\n{'='*60}")
     print(f"  완료: {success}개 성공 / {fail}개 실패")
     print(f"\n  저장된 파일:")
     for f in sorted(os.listdir(SAVE_DIR)):
         path = f"{SAVE_DIR}/{f}"
         kb = os.path.getsize(path) // 1024
-        print(f"    {f:<45} {kb}KB")
+        print(f"    {f:<48} {kb:>6}KB")
 
 
 if __name__ == "__main__":

@@ -896,6 +896,136 @@ def _add_extra_indicators(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def add_external_features(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    외부 데이터 통합 피처 (컬럼이 있을 때만 계산)
+
+    수집된 외부 데이터를 OHLCV DataFrame에 merge한 뒤 이 함수를 호출하세요.
+    없는 컬럼은 자동으로 건너뜁니다.
+
+    지원 입력 컬럼:
+      - funding_rate          : 자금조달비율 (8시간 주기)
+      - open_interest         : 미결제약정 (USDT 기준)
+      - ls_ratio              : 롱숏비율 (long/short 계정 비율)
+      - fear_greed            : 공포탐욕지수 0~100
+      - sp500, nasdaq         : 주식시장 종가
+      - gold, dxy, vix, us10y : 상품/달러/변동성/금리
+      - hash_rate             : BTC 해시레이트
+      - active_addresses      : 활성 주소수
+      - liq_long_usd          : 롱 청산액 (일별)
+      - liq_short_usd         : 숏 청산액 (일별)
+    """
+    df = df.copy()
+    c = df["close"]
+
+    # ── 자금조달비율 (Funding Rate) ─────────────────────────
+    if "funding_rate" in df.columns:
+        fr    = df["funding_rate"].ffill()
+        fr_ma = fr.rolling(24, min_periods=1).mean()
+        df["fr_level"]      = fr
+        df["fr_ma_ratio"]   = fr / (fr_ma.abs() + 1e-9)        # 장기 평균 대비
+        df["fr_positive"]   = (fr > 0).astype(int)              # 양수 = 롱 과열
+        df["fr_extreme"]    = (fr.abs() > 0.001).astype(int)    # 극단적 펀딩비
+        df["fr_cumsum_8"]   = fr.rolling(8, min_periods=1).sum() # 8봉 누적
+
+    # ── 미결제약정 (Open Interest) ──────────────────────────
+    if "open_interest" in df.columns:
+        oi     = df["open_interest"].ffill()
+        oi_ma  = oi.rolling(20, min_periods=1).mean()
+        df["oi_change"]       = oi.pct_change()
+        df["oi_vs_ma"]        = oi / (oi_ma + 1e-9) - 1
+        df["oi_surge"]        = (df["oi_vs_ma"] > 0.1).astype(int)
+        df["oi_drop"]         = (df["oi_vs_ma"] < -0.1).astype(int)
+        price_up = (c.pct_change() > 0)
+        oi_up    = (oi.pct_change() > 0)
+        # 가격방향 × OI방향 일치 = 추세 강화 신호
+        df["oi_price_align"]  = ((price_up & oi_up) | (~price_up & ~oi_up)).astype(int)
+
+    # ── 롱숏비율 (Long/Short Ratio) ──────────────────────────
+    if "ls_ratio" in df.columns:
+        ls     = df["ls_ratio"].ffill()
+        ls_ma  = ls.rolling(24, min_periods=1).mean()
+        df["ls_vs_ma"]         = ls / (ls_ma + 1e-9) - 1
+        df["ls_extreme_long"]  = (ls > ls.rolling(48, min_periods=10).quantile(0.9)).astype(int)
+        df["ls_extreme_short"] = (ls < ls.rolling(48, min_periods=10).quantile(0.1)).astype(int)
+        df["ls_change"]        = ls.pct_change(6)
+
+    # ── 공포탐욕지수 (Fear & Greed Index) ───────────────────
+    if "fear_greed" in df.columns:
+        fg = df["fear_greed"].ffill().astype(float)
+        df["fg_norm"]           = fg / 100
+        df["fg_extreme_fear"]   = (fg < 20).astype(int)         # 역발상 매수 기회
+        df["fg_extreme_greed"]  = (fg > 80).astype(int)         # 역발상 매도 기회
+        df["fg_change_7d"]      = fg.diff(7) / 100
+        df["fg_trend"]          = (fg > fg.rolling(14, min_periods=3).mean()).astype(int)
+
+    # ── 주식시장 (S&P500 / NASDAQ) ──────────────────────────
+    for col in ["sp500", "nasdaq"]:
+        if col in df.columns:
+            s = df[col].ffill()
+            df[f"{col}_ret_1d"]    = s.pct_change()
+            df[f"{col}_ret_5d"]    = s.pct_change(5)
+            df[f"{col}_ret_20d"]   = s.pct_change(20)
+            df[f"{col}_above_ma50"] = (s > s.rolling(50, min_periods=10).mean()).astype(int)
+
+    # ── Gold ────────────────────────────────────────────────
+    if "gold" in df.columns:
+        gold = df["gold"].ffill()
+        df["gold_ret_5d"]  = gold.pct_change(5)
+        df["gold_ret_20d"] = gold.pct_change(20)
+        df["gold_trend"]   = (gold > gold.rolling(20, min_periods=5).mean()).astype(int)
+
+    # ── DXY (달러 인덱스) — 상승하면 BTC 약세 경향 ──────────
+    if "dxy" in df.columns:
+        dxy = df["dxy"].ffill()
+        df["dxy_ret_5d"]    = dxy.pct_change(5)
+        df["dxy_above_ma"]  = (dxy > dxy.rolling(20, min_periods=5).mean()).astype(int)
+        df["dxy_rising"]    = (dxy.pct_change() > 0).astype(int)
+
+    # ── VIX (변동성 공포 지수) ──────────────────────────────
+    if "vix" in df.columns:
+        vix = df["vix"].ffill()
+        df["vix_level"]   = vix / 100
+        df["vix_spike"]   = (vix > 30).astype(int)              # 공포 구간
+        df["vix_extreme"] = (vix > 40).astype(int)              # 공황 구간
+        df["vix_falling"] = (vix < vix.rolling(5, min_periods=2).mean()).astype(int)  # 안정화
+
+    # ── 미국 10년물 금리 ─────────────────────────────────────
+    if "us10y" in df.columns:
+        tnx = df["us10y"].ffill()
+        df["yield_level"]  = tnx / 10
+        df["yield_change"] = tnx.diff(5)
+        df["yield_above4"] = (tnx > 4.0).astype(int)            # 4% 이상 = 긴축 우려
+
+    # ── 온체인: 해시레이트 ──────────────────────────────────
+    if "hash_rate" in df.columns:
+        hr    = df["hash_rate"].ffill()
+        hr_ma = hr.rolling(30, min_periods=5).mean()
+        df["hr_vs_ma30"]  = hr / (hr_ma + 1e-9) - 1
+        df["hr_rising"]   = (hr > hr.shift(7)).astype(int)
+
+    # ── 온체인: 활성 주소수 ─────────────────────────────────
+    if "active_addresses" in df.columns:
+        aa    = df["active_addresses"].ffill()
+        aa_ma = aa.rolling(30, min_periods=5).mean()
+        df["aa_vs_ma30"]  = aa / (aa_ma + 1e-9) - 1
+        df["aa_surge"]    = (df["aa_vs_ma30"] > 0.2).astype(int)
+
+    # ── 청산 데이터 ──────────────────────────────────────────
+    if "liq_long_usd" in df.columns and "liq_short_usd" in df.columns:
+        ll    = df["liq_long_usd"].fillna(0)
+        ls_usd = df["liq_short_usd"].fillna(0)
+        total  = ll + ls_usd + 1e-9
+        df["liq_long_ratio"]  = ll / total
+        df["liq_short_ratio"] = ls_usd / total
+        df["liq_total_norm"]  = total / (total.rolling(30, min_periods=5).mean() + 1e-9)
+        df["liq_long_surge"]  = (ll > ll.rolling(30, min_periods=5).quantile(0.9)).astype(int)
+        df["liq_short_surge"] = (ls_usd > ls_usd.rolling(30, min_periods=5).quantile(0.9)).astype(int)
+        df["liq_imbalance"]   = (ll - ls_usd) / total           # 양수 = 롱 청산 우세
+
+    return df
+
+
 def make_targets(df: pd.DataFrame, hold_days: int = 3, threshold: float = 0.01) -> pd.DataFrame:
     """
     타겟 변수 생성

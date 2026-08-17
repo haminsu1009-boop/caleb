@@ -24,9 +24,24 @@ INTERVAL_NAMES = {
     "12h":"12시간봉","1d":"일봉","3d":"3일봉","1w":"주봉","1mo":"월봉",
 }
 
-# BTC: 전체 9봉 / ETH: 주요 5봉
-BTC_INTERVALS = ["1mo","1w","1d","6h","4h","1h","30m","5m","1m"]
-ETH_INTERVALS = ["1d","4h","1h","5m","1m"]
+# 심볼별 기본 타임프레임
+BTC_INTERVALS = ["1mo","1w","3d","1d","12h","6h","4h","2h","1h","30m","15m","5m","3m","1m"]
+ETH_INTERVALS = ["1d","4h","1h","15m","5m","1m"]
+ALT_INTERVALS = ["1d","4h","1h","5m"]          # BNB/SOL/XRP/ADA 등
+
+# 심볼별 수집 시작 연도 (Binance 상장 기준)
+SYMBOL_START_YEAR = {
+    "BTCUSDT": 2017,
+    "ETHUSDT": 2017,
+    "BNBUSDT": 2017,
+    "SOLUSDT": 2020,
+    "XRPUSDT": 2018,
+    "ADAUSDT": 2018,
+    "DOGEUSDT":2019,
+    "AVAXUSDT":2020,
+    "DOTUSDT": 2020,
+    "MATICUSDT":2019,
+}
 
 
 def download_month(year:int, month:int, interval:str="5m",
@@ -115,38 +130,54 @@ def collect_interval(interval:str="5m", start_year:int=2017,
     return all_out
 
 
-def collect_all(symbol:str="BTCUSDT", intervals:list=None,
-                start_year:int=2017) -> None:
+def collect_all(symbol: str = "BTCUSDT", intervals: list = None,
+                start_year: int = None) -> None:
+    # 심볼별 기본 타임프레임 결정
     if intervals is None:
-        intervals = BTC_INTERVALS if symbol == "BTCUSDT" else ETH_INTERVALS
+        if symbol == "BTCUSDT":
+            intervals = BTC_INTERVALS
+        elif symbol == "ETHUSDT":
+            intervals = ETH_INTERVALS
+        else:
+            intervals = ALT_INTERVALS
 
-    print(f"\n{'='*52}")
+    # 심볼별 기본 시작 연도
+    if start_year is None:
+        start_year = SYMBOL_START_YEAR.get(symbol, 2018)
+
+    print(f"\n{'='*56}")
     print(f"  📥 {symbol} 히스토리 수집")
     print(f"  봉 단위: {', '.join(intervals)}")
-    print(f"{'='*52}")
+    print(f"  시작:    {start_year}년")
+    print(f"{'='*56}")
 
     results = {}
     for iv in intervals:
         results[iv] = collect_interval(iv, start_year, symbol)
 
-    print(f"\n\n{'='*52}  완료 요약")
+    print(f"\n\n{'='*56}  완료 요약")
     total_mb = 0
     for iv, path in results.items():
         name = INTERVAL_NAMES.get(iv, iv)
         if path and os.path.exists(path):
             mb = os.path.getsize(path) / 1024 / 1024
             total_mb += mb
-            print(f"  {name:>6} ({iv:>3})  ✅  {mb:.1f}MB")
+            print(f"  {name:>7} ({iv:>3})  ✅  {mb:.1f}MB")
         else:
-            print(f"  {name:>6} ({iv:>3})  ❌  없음")
-    print(f"  {'합계':>10}       {total_mb:.1f}MB")
+            print(f"  {name:>7} ({iv:>3})  ❌  없음")
+    print(f"  {'합계':>11}       {total_mb:.1f}MB")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--symbol",     default="BTCUSDT")
-    parser.add_argument("--interval",   nargs="*", default=None)
-    parser.add_argument("--start_year", type=int,  default=2017)
+    parser = argparse.ArgumentParser(
+        description="Binance 공개 아카이브 OHLCV 수집기")
+    parser.add_argument("--symbol",     default="BTCUSDT",
+                        help="거래 심볼 (예: BTCUSDT, ETHUSDT, BNBUSDT)")
+    parser.add_argument("--interval",   nargs="*", default=None,
+                        help="봉 단위 목록 (없으면 심볼별 기본값 사용)")
+    parser.add_argument("--start_year", type=int,  default=None,
+                        help="수집 시작 연도 (없으면 심볼별 기본값 사용)")
     args = parser.parse_args()
-    collect_all(symbol=args.symbol, intervals=args.interval,
+    collect_all(symbol=args.symbol,
+                intervals=args.interval,
                 start_year=args.start_year)
