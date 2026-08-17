@@ -287,14 +287,58 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ── CONTACT FORM (Web3Forms → op@ttt3.co.kr) ── */
   const W3F_KEY = '864a9780-df02-4040-ae0e-c595d296e613';
 
+  /* 접수번호 생성: TI + 날짜(YYYYMMDD) + 랜덤 4자리 — 고객 응대 시 조회 기준점 */
+  function makeReceiptNo() {
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const stamp = `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}`;
+    const rand = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+    return `TI${stamp}-${rand}`;
+  }
+
+  /* 폼 하단에 접수번호 + 회신 안내 문구를 표시 (없으면 새로 생성) */
+  function showReceiptNote(formEl, receiptNo) {
+    let note = formEl.querySelector('.form-receipt-note');
+    if (!note) {
+      note = document.createElement('p');
+      note.className = 'form-receipt-note';
+      const btn = formEl.querySelector('.btn-submit, .ic-submit, button[type="submit"]');
+      if (btn) btn.insertAdjacentElement('afterend', note);
+      else formEl.appendChild(note);
+    }
+    note.innerHTML = `✅ 문의가 접수되었습니다. <strong>접수번호 ${receiptNo}</strong><br/>영업일 기준 24시간 이내 담당자가 회신드립니다.`;
+    note.style.display = 'block';
+  }
+
   async function submitForm(formEl) {
     const btn = formEl.querySelector('.btn-submit');
     const origText = btn ? btn.textContent : '';
     if (btn) { btn.textContent = '전송 중...'; btn.disabled = true; }
     try {
-      const data = new FormData(formEl);
+      const name    = (formEl.querySelector('[name="name"]')||{}).value || '';
+      const phone   = (formEl.querySelector('[name="phone"]')||{}).value || '';
+      const email   = (formEl.querySelector('[name="email"]')||{}).value || '';
+      const service = (formEl.querySelector('[name="service"]')||{}).value || '';
+      const message = (formEl.querySelector('[name="message"]')||{}).value || '';
+      const receiptNo = makeReceiptNo();
+
+      const msgLines = ['■ 문의 내용'];
+      if (service) msgLines.push('  문의 서비스: ' + service);
+      message.split('\n').forEach(l => msgLines.push('  ' + l));
+      msgLines.push('');
+      msgLines.push('■ 고객 정보');
+      msgLines.push('  연락처: ' + phone);
+      msgLines.push('');
+      msgLines.push('■ 접수번호: ' + receiptNo);
+
+      const data = new FormData();
       data.append('access_key', W3F_KEY);
       data.append('from_name', '태인종합물류 홈페이지');
+      data.append('subject', '[상담문의' + (service ? ' - ' + service : '') + '] ' + (name || ''));
+      data.append('name', name);
+      data.append('email', email);
+      data.append('message', msgLines.join('\n'));
+
       const resp = await fetch('https://api.web3forms.com/submit', {
         method: 'POST',
         body: data,
@@ -303,6 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const json = await resp.json();
       if (json.success) {
         if (btn) { btn.textContent = '문의가 접수되었습니다 ✓'; btn.style.background = '#2e7d32'; }
+        showReceiptNote(formEl, receiptNo);
         setTimeout(() => {
           formEl.reset();
           if (btn) { btn.textContent = origText; btn.style.background = ''; btn.disabled = false; }
@@ -337,6 +382,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const detail  = (document.getElementById('ic-detail')||{}).value||'';
         const note    = (document.getElementById('ic-note')||{}).value||'';
         const mktg    = (document.getElementById('ic-marketing')||{}).checked ? '동의' : '비동의';
+        const receiptNo = makeReceiptNo();
+        const typeLabel = icForm.dataset.quoteType ? icForm.dataset.quoteType.toUpperCase() + ' 견적' : '빠른 견적';
 
         const msgLines = [];
         if (detail) { msgLines.push('■ 견적 문의 내용'); detail.split('\n').forEach(l => msgLines.push('  ' + l)); msgLines.push(''); }
@@ -345,11 +392,13 @@ document.addEventListener('DOMContentLoaded', () => {
         msgLines.push('  연락처: ' + phone);
         if (company) msgLines.push('  회사명: ' + company);
         msgLines.push('  마케팅 수신: ' + mktg);
+        msgLines.push('');
+        msgLines.push('■ 접수번호: ' + receiptNo);
 
         const data = new FormData();
         data.append('access_key', W3F_KEY);
         data.append('from_name', '태인종합물류 홈페이지');
-        data.append('subject', '[빠른 견적 문의] ' + (company || name));
+        data.append('subject', '[' + typeLabel + ' 문의] ' + (company || name));
         data.append('name', name);
         data.append('email', email);
         data.append('message', msgLines.join('\n'));
@@ -360,6 +409,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const json = await resp.json();
         if (json.success) {
           if (btn) { btn.textContent = '문의 접수 완료 ✓'; btn.style.background = '#2e7d32'; }
+          showReceiptNote(icForm, receiptNo);
           setTimeout(() => { icForm.reset(); if (btn) { btn.textContent = origText; btn.style.background = ''; btn.disabled = false; } }, 3000);
         } else { throw new Error('fail'); }
       } catch {
@@ -1119,7 +1169,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'cs.form.service':'문의 서비스','cs.form.service.placeholder':'서비스를 선택하세요',
         'cs.form.svc.fcl':'해상운송 (FCL)','cs.form.svc.lcl':'해상운송 (LCL)','cs.form.svc.air':'항공운송',
         'cs.form.svc.land':'육상운송','cs.form.svc.customs':'통관/포워딩','cs.form.svc.sol':'물류 솔루션','cs.form.svc.other':'기타',
-        'cs.form.message':'문의 내용 *','cs.form.agree':'개인정보 수집·이용에 동의합니다. <a href="#">[내용보기]</a>','cs.form.submit':'문의 보내기',
+        'cs.form.message':'문의 내용 *','cs.form.agree':'개인정보 수집·이용에 동의합니다. <a href="privacy.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">[내용보기]</a>','cs.form.submit':'문의 보내기',
         /* ── 공지사항 ── */
         'notice.col.num':'번호','notice.col.title':'제목','notice.col.category':'구분','notice.col.date':'등록일','notice.col.views':'조회',
         'notice.tag.notice':'공지','notice.tag.general':'일반','notice.pagination.prev':'이전','notice.pagination.next':'다음',
@@ -1428,7 +1478,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'cs.form.service':'Service','cs.form.service.placeholder':'Select a service',
         'cs.form.svc.fcl':'Ocean Freight (FCL)','cs.form.svc.lcl':'Ocean Freight (LCL)','cs.form.svc.air':'Air Freight',
         'cs.form.svc.land':'Land Transport','cs.form.svc.customs':'Customs / Forwarding','cs.form.svc.sol':'Logistics Solutions','cs.form.svc.other':'Other',
-        'cs.form.message':'Message *','cs.form.agree':'I agree to the collection and use of personal information. <a href="#">[View Details]</a>','cs.form.submit':'Send Inquiry',
+        'cs.form.message':'Message *','cs.form.agree':'I agree to the collection and use of personal information. <a href="privacy.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">[View Details]</a>','cs.form.submit':'Send Inquiry',
         /* ── Notice ── */
         'notice.col.num':'No.','notice.col.title':'Title','notice.col.category':'Category','notice.col.date':'Date','notice.col.views':'Views',
         'notice.tag.notice':'Notice','notice.tag.general':'General','notice.pagination.prev':'Prev','notice.pagination.next':'Next',
@@ -1585,40 +1635,9 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    if (form) {
-      form.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        var btn = form.querySelector('.ic-submit') || form.querySelector('.q-submit');
-        var origText = btn ? btn.textContent : '';
-        if (btn) { btn.textContent = '전송 중...'; btn.disabled = true; }
-
-        var data = new FormData(form);
-        var typeLabel = form.dataset.quoteType ? '[' + form.dataset.quoteType.toUpperCase() + ' 견적]' : '[빠른 견적]';
-        data.append('access_key', '864a9780-df02-4040-ae0e-c595d296e613');
-        data.append('from_name', '태인종합물류 홈페이지');
-        data.append('subject', typeLabel + ' ' + (data.get('company') || data.get('name') || ''));
-
-        try {
-          var resp = await fetch('https://api.web3forms.com/submit', {
-            method: 'POST', body: data,
-            headers: { 'Accept': 'application/json' }
-          });
-          var json = await resp.json();
-          if (json.success) {
-            if (btn) { btn.textContent = '문의 접수 완료 ✓'; btn.style.background = '#2e7d32'; }
-            setTimeout(function() {
-              form.reset();
-              if (btn) { btn.textContent = origText; btn.style.background = ''; btn.disabled = false; }
-            }, 3000);
-          } else { throw new Error('fail'); }
-        } catch (err) {
-          if (btn) { btn.textContent = '전송 실패 — 다시 시도'; btn.style.background = '#c62828'; }
-          setTimeout(function() {
-            if (btn) { btn.textContent = origText; btn.style.background = ''; btn.disabled = false; }
-          }, 3000);
-        }
-      });
-    }
+    /* 실제 전송 로직은 상단의 icForm 핸들러(구조화된 메시지 생성)가 전담합니다.
+       예전에는 여기서도 별도로 submit 리스너를 등록해 폼이 두 번(중복 이메일) 전송되고
+       있었습니다 — agree 체크박스 "on" 값이 그대로 노출되던 원인도 이 중복 핸들러였습니다. */
   })();
 
   /* ── 선박 영상 4개 끊김없이 순차 재생 ── */

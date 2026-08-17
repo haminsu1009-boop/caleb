@@ -1034,6 +1034,12 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   align-self: flex-start;
 }
 .btn-submit:hover { background: var(--accent); transform: translateY(-2px); }
+.form-receipt-note {
+  display: none; margin-top: 14px; padding: 14px 18px; background: #eef7ee;
+  border: 1px solid #bfe3bf; border-left: 4px solid #2e7d32; border-radius: 6px;
+  font-size: 0.9rem; color: #245c24; line-height: 1.6;
+}
+.form-receipt-note strong { color: #1c4a1c; }
 
 /* ============================================================
    CEO GREETING PAGE
@@ -3395,4 +3401,42 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 /* 섹션 앵커가 헤더에 가려지지 않도록 */
 section[id], .estimate-section {
   scroll-margin-top: 80px;
+}
+
+/* ── 이용약관 / 개인정보처리방침 등 법적 문서 ── */
+.legal-content {
+  max-width: 860px; margin: 0 auto; color: var(--text); line-height: 1.85; font-size: 0.98rem;
+}
+.legal-content h1 { font-size: 1.75rem; color: var(--dark); margin-bottom: 6px; }
+.legal-content .legal-meta { color: var(--text-light); font-size: 0.88rem; margin-bottom: 28px; }
+.legal-content .legal-toc {
+  background: var(--bg); border-radius: var(--radius); padding: 20px 24px 20px 40px; margin-bottom: 36px;
+}
+.legal-content .legal-toc li { margin: 4px 0; }
+.legal-content .legal-toc a { color: var(--primary); text-decoration: none; }
+.legal-content .legal-toc a:hover { text-decoration: underline; }
+.legal-content h2 {
+  font-size: 1.2rem; color: var(--dark); margin: 44px 0 14px; padding-bottom: 10px;
+  border-bottom: 2px solid var(--border); scroll-margin-top: 90px;
+}
+.legal-content h2:first-of-type { margin-top: 0; }
+.legal-content h3 { font-size: 1.02rem; color: var(--text); margin: 22px 0 8px; font-weight: 700; }
+.legal-content p { margin: 0 0 12px; }
+.legal-content ul, .legal-content ol { margin: 8px 0 14px 22px; }
+.legal-content li { margin-bottom: 6px; }
+.legal-content table { width: 100%; border-collapse: collapse; margin: 10px 0 22px; font-size: 0.9rem; }
+.legal-content table th, .legal-content table td { border: 1px solid var(--border); padding: 10px 12px; text-align: left; vertical-align: top; }
+.legal-content table th { background: var(--bg); font-weight: 700; white-space: nowrap; }
+.legal-content .legal-note {
+  background: var(--bg); border-left: 4px solid var(--primary); padding: 14px 18px;
+  border-radius: 4px; margin: 16px 0; font-size: 0.9rem; color: var(--text-light);
+}
+.legal-content .legal-note strong { color: var(--dark); }
+.legal-content .legal-flag {
+  background: #fff4e5; border: 1px solid #f0c36d; border-left: 4px solid #d4922e;
+  padding: 14px 18px; border-radius: 4px; margin: 16px 0; font-size: 0.9rem; color: #6b4a15;
+}
+.legal-content .legal-flag strong { color: #6b4a15; }
+@media (max-width: 600px) {
+  .legal-content .legal-toc { padding: 16px 16px 16px 32px; }
 }

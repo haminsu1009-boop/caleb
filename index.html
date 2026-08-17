@@ -86,7 +86,7 @@
   }
   </script>
 
-  <link rel="stylesheet" href="style.css?v=70" />
+  <link rel="stylesheet" href="style.css?v=71" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
@@ -496,11 +496,11 @@
               <hr class="ic-agree-divider" />
               <label class="ic-agree">
                 <input type="checkbox" id="ic-terms" name="terms" required />
-                <span><a href="#" onclick="return false">이용약관</a>에 동의합니다.<em>(필수)</em></span>
+                <span><a href="terms.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">이용약관</a>에 동의합니다.<em>(필수)</em></span>
               </label>
               <label class="ic-agree">
                 <input type="checkbox" id="ic-privacy" name="privacy" required />
-                <span><a href="#" onclick="return false">개인정보 수집 및 이용</a>에 동의합니다.<em>(필수)</em></span>
+                <span><a href="privacy.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">개인정보 수집 및 이용</a>에 동의합니다.<em>(필수)</em></span>
               </label>
               <label class="ic-agree">
                 <input type="checkbox" id="ic-age" name="age" required />
@@ -508,7 +508,7 @@
               </label>
               <label class="ic-agree">
                 <input type="checkbox" id="ic-marketing" name="marketing" />
-                <span><a href="#" onclick="return false">마케팅 활용</a>에 동의합니다.<em class="opt">(선택)</em></span>
+                <span><a href="privacy.html#marketing" target="_blank" rel="noopener" onclick="event.stopPropagation()">마케팅 활용</a>에 동의합니다.<em class="opt">(선택)</em></span>
               </label>
             </div>
 
@@ -751,7 +751,7 @@
         </div>
         <div class="form-check">
           <input type="checkbox" id="h-agree" name="agree" required />
-          <label for="h-agree">개인정보 수집·이용에 동의합니다. <a href="#">[내용보기]</a></label>
+          <label for="h-agree">개인정보 수집·이용에 동의합니다. <a href="privacy.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">[내용보기]</a></label>
         </div>
         <button type="submit" class="btn-submit" data-i18n="form.submit">문의 보내기</button>
       </form>
@@ -815,9 +815,9 @@
         <div class="footer-bottom-inner">
           <p class="copyright">Copyright &copy; 2026 (주)태인종합물류. All Rights Reserved.</p>
           <div class="footer-policy">
-            <a href="#">이용약관</a>
-            <a href="#" class="bold">개인정보처리방침</a>
-            <a href="#">이메일무단수집거부</a>
+            <a href="terms.html">이용약관</a>
+            <a href="privacy.html" class="bold">개인정보처리방침</a>
+            <a href="privacy.html#email-collect">이메일무단수집거부</a>
           </div>
         </div>
       </div>
@@ -826,7 +826,7 @@
 
   <button class="scroll-top" id="scrollTop" aria-label="맨 위로">▲</button>
 
-  <script src="main.js?v=61"></script>
+  <script src="main.js?v=62"></script>
   <script>
     // Quote tab switcher
     document.querySelectorAll('.q-tab').forEach(function(btn) {
