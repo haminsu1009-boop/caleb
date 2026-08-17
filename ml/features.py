@@ -764,6 +764,31 @@ def _add_extra_indicators(df: pd.DataFrame) -> pd.DataFrame:
     df["mfi_ob"] = (mfi > 0.8).astype(int)   # 과매수 (>80)
     df["mfi_os"] = (mfi < 0.2).astype(int)   # 과매도 (<20)
 
+    # ── 매물대 (Volume Profile / Price Supply-Demand Zones) ─
+    # 현재가가 과거 N일 중 거래량이 집중된 구간에 있는지 측정
+    # 방법: 가격 범위를 20개 버킷으로 나눠 거래량 가중치 계산
+    for w in [60, 120]:
+        hi_w = h.rolling(w, min_periods=10).max()
+        lo_w = l.rolling(w, min_periods=10).min()
+        price_range = hi_w - lo_w + 1e-9
+
+        # 현재가의 버킷 위치 (0~1)
+        c_pos = (c - lo_w) / price_range   # 0=저점, 1=고점
+
+        # 가격대별 거래량 집중도 (VWAP 근사)
+        # 현재가 근방 ±10% 범위의 거래량 합 / 전체 거래량
+        def vol_near(pos, v_series, c_series, lo_series, range_series, w_):
+            # 현재가 ±10% 가격 버킷 내 거래량 비중
+            bucket = (c_series - lo_series) / range_series
+            near = v_series.where((bucket - pos).abs() < 0.1, 0.0)
+            return near.rolling(w_, min_periods=10).sum() / (
+                v_series.rolling(w_, min_periods=10).sum() + 1e-9)
+
+        df[f"supply_zone_{w}"]  = vol_near(c_pos, v, c, lo_w, price_range, w)  # 현재가 밀집도
+        df[f"above_supply_{w}"] = (c_pos > 0.7).astype(int)   # 상단 매물대 영역
+        df[f"below_supply_{w}"] = (c_pos < 0.3).astype(int)   # 하단 매물대 영역
+        df[f"mid_supply_{w}"]   = ((c_pos >= 0.4) & (c_pos <= 0.6)).astype(int)  # 중간 매물대
+
     return df
 
 
