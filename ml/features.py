@@ -397,6 +397,156 @@ def _add_extra_indicators(df: pd.DataFrame) -> pd.DataFrame:
     # ── 투자심리도 (12일 상승 비율) ──────────────────────
     df["invest_psych"] = (c > c.shift(1)).astype(int).rolling(12).sum() / 12
 
+    # ═══════════════════════════════════════════════════
+    # 추가 프로급 지표
+    # SuperTrend / Keltner / Squeeze / KST / Ultimate /
+    # DPO / Fisher / Z-score / KAMA / ROC / AO / HMA /
+    # Efficiency Ratio / DEMA / TEMA
+    # ═══════════════════════════════════════════════════
+
+    # ── SuperTrend (ATR 기반 추세 추종) ───────────────
+    tr  = pd.concat([h - l,
+                     (h - c.shift()).abs(),
+                     (l - c.shift()).abs()], axis=1).max(axis=1)
+    atr14 = tr.ewm(span=14, adjust=False).mean()
+    for mult in [2.0, 3.0]:
+        upper = (h + l) / 2 + mult * atr14
+        lower = (h + l) / 2 - mult * atr14
+        st = c.copy()
+        bull_st = True
+        for i in range(1, len(c)):
+            if bull_st:
+                lower.iloc[i] = max(lower.iloc[i], lower.iloc[i-1])
+                if c.iloc[i] < lower.iloc[i]:
+                    bull_st = False; st.iloc[i] = upper.iloc[i]
+                else:
+                    st.iloc[i] = lower.iloc[i]
+            else:
+                upper.iloc[i] = min(upper.iloc[i], upper.iloc[i-1])
+                if c.iloc[i] > upper.iloc[i]:
+                    bull_st = True; st.iloc[i] = lower.iloc[i]
+                else:
+                    st.iloc[i] = upper.iloc[i]
+        tag = str(mult).replace('.', '')
+        df[f"supertrend_dist_{tag}"] = (c - st) / (c + 1e-9)
+        df[f"supertrend_bull_{tag}"] = (c > st).astype(int)
+
+    # ── Keltner Channel ────────────────────────────────
+    ema20 = c.ewm(span=20, adjust=False).mean()
+    for mult in [1.5, 2.0]:
+        kc_upper = ema20 + mult * atr14
+        kc_lower = ema20 - mult * atr14
+        tag = str(mult).replace('.', '')
+        df[f"kc_pos_{tag}"]   = (c - kc_lower) / (kc_upper - kc_lower + 1e-9)  # 0~1 위치
+        df[f"kc_width_{tag}"] = (kc_upper - kc_lower) / (ema20 + 1e-9)
+
+    # ── Squeeze Momentum (Bollinger + Keltner 결합) ────
+    bb_mid = c.rolling(20).mean()
+    bb_std = c.rolling(20).std()
+    bb_up  = bb_mid + 2.0 * bb_std
+    bb_lo  = bb_mid - 2.0 * bb_std
+    kc_up  = ema20 + 1.5 * atr14
+    kc_lo  = ema20 - 1.5 * atr14
+    # Squeeze ON = BB 안에 KC 포함 → 변동성 압축 → 곧 폭발
+    df["squeeze_on"]  = ((bb_up < kc_up) & (bb_lo > kc_lo)).astype(int)
+    df["squeeze_off"] = ((bb_up > kc_up) & (bb_lo < kc_lo)).astype(int)
+    # 모멘텀: 중간값 기반 선형회귀 잔차
+    val = c - (c.rolling(20).max() + c.rolling(20).min()) / 2
+    df["squeeze_mom"] = val.rolling(20).apply(
+        lambda x: np.polyfit(range(len(x)), x, 1)[0], raw=True)
+    df["squeeze_mom"] = df["squeeze_mom"] / (c + 1e-9)   # 정규화
+
+    # ── KST (Know Sure Thing) ─────────────────────────
+    def roc(s, n): return s.pct_change(n)
+    def smroc(s, n, m): return roc(s, n).rolling(m).mean()
+    kst = (smroc(c, 10, 10) * 1 + smroc(c, 13, 13) * 2 +
+           smroc(c, 15, 15) * 3 + smroc(c, 20, 20) * 4)
+    df["kst"]       = kst / (kst.abs().rolling(100, min_periods=20).max() + 1e-9)
+    df["kst_sig"]   = kst.rolling(9).mean() / (kst.abs().rolling(100, min_periods=20).max() + 1e-9)
+    df["kst_cross"] = ((kst > kst.rolling(9).mean()) &
+                       (kst.shift(1) <= kst.shift(1).rolling(9).mean())).astype(int)
+
+    # ── Ultimate Oscillator (3주기 모멘텀) ───────────
+    bp = c - pd.concat([l, c.shift()], axis=1).min(axis=1)  # Buying Pressure
+    tr2 = pd.concat([h, c.shift()], axis=1).max(axis=1) - \
+          pd.concat([l, c.shift()], axis=1).min(axis=1)
+    avg7  = bp.rolling(7).sum()  / (tr2.rolling(7).sum()  + 1e-9)
+    avg14 = bp.rolling(14).sum() / (tr2.rolling(14).sum() + 1e-9)
+    avg28 = bp.rolling(28).sum() / (tr2.rolling(28).sum() + 1e-9)
+    df["ult_osc"] = (4 * avg7 + 2 * avg14 + avg28) / 7  # 0~1
+
+    # ── DPO (Detrended Price Oscillator) ──────────────
+    for p in [14, 20]:
+        shift_n = p // 2 + 1
+        df[f"dpo_{p}"] = c.shift(shift_n) - c.rolling(p).mean().shift(shift_n)
+        df[f"dpo_{p}"] = df[f"dpo_{p}"] / (c + 1e-9)
+
+    # ── Fisher Transform ───────────────────────────────
+    for p in [14]:
+        hi_p = h.rolling(p).max()
+        lo_p = l.rolling(p).min()
+        val  = 2 * ((c - lo_p) / (hi_p - lo_p + 1e-9)) - 1
+        val  = val.clip(-0.999, 0.999)
+        fish = 0.5 * np.log((1 + val) / (1 - val + 1e-9))
+        df[f"fisher_{p}"]     = fish / 3   # 정규화 (보통 -3~3)
+        df[f"fisher_{p}_sig"] = df[f"fisher_{p}"].shift(1)
+
+    # ── Z-Score (가격 표준화) ──────────────────────────
+    for w in [20, 60]:
+        mean = c.rolling(w).mean()
+        std  = c.rolling(w).std()
+        df[f"zscore_{w}"] = (c - mean) / (std + 1e-9)
+
+    # ── KAMA (Kaufman Adaptive MA) ────────────────────
+    fast_sc = 2 / (2 + 1)
+    slow_sc = 2 / (30 + 1)
+    direction_abs = c.diff(10).abs()
+    volatility    = c.diff().abs().rolling(10).sum()
+    er  = direction_abs / (volatility + 1e-9)   # Efficiency Ratio 0~1
+    sc  = (er * (fast_sc - slow_sc) + slow_sc) ** 2
+    kama = c.copy().astype(float)
+    for i in range(1, len(c)):
+        kama.iloc[i] = kama.iloc[i-1] + sc.iloc[i] * (c.iloc[i] - kama.iloc[i-1])
+    df["kama_dist"]        = (c - kama) / (c + 1e-9)
+    df["efficiency_ratio"] = er   # 0=무작위, 1=완전한 추세
+
+    # ── Price ROC (Rate of Change) ─────────────────────
+    for p in [5, 10, 21]:
+        df[f"roc_{p}"] = c.pct_change(p)   # ret_Nd와 동일하나 명시적으로 추가
+
+    # ── Awesome Oscillator (AO) ────────────────────────
+    mid = (h + l) / 2
+    df["awesome_osc"] = mid.rolling(5).mean() - mid.rolling(34).mean()
+    df["awesome_osc"] = df["awesome_osc"] / (c + 1e-9)   # 가격 정규화
+
+    # ── HMA (Hull Moving Average) ──────────────────────
+    for p in [20, 50]:
+        half = int(p / 2)
+        sqrtp = int(np.sqrt(p))
+        wma_half = c.rolling(half).mean()
+        wma_full = c.rolling(p).mean()
+        hma = (2 * wma_half - wma_full).rolling(sqrtp).mean()
+        df[f"hma_dist_{p}"] = (c / (hma + 1e-9)) - 1
+        df[f"hma_slope_{p}"] = hma.pct_change(3)
+
+    # ── DEMA / TEMA (Double/Triple EMA) ───────────────
+    for p in [20, 50]:
+        ema1 = c.ewm(span=p, adjust=False).mean()
+        ema2 = ema1.ewm(span=p, adjust=False).mean()
+        ema3 = ema2.ewm(span=p, adjust=False).mean()
+        dema = 2 * ema1 - ema2
+        tema = 3 * ema1 - 3 * ema2 + ema3
+        df[f"dema_dist_{p}"] = (c / (dema + 1e-9)) - 1
+        df[f"tema_dist_{p}"] = (c / (tema + 1e-9)) - 1
+
+    # ── 변동성 비율 (Short/Long Vol Ratio) ────────────
+    df["vol_ratio_5_20"]  = c.pct_change().rolling(5).std()  / (c.pct_change().rolling(20).std()  + 1e-9)
+    df["vol_ratio_10_60"] = c.pct_change().rolling(10).std() / (c.pct_change().rolling(60).std()  + 1e-9)
+
+    # ── 가격 레벨 상대 강도 (Rolling Quantile) ─────────
+    for w in [60, 120]:
+        df[f"price_pctile_{w}"] = c.rolling(w).rank(pct=True)   # 0~1 (현재가의 과거 분위수)
+
     return df
 
 
