@@ -23,3 +23,5 @@ signals.log
 # OS
 .DS_Store
 Thumbs.db
+*.pyc
+__pycache__/

@@ -152,11 +152,53 @@ def make_targets(df: pd.DataFrame, hold_days: int = 3, threshold: float = 0.01) 
     return df
 
 
-def get_feature_cols(df: pd.DataFrame) -> list[str]:
-    """학습에 사용할 피처 컬럼 반환"""
-    exclude = ["date", "open", "high", "low", "close", "volume",
-               "quote_volume", "trades", "target_ret", "target_bin", "target_3cls"]
-    return [c for c in df.columns if c not in exclude and df[c].dtype in [np.float64, np.int64, float, int]]
+def make_directional_targets(
+    df: pd.DataFrame,
+    hold_days: int   = 3,
+    threshold: float = 0.015,
+) -> pd.DataFrame:
+    """
+    롱/숏 방향성 타겟 생성 (위아래 발라먹기용)
+
+    - target_long:  수익률 > +threshold  → 1 (롱 기회)
+    - target_short: 수익률 < -threshold  → 1 (숏 기회)
+    - target_ret:   미래 수익률 (실수)
+    - direction:    +1(LONG) / -1(SHORT) / 0(NEUTRAL)
+    """
+    df = df.copy()
+    future_close = df["close"].shift(-hold_days)
+    ret = (future_close / df["close"]) - 1
+
+    df["target_ret"]   = ret
+    df["target_long"]  = (ret >  threshold).astype(int)   # 롱 타겟
+    df["target_short"] = (ret < -threshold).astype(int)   # 숏 타겟
+
+    # 3방향: +1=LONG, -1=SHORT, 0=NEUTRAL
+    direction = pd.Series(0, index=df.index)
+    direction[ret >  threshold] =  1
+    direction[ret < -threshold] = -1
+    df["direction"] = direction
+
+    # 기존 target_bin 호환성 유지
+    df["target_bin"] = df["target_long"]
+
+    return df
+
+
+def get_feature_cols(df: pd.DataFrame) -> list:
+    """학습에 사용할 피처 컬럼 반환 (타겟/원시 가격 제외)"""
+    exclude = {
+        "date", "open", "high", "low", "close", "volume",
+        "quote_volume", "trades",
+        # 타겟 변수 — 절대 피처로 사용하면 안 됨 (데이터 누수!)
+        "target_ret", "target_bin", "target_3cls",
+        "target_long", "target_short", "direction",
+        # 심볼 / 시장 구분자
+        "symbol", "_symbol", "market",
+    }
+    return [c for c in df.columns
+            if c not in exclude
+            and df[c].dtype in (np.float64, np.int64, float, int)]
 
 
 if __name__ == "__main__":

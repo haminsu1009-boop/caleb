@@ -134,6 +134,12 @@ class SimpleLSTM:
     def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
         X_arr = self.scaler.transform(X[self.feature_cols].fillna(0))
         X_seq = self._make_sequences(X_arr)
+        n_rows = len(X_arr)
+
+        # SEQ_LEN에 못 미치면 전체 NaN 반환 (앙상블에서 XGB만 사용)
+        if len(X_seq) == 0:
+            return np.full((n_rows, 2), np.nan)
+
         proba = self.model.predict_proba(X_seq)
         # 앞 SEQ_LEN-1 행은 NaN 패딩
         pad   = np.full((self.SEQ_LEN - 1, proba.shape[1]), np.nan)
@@ -208,6 +214,163 @@ class EnsembleModel:
 
     @classmethod
     def load(cls, path: str) -> "EnsembleModel":
+        with open(path, "rb") as f:
+            return pickle.load(f)
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 방향성 앙상블 (롱 + 숏 동시 지원)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+class DirectionalEnsemble:
+    """
+    롱/숏 양방향 신호 앙상블
+
+    - LONG  모델: 가격 상승 확률 예측
+    - SHORT 모델: 가격 하락 확률 예측
+    - 신호 결정: max(long_prob, short_prob) > threshold → 해당 방향 신호
+    """
+    def __init__(self, w_xgb: float = 0.6, w_lstm: float = 0.4):
+        self.w_xgb  = w_xgb
+        self.w_lstm = w_lstm
+        # LONG 방향 모델
+        self.long_xgb  = None
+        self.long_lstm = None
+        # SHORT 방향 모델
+        self.short_xgb  = None
+        self.short_lstm = None
+        self.is_fitted = False
+
+    def fit(
+        self,
+        X_train:       pd.DataFrame,
+        y_long_train:  pd.Series,
+        y_short_train: pd.Series,
+        X_val:         pd.DataFrame = None,
+        y_long_val:    pd.Series    = None,
+        y_short_val:   pd.Series    = None,
+        feature_cols:  list         = None,
+    ):
+        if feature_cols is None:
+            feature_cols = list(X_train.columns)
+        self.feature_cols = feature_cols
+
+        print("  [DirectionalEnsemble] LONG 모델 학습...")
+        self.long_xgb  = XGBModel()
+        self.long_xgb.fit(X_train[feature_cols], y_long_train,
+                          X_val[feature_cols] if X_val is not None else None,
+                          y_long_val)
+
+        self.long_lstm = SimpleLSTM(feature_cols)
+        self.long_lstm.fit(X_train[feature_cols], y_long_train)
+
+        print("  [DirectionalEnsemble] SHORT 모델 학습...")
+        self.short_xgb  = XGBModel()
+        self.short_xgb.fit(X_train[feature_cols], y_short_train,
+                           X_val[feature_cols] if X_val is not None else None,
+                           y_short_val)
+
+        self.short_lstm = SimpleLSTM(feature_cols)
+        self.short_lstm.fit(X_train[feature_cols], y_short_train)
+
+        self.is_fitted = True
+        return self
+
+    def _ensemble_proba(
+        self,
+        xgb_model:  XGBModel,
+        lstm_model: SimpleLSTM,
+        X:          pd.DataFrame,
+    ) -> np.ndarray:
+        """XGB + TemporalXGB 앙상블 확률"""
+        p_xgb  = xgb_model.predict_proba(X)[:, 1]
+        p_lstm = lstm_model.predict_proba(X)[:, 1]
+        valid  = ~np.isnan(p_lstm)
+        return np.where(valid,
+                        self.w_xgb * p_xgb + self.w_lstm * p_lstm,
+                        p_xgb)
+
+    def predict_proba_long(self, X: pd.DataFrame) -> np.ndarray:
+        return self._ensemble_proba(self.long_xgb, self.long_lstm, X)
+
+    def predict_proba_short(self, X: pd.DataFrame) -> np.ndarray:
+        return self._ensemble_proba(self.short_xgb, self.short_lstm, X)
+
+    def predict_directional(self, X: pd.DataFrame) -> dict:
+        """
+        방향성 예측 결과 반환
+
+        Returns:
+            dict: {
+              long_prob: float,   # 롱 확률 (0~1)
+              short_prob: float,  # 숏 확률 (0~1)
+              signal: str,        # "LONG" / "SHORT" / "NEUTRAL"
+              score: float,       # long_prob - short_prob
+            }
+        """
+        lp = float(self.predict_proba_long(X)[-1])
+        sp = float(self.predict_proba_short(X)[-1])
+
+        return {
+            "long_prob":  round(lp, 4),
+            "short_prob": round(sp, 4),
+            "score":      round(lp - sp, 4),
+            "signal":     "NEUTRAL",   # signal() 메서드에서 최종 결정
+        }
+
+    def signal(
+        self,
+        X:                pd.DataFrame,
+        long_threshold:   float = 0.60,
+        short_threshold:  float = 0.60,
+    ) -> np.ndarray:
+        """
+        방향성 신호 배열 반환
+        +1 = LONG, -1 = SHORT, 0 = NEUTRAL
+        """
+        lp = self.predict_proba_long(X)
+        sp = self.predict_proba_short(X)
+
+        result = np.zeros(len(lp))
+        result[lp >= long_threshold]  =  1
+        result[sp >= short_threshold] = -1
+        # 충돌 (동시에 임계값 초과) → 더 높은 확률 선택
+        conflict = (lp >= long_threshold) & (sp >= short_threshold)
+        result[conflict] = np.where(lp[conflict] > sp[conflict], 1, -1)
+
+        return result
+
+    def signal_latest(
+        self,
+        X:               pd.DataFrame,
+        long_threshold:  float = 0.60,
+        short_threshold: float = 0.60,
+    ) -> dict:
+        """최신 행(마지막 행)에 대한 신호"""
+        lp = float(self.predict_proba_long(X)[-1])
+        sp = float(self.predict_proba_short(X)[-1])
+
+        if lp >= long_threshold and lp >= sp:
+            signal = "LONG"
+        elif sp >= short_threshold and sp > lp:
+            signal = "SHORT"
+        else:
+            signal = "NEUTRAL"
+
+        return {
+            "signal":          signal,
+            "long_prob":       round(lp, 4),
+            "short_prob":      round(sp, 4),
+            "score":           round(lp - sp, 4),
+            "long_threshold":  long_threshold,
+            "short_threshold": short_threshold,
+        }
+
+    def save(self, path: str):
+        with open(path, "wb") as f:
+            pickle.dump(self, f)
+
+    @classmethod
+    def load(cls, path: str) -> "DirectionalEnsemble":
         with open(path, "rb") as f:
             return pickle.load(f)
 
