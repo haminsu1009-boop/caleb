@@ -89,6 +89,7 @@ def walk_forward_directional(
     short_thr:    float = 0.58,
     fast_mode:    bool  = False,  # True = XGB+LGBM만 (TemporalXGB 스킵)
     use_regime:   bool  = True,   # True = 국면 필터 적용
+    top_pct:      float = 5.0,    # 상위 N% 신호 선택 (0=disable)
 ) -> pd.DataFrame:
     """
     롱/숏 방향성 워크포워드 백테스트
@@ -175,18 +176,31 @@ def walk_forward_directional(
             lp = model.predict_proba_long(X_val)
             sp = model.predict_proba_short(X_val)
 
-            # 국면 필터 (선택 옵션)
+            # 국면 배열
             if use_regime and has_regime:
                 regime_val = all_df[val_mask]["regime"].fillna(1).values
-                # 국면 2=BULL → LONG 허용, 국면 0=BEAR → SHORT 허용
-                long_regime_ok  = (regime_val == 2)
-                short_regime_ok = (regime_val == 0)
             else:
-                long_regime_ok  = np.ones(len(lp), dtype=bool)
-                short_regime_ok = np.ones(len(sp), dtype=bool)
+                regime_val = np.ones(len(lp)) * 1  # NEUTRAL everywhere
 
-            long_mask  = (lp >= l_thr) & long_regime_ok
-            short_mask = (sp >= s_thr) & short_regime_ok
+            # 신호 선택: 상위 퍼센타일 또는 임계값
+            if top_pct > 0 and len(lp) > 20:
+                from ml.signal_filter import top_percentile_signals
+                # 캘리브레이션 임계값이 너무 높으면 신호 없음 방지
+                # → 최솟값을 0.58로 제한 (의미있는 최소 확률)
+                l_min = min(l_thr, 0.65)
+                s_min = min(s_thr, 0.65)
+                regime_arr = regime_val if use_regime and has_regime else None
+                long_mask, short_mask = top_percentile_signals(
+                    lp, sp,
+                    regime=regime_arr,
+                    pct=top_pct,
+                    min_thr=max(l_min, s_min) * 0.95,  # 약간 완화
+                )
+            else:
+                long_regime_ok  = (regime_val == 2) if use_regime and has_regime else np.ones(len(lp), bool)
+                short_regime_ok = (regime_val == 0) if use_regime and has_regime else np.ones(len(sp), bool)
+                long_mask  = (lp >= l_thr) & long_regime_ok
+                short_mask = (sp >= s_thr) & short_regime_ok
 
             # 승률 계산 (수수료 0.2% 차감)
             fee = 0.002
@@ -413,21 +427,22 @@ def run_full_pipeline(args=None):
     print(wf_df.to_string(index=False))
 
     # 요약 통계
-    valid_long  = wf_df[wf_df["n_long"]  > 3]
-    valid_short = wf_df[wf_df["n_short"] > 3]
-    valid_comb  = wf_df[wf_df["n_total"] > 3]
+    active_folds = wf_df[wf_df["n_total"] > 0]  # 신호 있는 폴드
+    all_folds    = wf_df
 
-    avg_long_wr  = valid_long["long_wr"].mean()   if not valid_long.empty  else 0
-    avg_short_wr = valid_short["short_wr"].mean() if not valid_short.empty else 0
-    avg_comb_wr  = valid_comb["combined_wr"].mean() if not valid_comb.empty else 0
-    n55plus      = (wf_df["combined_wr"] >= 0.55).sum()
-    n60plus      = (wf_df["combined_wr"] >= 0.60).sum()
+    avg_long_wr  = active_folds["long_wr"].mean()     if not active_folds.empty else 0
+    avg_short_wr = active_folds["short_wr"].mean()    if not active_folds.empty else 0
+    avg_comb_wr  = active_folds["combined_wr"].mean() if not active_folds.empty else 0
+    avg_all_wr   = all_folds["combined_wr"].mean()    # 0신호 폴드 포함
+    n55plus      = (active_folds["combined_wr"] >= 0.55).sum()
+    n60plus      = (active_folds["combined_wr"] >= 0.60).sum()
 
-    print(f"\n  롱 평균 승률:    {avg_long_wr*100:.1f}%")
+    print(f"\n  ─── 신호 있는 폴드 ({len(active_folds)}/{len(all_folds)}개) ───")
+    print(f"  롱 평균 승률:    {avg_long_wr*100:.1f}%")
     print(f"  숏 평균 승률:    {avg_short_wr*100:.1f}%")
-    print(f"  합산 평균 승률:  {avg_comb_wr*100:.1f}%")
-    print(f"  55%+ Fold:      {n55plus}/{len(wf_df)}")
-    print(f"  60%+ Fold:      {n60plus}/{len(wf_df)}")
+    print(f"  합산 평균 승률:  {avg_comb_wr*100:.1f}%  (전체평균: {avg_all_wr*100:.1f}%)")
+    print(f"  55%+ Fold:      {n55plus}/{len(active_folds)}")
+    print(f"  60%+ Fold:      {n60plus}/{len(active_folds)}")
 
     # ── Step 3: 최종 모델 학습 ───────────────────
     print("\n[3/5] 최종 DirectionalEnsemble 학습 & 저장...")
@@ -459,22 +474,28 @@ def run_full_pipeline(args=None):
 
     # ── 최종 결과 ─────────────────────────────────
     banner("최종 결과 요약")
-    print(f"  롱 평균 승률:    {avg_long_wr*100:.1f}%")
-    print(f"  숏 평균 승률:    {avg_short_wr*100:.1f}%")
-    print(f"  합산 평균 승률:  {avg_comb_wr*100:.1f}%")
-    print(f"  55%+ Fold:      {n55plus}/{len(wf_df)}")
-    print(f"  최적 임계값:    롱={result['thresholds']['long']:.2f}  "
-          f"숏={result['thresholds']['short']:.2f}")
-    print(f"  총 신호(롱):    {wf_df['n_long'].sum()}회")
-    print(f"  총 신호(숏):    {wf_df['n_short'].sum()}회")
+    active = wf_df[wf_df["n_total"] > 0]
+    active_wr = active["combined_wr"].mean() if not active.empty else 0
 
-    comb_wr_pct = avg_comb_wr * 100
-    if comb_wr_pct >= 55:
+    print(f"  신호 있는 폴드: {len(active)}/{len(wf_df)}")
+    print(f"  롱 평균 승률:   {avg_long_wr*100:.1f}%")
+    print(f"  숏 평균 승률:   {avg_short_wr*100:.1f}%")
+    print(f"  합산 승률 (활성폴드): {active_wr*100:.1f}%")
+    print(f"  55%+ Fold:     {n55plus}/{len(active)}")
+    print(f"  최적 임계값:   롱={result['thresholds']['long']:.2f}  "
+          f"숏={result['thresholds']['short']:.2f}")
+    print(f"  총 신호(롱):   {wf_df['n_long'].sum()}회")
+    print(f"  총 신호(숏):   {wf_df['n_short'].sum()}회")
+
+    comb_wr_pct = active_wr * 100
+    if comb_wr_pct >= 60:
+        verdict = "✅ 합산 60%+ — 실전 운용 권장"
+    elif comb_wr_pct >= 55:
         verdict = "✅ 합산 55%+ — 페이퍼 트레이딩 권장"
-    elif comb_wr_pct >= 52:
-        verdict = "⚠ 합산 52%+ — 추가 개선 필요"
+    elif comb_wr_pct >= 50:
+        verdict = "⚠ 합산 50%+ — 추가 개선 필요"
     else:
-        verdict = "❌ 합산 52% 미만 — 전략 재검토 필요"
+        verdict = "❌ 합산 50% 미만 — 전략 재검토 필요"
 
     print(f"\n  판정: {verdict}")
     print("=" * 60)

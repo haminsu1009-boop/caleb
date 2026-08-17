@@ -123,10 +123,56 @@ def add_features(df: pd.DataFrame) -> pd.DataFrame:
     df["trend_strength"] = df["close_vs_sma50"].rolling(10).mean()
 
     # ── 날짜 특성 (계절성) ────────────────────
-    df["day_of_week"] = pd.to_datetime(df["date"]).dt.dayofweek / 6
-    df["month"]       = pd.to_datetime(df["date"]).dt.month
+    dates = pd.to_datetime(df["date"])
+    df["day_of_week"] = dates.dt.dayofweek / 6
+    df["month"]       = dates.dt.month
     df["month_sin"]   = np.sin(2 * np.pi * df["month"] / 12)
     df["month_cos"]   = np.cos(2 * np.pi * df["month"] / 12)
+    df["quarter"]     = dates.dt.quarter
+
+    # ── BTC/크립토 전용 피처 ──────────────────
+    # ATH 대비 하락률 (강력한 BTC 사이클 지표)
+    rolling_ath = c.expanding().max()
+    df["drawdown_from_ath"] = (c / rolling_ath) - 1   # 0=ATH, -0.8=-80% drawdown
+
+    # 52주 상·하단 위치 (연간 사이클)
+    hi_52w = h.rolling(365, min_periods=30).max()
+    lo_52w = l.rolling(365, min_periods=30).min()
+    df["price_in_52w_range"] = (c - lo_52w) / (hi_52w - lo_52w + 1e-9)
+
+    # BTC 4년 반감기 사이클 (halvings: 2012-11-28, 2016-07-09, 2020-05-11, 2024-04-19)
+    halvings = pd.to_datetime(["2012-11-28", "2016-07-09", "2020-05-11", "2024-04-19"])
+    def days_since_halving(dt):
+        past = halvings[halvings <= dt]
+        if len(past) == 0:
+            return 365 * 4   # 반감기 전 → 최대값
+        days = (dt - past[-1]).days
+        return min(days, 365 * 4)
+
+    halving_days = dates.apply(days_since_halving)
+    df["halving_cycle_pct"] = halving_days / (365 * 4)   # 0=직후, 1=4년 후
+    df["halving_cycle_sin"]  = np.sin(2 * np.pi * df["halving_cycle_pct"])
+    df["halving_cycle_cos"]  = np.cos(2 * np.pi * df["halving_cycle_pct"])
+
+    # 누적 수익률 주기 (단/중/장기 모멘텀 팩터)
+    for p in [30, 60, 90, 180]:
+        df[f"cum_ret_{p}d"] = c / c.shift(p) - 1
+
+    # 변동성 국면 (낮은 변동성 → 돌파 준비, Bollinger Squeeze)
+    vol_20 = c.pct_change().rolling(20).std()
+    vol_60 = c.pct_change().rolling(60).std()
+    df["vol_compression"] = vol_20 / (vol_60 + 1e-9)   # <0.8 = squeeze 진행 중
+
+    # 가격 가속도 (모멘텀 변화율)
+    ret1  = c.pct_change(1)
+    ret3  = c.pct_change(3)
+    ret10 = c.pct_change(10)
+    df["accel_1_3"]  = ret1  - ret3  / 3     # 최근 가속/감속
+    df["accel_3_10"] = ret3  - ret10 / 10 * 3
+
+    # 분봉 가중 가격 (VWAP 근사: Close × Volume / MA(Volume))
+    vwap_approx = (c * v).rolling(20).sum() / (v.rolling(20).sum() + 1e-9)
+    df["vwap_deviation"] = (c / vwap_approx) - 1
 
     return df
 
