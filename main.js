@@ -334,7 +334,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = new FormData();
       data.append('access_key', W3F_KEY);
       data.append('from_name', '태인종합물류 홈페이지');
-      data.append('subject', '[상담문의' + (service ? ' - ' + service : '') + '] ' + (name || ''));
+      /* 접수번호를 제목에 넣어두면 고객이 나중에 번호로 문의할 때 받은편지함 검색으로 바로 찾을 수 있음 */
+      data.append('subject', '[상담문의' + (service ? ' - ' + service : '') + '] ' + (name || '') + ' (' + receiptNo + ')');
       data.append('name', name);
       data.append('email', email);
       data.append('message', msgLines.join('\n'));
@@ -398,7 +399,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = new FormData();
         data.append('access_key', W3F_KEY);
         data.append('from_name', '태인종합물류 홈페이지');
-        data.append('subject', '[' + typeLabel + ' 문의] ' + (company || name));
+        /* 접수번호를 제목에 넣어두면 고객이 나중에 번호로 문의할 때 받은편지함 검색으로 바로 찾을 수 있음 */
+        data.append('subject', '[' + typeLabel + ' 문의] ' + (company || name) + ' (' + receiptNo + ')');
         data.append('name', name);
         data.append('email', email);
         data.append('message', msgLines.join('\n'));
@@ -605,7 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </span>
           <span class="chat-choice-text">
             <strong>카카오톡 상담</strong>
-            <small>전문 상담사 연결</small>
+            <small id="choiceKakaoSub">전문 상담사 연결</small>
           </span>
         </a>
       </div>
@@ -654,12 +656,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const onlineText = widget.querySelector('.chat-online-text');
     const statusDot  = widget.querySelector('.chat-status-dot');
 
+    const kakaoSub = document.getElementById('choiceKakaoSub');
     if (!isBizHours()) {
       onlineText.textContent = '영업시간 외 (AI 상담)';
       statusDot.style.background = '#fbbf24';
       statusDot.style.boxShadow = '0 0 0 3px rgba(251,191,36,0.25)';
       agentBtn.disabled = true;
       agentBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg> 영업시간 외 — 상담사 연결 불가`;
+      if (kakaoSub) kakaoSub.textContent = '영업시간 외 · 익일 회신';
     }
 
     let busy = false;
