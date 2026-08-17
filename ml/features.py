@@ -789,6 +789,57 @@ def _add_extra_indicators(df: pd.DataFrame) -> pd.DataFrame:
         df[f"below_supply_{w}"] = (c_pos < 0.3).astype(int)   # 하단 매물대 영역
         df[f"mid_supply_{w}"]   = ((c_pos >= 0.4) & (c_pos <= 0.6)).astype(int)  # 중간 매물대
 
+    # ═══════════════════════════════════════════════════
+    # 누락 6종 추가
+    # Balance of Power / Chaikin Volatility /
+    # Ease of Movement / Force Index /
+    # Momentum(단순) / Price Volume Trend
+    # ═══════════════════════════════════════════════════
+
+    # ── Momentum (단순, Simple Momentum) ──────────────
+    # 가장 기본적인 모멘텀: 현재가 - N일 전 가격
+    for p in [10, 20]:
+        mom = c - c.shift(p)
+        df[f"simple_mom_{p}"] = mom / (c + 1e-9)   # 가격 정규화
+
+    # ── Force Index (Elder의 Force Index) ─────────────
+    # (종가변화 × 거래량): 추세의 힘 측정
+    force = c.diff(1) * v
+    df["force_index_2"]  = force.ewm(span=2,  adjust=False).mean() / (c * v.rolling(20).mean() + 1e-9)
+    df["force_index_13"] = force.ewm(span=13, adjust=False).mean() / (c * v.rolling(20).mean() + 1e-9)
+    df["force_bull"]     = (df["force_index_13"] > 0).astype(int)
+
+    # ── Balance of Power (BOP) ─────────────────────────
+    # (종가 - 시가) / (고가 - 저가): 매수/매도 세력 균형
+    bop = (c - o) / (h - l + 1e-9)
+    df["bop"]        = bop                             # -1~+1
+    df["bop_smooth"] = bop.ewm(span=14, adjust=False).mean()
+    df["bop_bull"]   = (df["bop_smooth"] > 0).astype(int)
+
+    # ── Ease of Movement (EOM) ────────────────────────
+    # 가격 이동이 거래량에 비해 얼마나 쉽게 일어났나
+    midpoint_move = (h + l) / 2 - (h.shift(1) + l.shift(1)) / 2
+    box_ratio     = v / (1e6 * (h - l + 1e-9))        # 거래량 / 범위
+    eom = midpoint_move / (box_ratio + 1e-9)
+    df["eom_14"]    = eom.rolling(14).mean() / (c + 1e-9)   # 정규화
+    df["eom_bull"]  = (df["eom_14"] > 0).astype(int)
+
+    # ── Price Volume Trend (PVT) ──────────────────────
+    # OBV의 개선판: 거래량에 수익률 가중
+    pvt_ret = c.pct_change()
+    pvt = (pvt_ret * v).cumsum()
+    pvt_ema = pvt.ewm(span=21, adjust=False).mean()
+    pvt_scale = pvt.abs().rolling(200, min_periods=20).max() + 1e-9
+    df["pvt"]        = pvt / pvt_scale                  # 정규화
+    df["pvt_signal"] = (pvt > pvt_ema).astype(int)      # PVT > EMA → 강세
+
+    # ── Chaikin Volatility ────────────────────────────
+    # 고가-저가 범위의 EMA 변화율: 변동성 팽창/수축
+    hl_range = h - l
+    ema_hl_10 = hl_range.ewm(span=10, adjust=False).mean()
+    df["chaikin_vol"]       = (ema_hl_10 - ema_hl_10.shift(10)) / (ema_hl_10.shift(10) + 1e-9)
+    df["chaikin_vol_surge"] = (df["chaikin_vol"] > df["chaikin_vol"].rolling(50, min_periods=10).quantile(0.8)).astype(int)
+
     return df
 
 
