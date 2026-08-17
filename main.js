@@ -824,6 +824,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     overlay.addEventListener('click', () => { closeChat(); closeChoice(); phonePopup.classList.remove('open'); });
 
+    /* AI상담/카카오톡상담 선택 패널: 화면 아무 곳이나 탭하면 닫힘 */
+    document.addEventListener('click', (e) => {
+      if (choicePanel.classList.contains('open') &&
+          !choicePanel.contains(e.target) &&
+          !fabChat.contains(e.target)) {
+        closeChoice();
+      }
+    });
+
     document.getElementById('chatClose').addEventListener('mousedown', e => e.preventDefault());
     document.getElementById('chatClose').addEventListener('click', closeChat);
 
