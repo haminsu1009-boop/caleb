@@ -174,6 +174,229 @@ def add_features(df: pd.DataFrame) -> pd.DataFrame:
     vwap_approx = (c * v).rolling(20).sum() / (v.rolling(20).sum() + 1e-9)
     df["vwap_deviation"] = (c / vwap_approx) - 1
 
+    df = _add_extra_indicators(df)
+    return df
+
+
+def _add_extra_indicators(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    스크린샷 지표 전체 추가
+    CCI / Williams%R / MFI / CMO / Chaikin / Aroon / TRIX /
+    Stoch RSI / Mass Index / Elder Ray / RVI / NVI / PVI /
+    Parabolic SAR / Ichimoku / Heikin Ashi / 신심리도 / 이격도 /
+    Volume OSC / VR / Envelopes / Price Channels / Pivot / AD Line / RMI
+    """
+    c = df["close"]
+    h = df["high"]
+    l = df["low"]
+    v = df["volume"]
+    o = df["open"] if "open" in df.columns else c.shift(1).fillna(c)
+
+    # ── CCI (Commodity Channel Index) ──────────────────────
+    for p in [14, 20]:
+        tp  = (h + l + c) / 3
+        sma = tp.rolling(p).mean()
+        mad = tp.rolling(p).apply(lambda x: np.abs(x - x.mean()).mean(), raw=True)
+        df[f"cci_{p}"] = (tp - sma) / (0.015 * mad + 1e-9) / 100  # 정규화
+
+    # ── Williams %R ────────────────────────────────────────
+    for p in [14, 21]:
+        hh = h.rolling(p).max()
+        ll = l.rolling(p).min()
+        df[f"williams_r_{p}"] = (hh - c) / (hh - ll + 1e-9) * (-1)  # -1~0
+
+    # ── MFI (Money Flow Index) ─────────────────────────────
+    tp = (h + l + c) / 3
+    tp_prev = tp.shift(1)
+    pos_mf = (tp * v).where(tp > tp_prev, 0.0)
+    neg_mf = (tp * v).where(tp < tp_prev, 0.0)
+    for p in [14]:
+        mfr = pos_mf.rolling(p).sum() / (neg_mf.rolling(p).sum() + 1e-9)
+        df[f"mfi_{p}"] = (100 - 100 / (1 + mfr)) / 100  # 0~1
+
+    # ── CMO (Chande Momentum Oscillator) ───────────────────
+    diff = c.diff()
+    for p in [14, 20]:
+        up = diff.clip(lower=0).rolling(p).sum()
+        dn = (-diff.clip(upper=0)).rolling(p).sum()
+        df[f"cmo_{p}"] = (up - dn) / (up + dn + 1e-9)  # -1~1
+
+    # ── AD Line & Chaikin Money Flow & Chaikin OSC ─────────
+    mfm = ((c - l) - (h - c)) / (h - l + 1e-9)  # Money Flow Multiplier
+    mfv = mfm * v                                  # Money Flow Volume
+    ad  = mfv.cumsum()
+    df["ad_line"] = ad / (ad.abs().rolling(200, min_periods=20).max() + 1e-9)  # 정규화
+    df["cmf_20"]  = mfv.rolling(20).sum() / (v.rolling(20).sum() + 1e-9)       # Chaikin MF
+    ema3  = ad.ewm(span=3,  adjust=False).mean()
+    ema10 = ad.ewm(span=10, adjust=False).mean()
+    df["chaikin_osc"] = (ema3 - ema10) / (c * v.rolling(20).mean() + 1e-9)
+
+    # ── Aroon (25) ─────────────────────────────────────────
+    for p in [25]:
+        roll_h = h.rolling(p + 1)
+        roll_l = l.rolling(p + 1)
+        aroon_up = roll_h.apply(lambda x: (p - x[::-1].argmax()) / p * 100, raw=True)
+        aroon_dn = roll_l.apply(lambda x: (p - x[::-1].argmin()) / p * 100, raw=True)
+        df[f"aroon_up_{p}"]  = aroon_up / 100
+        df[f"aroon_dn_{p}"]  = aroon_dn / 100
+        df[f"aroon_osc_{p}"] = (aroon_up - aroon_dn) / 100
+
+    # ── TRIX ───────────────────────────────────────────────
+    for p in [14, 20]:
+        e1 = c.ewm(span=p, adjust=False).mean()
+        e2 = e1.ewm(span=p, adjust=False).mean()
+        e3 = e2.ewm(span=p, adjust=False).mean()
+        trix = e3.pct_change() * 100
+        df[f"trix_{p}"]       = trix
+        df[f"trix_{p}_cross"] = (trix > 0).astype(int)
+
+    # ── Stochastic RSI ─────────────────────────────────────
+    delta = c.diff()
+    g14   = delta.clip(lower=0).rolling(14).mean()
+    l14   = (-delta.clip(upper=0)).rolling(14).mean()
+    rsi14 = 100 - 100 / (1 + g14 / (l14 + 1e-9))
+    rsi_min = rsi14.rolling(14).min()
+    rsi_max = rsi14.rolling(14).max()
+    stoch_rsi_k = (rsi14 - rsi_min) / (rsi_max - rsi_min + 1e-9)
+    df["stoch_rsi_k"] = stoch_rsi_k.rolling(3).mean()
+    df["stoch_rsi_d"] = df["stoch_rsi_k"].rolling(3).mean()
+
+    # ── Mass Index ─────────────────────────────────────────
+    hl_range  = h - l
+    ema9_hl   = hl_range.ewm(span=9, adjust=False).mean()
+    ema9_ema9 = ema9_hl.ewm(span=9, adjust=False).mean()
+    df["mass_index"] = (ema9_hl / (ema9_ema9 + 1e-9)).rolling(25).sum() / 27  # 정규화
+
+    # ── Elder Ray (Bull/Bear Power) ────────────────────────
+    ema13 = c.ewm(span=13, adjust=False).mean()
+    df["elder_bull"] = (h - ema13) / (c + 1e-9)   # 가격 정규화
+    df["elder_bear"] = (l - ema13) / (c + 1e-9)
+
+    # ── RVI (Relative Vigor Index) ─────────────────────────
+    num = ((c - o) + 2*c.shift(1) - 2*o.shift(1) +
+           2*c.shift(2) - 2*o.shift(2) + c.shift(3) - o.shift(3)) / 6
+    den = ((h - l) + 2*h.shift(1) - 2*l.shift(1) +
+           2*h.shift(2) - 2*l.shift(2) + h.shift(3) - l.shift(3)) / 6
+    df["rvi"] = num.rolling(10).mean() / (den.rolling(10).mean().abs() + 1e-9)
+
+    # ── RMI (Relative Momentum Index) ─────────────────────
+    for mom in [3, 5]:
+        diff_m = c.diff(mom)
+        up_m   = diff_m.clip(lower=0).rolling(14).mean()
+        dn_m   = (-diff_m.clip(upper=0)).rolling(14).mean()
+        df[f"rmi_{mom}"] = (100 - 100 / (1 + up_m / (dn_m + 1e-9))) / 100
+
+    # ── NVI & PVI (Negative/Positive Volume Index) ─────────
+    vol_chg  = v.pct_change()
+    ret_daily = c.pct_change()
+    nvi_ret  = ret_daily.where(v < v.shift(1), 0.0)
+    pvi_ret  = ret_daily.where(v > v.shift(1), 0.0)
+    nvi = (1 + nvi_ret).cumprod()
+    pvi = (1 + pvi_ret).cumprod()
+    nvi_ema = nvi.ewm(span=255, adjust=False).mean()
+    pvi_ema = pvi.ewm(span=255, adjust=False).mean()
+    df["nvi_signal"] = (nvi > nvi_ema).astype(int)  # NVI > EMA → 강세
+    df["pvi_signal"] = (pvi > pvi_ema).astype(int)
+
+    # ── Parabolic SAR ──────────────────────────────────────
+    # 간략 구현 (AF=0.02, max=0.2)
+    af_step, af_max = 0.02, 0.2
+    n = len(c)
+    sar = c.values.copy().astype(float)
+    bull = True
+    ep   = float(h.iloc[0])
+    af   = af_step
+    for i in range(2, n):
+        prev_sar = sar[i-1]
+        if bull:
+            sar[i] = prev_sar + af * (ep - prev_sar)
+            sar[i] = min(sar[i], float(l.iloc[i-1]), float(l.iloc[i-2]))
+            if float(l.iloc[i]) < sar[i]:
+                bull = False; sar[i] = ep; ep = float(l.iloc[i]); af = af_step
+            else:
+                if float(h.iloc[i]) > ep:
+                    ep = float(h.iloc[i]); af = min(af + af_step, af_max)
+        else:
+            sar[i] = prev_sar - af * (prev_sar - ep)
+            sar[i] = max(sar[i], float(h.iloc[i-1]), float(h.iloc[i-2]))
+            if float(h.iloc[i]) > sar[i]:
+                bull = True; sar[i] = ep; ep = float(h.iloc[i]); af = af_step
+            else:
+                if float(l.iloc[i]) < ep:
+                    ep = float(l.iloc[i]); af = min(af + af_step, af_max)
+    df["psar_dist"]  = (c - pd.Series(sar, index=c.index)) / (c + 1e-9)
+    df["psar_bull"]  = (c > pd.Series(sar, index=c.index)).astype(int)
+
+    # ── Ichimoku Cloud (일목균형표) ────────────────────────
+    tenkan  = (h.rolling(9).max()  + l.rolling(9).min())  / 2
+    kijun   = (h.rolling(26).max() + l.rolling(26).min()) / 2
+    span_a  = ((tenkan + kijun) / 2).shift(26)
+    span_b  = ((h.rolling(52).max() + l.rolling(52).min()) / 2).shift(26)
+    chikou  = c.shift(-26)
+    df["ichi_tenkan_dist"] = (c - tenkan) / (c + 1e-9)
+    df["ichi_kijun_dist"]  = (c - kijun)  / (c + 1e-9)
+    df["ichi_above_cloud"] = (c > span_a.combine(span_b, max)).astype(int)
+    df["ichi_cloud_width"] = (span_a - span_b) / (c + 1e-9)
+    df["ichi_tk_cross"]    = ((tenkan > kijun) & (tenkan.shift(1) <= kijun.shift(1))).astype(int)
+
+    # ── Heikin Ashi (하이킨아시) ───────────────────────────
+    ha_c = (o + h + l + c) / 4
+    ha_o = ((o + c) / 2)
+    ha_o = ha_o.ewm(alpha=0.5, adjust=False).mean()  # 근사
+    df["ha_bull"]        = (ha_c > ha_o).astype(int)
+    df["ha_body_ratio"]  = (ha_c - ha_o).abs() / ((h - l) + 1e-9)
+    df["ha_consecutive"] = (df["ha_bull"] == df["ha_bull"].shift(1)).rolling(5).sum() / 5
+
+    # ── Volume OSC ────────────────────────────────────────
+    df["vol_osc"] = (v.ewm(span=5,  adjust=False).mean() /
+                     (v.ewm(span=20, adjust=False).mean() + 1e-9)) - 1
+
+    # ── VR (Volume Ratio) ─────────────────────────────────
+    up_vol   = v.where(c > c.shift(1), 0.0)
+    dn_vol   = v.where(c < c.shift(1), 0.0)
+    flat_vol = v.where(c == c.shift(1), 0.0)
+    for p in [14, 26]:
+        vr = (up_vol.rolling(p).sum() + flat_vol.rolling(p).sum() * 0.5) / \
+             (dn_vol.rolling(p).sum() + flat_vol.rolling(p).sum() * 0.5 + 1e-9)
+        df[f"vr_{p}"] = vr
+
+    # ── Envelopes (이동평균 ±2.5%) ───────────────────────
+    sma20 = c.rolling(20).mean()
+    df["envelope_upper"] = (c / (sma20 * 1.025)) - 1  # 상단 대비 위치
+    df["envelope_lower"] = (c / (sma20 * 0.975)) - 1  # 하단 대비 위치
+
+    # ── Price Channels / Donchian ─────────────────────────
+    for p in [20, 55]:
+        dc_h = h.rolling(p).max()
+        dc_l = l.rolling(p).min()
+        df[f"dc_pos_{p}"]    = (c - dc_l) / (dc_h - dc_l + 1e-9)   # 채널 내 위치
+        df[f"dc_break_up_{p}"]  = (c >= dc_h.shift(1)).astype(int)
+        df[f"dc_break_dn_{p}"]  = (c <= dc_l.shift(1)).astype(int)
+
+    # ── Pivot Points (일봉 기준: 전날 H/L/C) ──────────────
+    prev_h = h.shift(1)
+    prev_l = l.shift(1)
+    prev_c = c.shift(1)
+    pivot  = (prev_h + prev_l + prev_c) / 3
+    r1 = 2 * pivot - prev_l
+    s1 = 2 * pivot - prev_h
+    df["pivot_dist"]  = (c - pivot) / (c + 1e-9)
+    df["pivot_r1_dist"] = (c - r1)   / (c + 1e-9)
+    df["pivot_s1_dist"] = (c - s1)   / (c + 1e-9)
+
+    # ── 신심리도 (Psychological Line) ─────────────────────
+    for p in [12, 20]:
+        up_days = (c > c.shift(1)).astype(int)
+        df[f"psych_line_{p}"] = up_days.rolling(p).sum() / p  # 0~1
+
+    # ── 이격도 (Disparity Index) ──────────────────────────
+    for p in [5, 20, 60]:
+        sma = c.rolling(p).mean()
+        df[f"disparity_{p}"] = (c / sma) - 1
+
+    # ── 투자심리도 (12일 상승 비율) ──────────────────────
+    df["invest_psych"] = (c > c.shift(1)).astype(int).rolling(12).sum() / 12
+
     return df
 
 
