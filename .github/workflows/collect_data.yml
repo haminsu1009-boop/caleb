@@ -1,13 +1,12 @@
-name: 📥 Bybit 분봉 데이터 수집
+name: 📥 BTC 전체 히스토리 수집 (2017-2026)
 
 on:
-  schedule:
-    - cron: '0 1 * * *'   # 매일 오전 10시 (KST = UTC+9)
-  workflow_dispatch:        # 수동 실행 버튼
+  workflow_dispatch:     # 수동 실행 전용 (버튼 한 번만 누르면 됨)
 
 jobs:
-  collect:
+  collect-btc-history:
     runs-on: ubuntu-latest
+    timeout-minutes: 120   # 최대 2시간
 
     steps:
       - name: 레포 체크아웃
@@ -17,21 +16,26 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
 
       - name: 패키지 설치
-        run: pip install pybit pandas python-dotenv
+        run: pip install pandas requests
 
-      - name: 데이터 수집 (BTCUSDT 5분봉 - 최근 30일)
-        run: python bybit/collect_bybit.py --symbol BTCUSDT --interval 5 --days 30
+      - name: 🚀 BTC 5분봉 전체 히스토리 수집 (2017~2026)
+        run: python bybit/collect_history.py --interval 5m --start_year 2017
 
-      - name: 데이터 수집 (ETHUSDT 5분봉 - 최근 30일)
-        run: python bybit/collect_bybit.py --symbol ETHUSDT --interval 5 --days 30
+      - name: 📊 수집 결과 확인
+        run: |
+          echo "=== 저장된 파일 목록 ==="
+          ls -lh data/BTCUSDT_5m_*.csv.gz 2>/dev/null || echo "파일 없음"
+          echo ""
+          echo "=== 전체 합산 파일 ==="
+          ls -lh data/BTCUSDT_5m_all.csv.gz 2>/dev/null || echo "없음"
 
-      - name: CSV 파일 커밋
+      - name: 📤 GitHub에 데이터 커밋 & 푸시
         run: |
           git config user.name  "GitHub Actions Bot"
           git config user.email "actions@github.com"
-          git add data/*.csv
-          git diff --staged --quiet || git commit -m "📊 자동 데이터 업데이트: $(date '+%Y-%m-%d')"
+          git add data/BTCUSDT_5m_*.csv.gz data/BTCUSDT_5m_all.csv.gz 2>/dev/null || true
+          git diff --staged --quiet && echo "변경 없음" && exit 0
+          git commit -m "📊 BTC 5분봉 전체 히스토리 수집 완료 (2017-2026)"
           git push
