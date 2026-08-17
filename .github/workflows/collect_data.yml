@@ -1,106 +1,150 @@
-name: 📥 BTC 전체 히스토리 수집 (전 봉 단위)
+name: 📥 전체 데이터 수집 (BTC + ETH + 외부지표)
 
 on:
   workflow_dispatch:    # 수동 실행 전용 — 버튼 한 번만!
 
 jobs:
-  # ── 작은 봉들을 병렬로 수집 (빠름) ───────────────────
-  collect-small:
-    name: "${{ matrix.interval }} 수집"
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # BTC — 전 봉 단위 (1분봉 ~ 월봉) 병렬
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  btc-fast:
+    name: "BTC ${{ matrix.interval }}"
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 40
     strategy:
-      fail-fast: false   # 하나 실패해도 나머지는 계속
+      fail-fast: false
       matrix:
-        interval: ["1mo", "1w", "1d", "6h", "4h", "1h", "30m"]
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - run: pip install pandas requests
-
-      - name: "${{ matrix.interval }} 수집"
-        run: python bybit/collect_history.py --interval ${{ matrix.interval }}
-
-      - name: 결과 확인
-        run: ls -lh data/BTCUSDT_${{ matrix.interval }}_*.csv.gz 2>/dev/null || echo "파일 없음"
-
-      - name: 커밋 & 푸시
-        run: |
-          git config user.name  "GitHub Actions Bot"
-          git config user.email "actions@github.com"
-          git pull --rebase origin ${{ github.ref_name }} || true
-          git add data/BTCUSDT_${{ matrix.interval }}_*.csv.gz 2>/dev/null || true
-          git diff --staged --quiet && echo "변경 없음" && exit 0
-          git commit -m "📊 ${{ matrix.interval }} 수집 완료"
-          git push
-
-  # ── 5분봉 (중간 크기) ────────────────────────────────
-  collect-5m:
-    name: "5m 수집"
-    runs-on: ubuntu-latest
-    timeout-minutes: 90
+        interval: ["1mo","1w","1d","6h","4h","1h","30m"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - run: pip install pandas requests
-      - run: python bybit/collect_history.py --interval 5m
-      - run: ls -lh data/BTCUSDT_5m_*.csv.gz 2>/dev/null || true
+      - run: python bybit/collect_history.py --symbol BTCUSDT --interval ${{ matrix.interval }}
       - name: 커밋 & 푸시
         run: |
-          git config user.name  "GitHub Actions Bot"
+          git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
-          git pull --rebase origin ${{ github.ref_name }} || true
-          git add data/BTCUSDT_5m_*.csv.gz 2>/dev/null || true
-          git diff --staged --quiet && echo "변경 없음" && exit 0
-          git commit -m "📊 5m 수집 완료"
-          git push
+          for i in 1 2 3; do git pull --rebase origin ${{ github.ref_name }} && break || sleep 5; done
+          git add "data/BTCUSDT_${{ matrix.interval }}_*.csv.gz" 2>/dev/null || true
+          git diff --staged --quiet && exit 0
+          git commit -m "📊 BTC ${{ matrix.interval }} 수집 완료"
+          for i in 1 2 3; do git push && break || sleep $((i*5)); done
 
-  # ── 1분봉 (가장 크고 오래 걸림 — 별도 job) ───────────
-  collect-1m:
-    name: "1m 수집 (시간 소요)"
+  btc-5m:
+    name: "BTC 5m"
     runs-on: ubuntu-latest
-    timeout-minutes: 180   # 최대 3시간
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - run: pip install pandas requests
-      - run: python bybit/collect_history.py --interval 1m
-      - name: 파일 크기 확인
-        run: |
-          ls -lh data/BTCUSDT_1m_*.csv.gz 2>/dev/null || true
-          du -sh data/BTCUSDT_1m_all.csv.gz 2>/dev/null || true
+      - run: python bybit/collect_history.py --symbol BTCUSDT --interval 5m
       - name: 커밋 & 푸시
         run: |
-          git config user.name  "GitHub Actions Bot"
+          git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
-          git pull --rebase origin ${{ github.ref_name }} || true
-          git add data/BTCUSDT_1m_*.csv.gz 2>/dev/null || true
-          git diff --staged --quiet && echo "변경 없음" && exit 0
-          git commit -m "📊 1m 수집 완료"
-          git push
+          for i in 1 2 3; do git pull --rebase origin ${{ github.ref_name }} && break || sleep 5; done
+          git add "data/BTCUSDT_5m_*.csv.gz" 2>/dev/null || true
+          git diff --staged --quiet && exit 0
+          git commit -m "📊 BTC 5m 수집 완료"
+          for i in 1 2 3; do git push && break || sleep $((i*5)); done
 
-  # ── 전체 완료 알림 ────────────────────────────────────
+  btc-1m:
+    name: "BTC 1m (최대 3시간)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install pandas requests
+      - run: python bybit/collect_history.py --symbol BTCUSDT --interval 1m
+      - name: 커밋 & 푸시
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          for i in 1 2 3; do git pull --rebase origin ${{ github.ref_name }} && break || sleep 5; done
+          git add "data/BTCUSDT_1m_*.csv.gz" 2>/dev/null || true
+          git diff --staged --quiet && exit 0
+          git commit -m "📊 BTC 1m 수집 완료"
+          for i in 1 2 3; do git push && break || sleep $((i*5)); done
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # ETH — 주요 5봉 (1d / 4h / 1h / 5m / 1m)
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  eth:
+    name: "ETH ${{ matrix.interval }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        interval: ["1d","4h","1h","5m","1m"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install pandas requests
+      - run: python bybit/collect_history.py --symbol ETHUSDT --interval ${{ matrix.interval }}
+      - name: 커밋 & 푸시
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          for i in 1 2 3; do git pull --rebase origin ${{ github.ref_name }} && break || sleep 5; done
+          git add "data/ETHUSDT_${{ matrix.interval }}_*.csv.gz" 2>/dev/null || true
+          git diff --staged --quiet && exit 0
+          git commit -m "📊 ETH ${{ matrix.interval }} 수집 완료"
+          for i in 1 2 3; do git push && break || sleep $((i*5)); done
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # 외부 시장 지표 10종
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  indicators:
+    name: "📊 외부 지표 10종"
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install pandas requests pytrends
+      - run: python bybit/collect_indicators.py
+      - name: 커밋 & 푸시
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          for i in 1 2 3; do git pull --rebase origin ${{ github.ref_name }} && break || sleep 5; done
+          git add data/indicators/ 2>/dev/null || true
+          git diff --staged --quiet && exit 0
+          git commit -m "📊 외부 지표 10종 수집 완료"
+          for i in 1 2 3; do git push && break || sleep $((i*5)); done
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # 완료 요약
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   summary:
     name: "✅ 전체 완료"
     runs-on: ubuntu-latest
-    needs: [collect-small, collect-5m, collect-1m]
+    needs: [btc-fast, btc-5m, btc-1m, eth, indicators]
     if: always()
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
       - name: 수집 결과 요약
         run: |
-          echo "=============================="
-          echo "  📊 수집 완료 파일 목록"
-          echo "=============================="
-          ls -lh data/BTCUSDT_*_all.csv.gz 2>/dev/null || echo "없음"
+          echo "=============================================="
+          echo "  📦 BTC"
+          ls -lh data/BTCUSDT_*_all.csv.gz 2>/dev/null || echo "  없음"
           echo ""
-          echo "총 용량:"
-          du -sh data/BTCUSDT_*.csv.gz 2>/dev/null | tail -1
+          echo "  📦 ETH"
+          ls -lh data/ETHUSDT_*_all.csv.gz 2>/dev/null || echo "  없음"
+          echo ""
+          echo "  📊 외부 지표"
+          ls -lh data/indicators/*.csv 2>/dev/null || echo "  없음"
+          echo ""
+          echo "  💾 총 용량"
+          du -sh data/ 2>/dev/null
+          echo "=============================================="

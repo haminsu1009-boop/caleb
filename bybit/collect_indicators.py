@@ -1,0 +1,384 @@
+"""
+bybit/collect_indicators.py
+외부 시장 지표 전체 수집 — ML 피처 보강용
+
+수집 항목 (전부 무료, API 키 불필요):
+  ① 공포탐욕지수      — alternative.me
+  ② BTC 자금조달비율  — Bybit 공개 API
+  ③ ETH 자금조달비율  — Bybit 공개 API
+  ④ 미결제약정 (OI)   — Bybit 공개 API
+  ⑤ 롱숏 비율        — Bybit 공개 API
+  ⑥ BTC 도미넌스     — CoinGecko 공개 API
+  ⑦ 전체 시총        — CoinGecko 공개 API
+  ⑧ 구글 트렌드      — pytrends (키워드: bitcoin)
+  ⑨ BTC 해시레이트   — blockchain.com 공개 API
+  ⑩ BTC 활성주소수   — blockchain.com 공개 API
+  ⑪ 거래소 잔고변화  — CoinGecko
+"""
+
+import os, sys, time, requests
+import pandas as pd
+from datetime import datetime, timedelta, date
+
+SAVE_DIR = "data/indicators"
+os.makedirs(SAVE_DIR, exist_ok=True)
+
+
+def save(df: pd.DataFrame, name: str):
+    path = f"{SAVE_DIR}/{name}.csv"
+    df.to_csv(path, index=False)
+    kb = os.path.getsize(path) // 1024
+    print(f"  💾 저장: {path}  ({len(df):,}행, {kb}KB)")
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ① 공포탐욕지수
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+def fetch_fear_greed():
+    print("\n📥 ① 공포탐욕지수 (Fear & Greed Index)...")
+    r = requests.get("https://api.alternative.me/fng/?limit=3000&format=json", timeout=30)
+    r.raise_for_status()
+    data = r.json()["data"]
+    df = pd.DataFrame(data)
+    df["date"] = pd.to_datetime(df["timestamp"].astype(int), unit="s").dt.date.astype(str)
+    df["fear_greed"] = df["value"].astype(int)
+    df["sentiment"]  = df["value_classification"]
+    df = df[["date","fear_greed","sentiment"]].sort_values("date").reset_index(drop=True)
+    print(f"  ✅ {len(df)}일치  {df['date'].iloc[0]} ~ {df['date'].iloc[-1]}")
+    save(df, "fear_greed_index")
+    return df
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ② ③ 자금조달비율 (Funding Rate)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+def fetch_funding_rate(symbol="BTCUSDT", days=730):
+    print(f"\n📥 자금조달비율 ({symbol})...")
+    url = "https://api.bybit.com/v5/market/funding/history"
+    rows, cur_end = [], int(datetime.utcnow().timestamp() * 1000)
+    start_ms = cur_end - days * 86400 * 1000
+
+    while cur_end > start_ms:
+        try:
+            data = requests.get(url, params=dict(
+                category="linear", symbol=symbol, limit=200, endTime=cur_end
+            ), timeout=30).json()["result"]["list"]
+        except Exception as e:
+            print(f"  ⚠️  {e}"); break
+        if not data: break
+        rows.extend(data)
+        cur_end = int(data[-1]["fundingRateTimestamp"]) - 1
+        time.sleep(0.05)
+
+    if not rows: return pd.DataFrame()
+    df = pd.DataFrame(rows)
+    df["timestamp"]    = pd.to_datetime(df["fundingRateTimestamp"].astype(int), unit="ms")
+    df["funding_rate"] = df["fundingRate"].astype(float)
+    df = df[["timestamp","funding_rate"]].sort_values("timestamp").reset_index(drop=True)
+    print(f"  ✅ {len(df):,}건  {df['timestamp'].iloc[0]} ~ {df['timestamp'].iloc[-1]}")
+    save(df, f"{symbol[:3]}_funding_rate")
+    return df
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ④ 미결제약정 (Open Interest)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+def fetch_open_interest(symbol="BTCUSDT", interval="1h", days=365):
+    print(f"\n📥 미결제약정 OI ({symbol} {interval})...")
+    url = "https://api.bybit.com/v5/market/open-interest"
+    rows, cur = [], int((datetime.utcnow() - timedelta(days=days)).timestamp() * 1000)
+    end_ms = int(datetime.utcnow().timestamp() * 1000)
+
+    while cur < end_ms:
+        try:
+            data = requests.get(url, params=dict(
+                category="linear", symbol=symbol,
+                intervalTime=interval, limit=200,
+                startTime=cur, endTime=end_ms
+            ), timeout=30).json()["result"]["list"]
+        except Exception as e:
+            print(f"  ⚠️  {e}"); break
+        if not data: break
+        rows.extend(data)
+        last = int(data[-1]["timestamp"])
+        if last <= cur: break
+        cur = last + 1
+        time.sleep(0.05)
+
+    if not rows: return pd.DataFrame()
+    df = pd.DataFrame(rows)
+    df["timestamp"]     = pd.to_datetime(df["timestamp"].astype(int), unit="ms")
+    df["open_interest"] = df["openInterest"].astype(float)
+    df = df[["timestamp","open_interest"]].sort_values("timestamp").reset_index(drop=True)
+    print(f"  ✅ {len(df):,}건")
+    save(df, f"{symbol[:3]}_open_interest_{interval}")
+    return df
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ⑤ 롱숏 비율
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+def fetch_long_short_ratio(symbol="BTCUSDT", period="1h", days=365):
+    print(f"\n📥 롱숏 비율 ({symbol} {period})...")
+    url = "https://api.bybit.com/v5/market/account-ratio"
+    rows, cur = [], int((datetime.utcnow() - timedelta(days=days)).timestamp() * 1000)
+    end_ms = int(datetime.utcnow().timestamp() * 1000)
+
+    while cur < end_ms:
+        try:
+            data = requests.get(url, params=dict(
+                category="linear", symbol=symbol,
+                period=period, limit=500,
+                startTime=cur, endTime=end_ms
+            ), timeout=30).json()["result"]["list"]
+        except Exception as e:
+            print(f"  ⚠️  {e}"); break
+        if not data: break
+        rows.extend(data)
+        last = int(data[-1]["timestamp"])
+        if last <= cur: break
+        cur = last + 1
+        time.sleep(0.05)
+
+    if not rows: return pd.DataFrame()
+    df = pd.DataFrame(rows)
+    df["timestamp"]   = pd.to_datetime(df["timestamp"].astype(int), unit="ms")
+    df["long_ratio"]  = df["buyRatio"].astype(float)
+    df["short_ratio"] = df["sellRatio"].astype(float)
+    df["ls_ratio"]    = df["long_ratio"] / (df["short_ratio"] + 1e-9)
+    df = df[["timestamp","long_ratio","short_ratio","ls_ratio"]].sort_values("timestamp").reset_index(drop=True)
+    print(f"  ✅ {len(df):,}건")
+    save(df, f"{symbol[:3]}_long_short_{period}")
+    return df
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ⑥ ⑦ BTC 도미넌스 & 전체 시총 (CoinGecko)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+def fetch_coingecko_global(days=365):
+    print(f"\n📥 BTC 도미넌스 & 전체 시총 (CoinGecko)...")
+    # CoinGecko global market chart (BTC dominance, total market cap)
+    url = "https://api.coingecko.com/api/v3/global/market_cap_chart"
+    try:
+        r = requests.get(url, params={"days": days}, timeout=30,
+                         headers={"accept": "application/json"})
+        r.raise_for_status()
+        data = r.json()
+    except Exception as e:
+        print(f"  ⚠️  CoinGecko 실패: {e}"); return pd.DataFrame()
+
+    cap_list = data.get("market_cap_percentage", {}).get("btc", [])
+    total_list = data.get("market_cap", {}).get("usd", [])
+
+    if not cap_list:
+        print("  ⚠️  데이터 없음"); return pd.DataFrame()
+
+    df_dom = pd.DataFrame(cap_list, columns=["ts","btc_dominance"])
+    df_dom["timestamp"] = pd.to_datetime(df_dom["ts"], unit="ms")
+    df_dom["btc_dominance"] = df_dom["btc_dominance"].astype(float)
+
+    if total_list:
+        df_tot = pd.DataFrame(total_list, columns=["ts","total_market_cap"])
+        df_tot["timestamp"] = pd.to_datetime(df_tot["ts"], unit="ms")
+        df_tot["total_market_cap"] = df_tot["total_market_cap"].astype(float)
+        df = df_dom.merge(df_tot[["timestamp","total_market_cap"]], on="timestamp", how="left")
+    else:
+        df = df_dom
+
+    df = df[["timestamp","btc_dominance"] + (["total_market_cap"] if "total_market_cap" in df else [])].sort_values("timestamp").reset_index(drop=True)
+    print(f"  ✅ {len(df):,}일치")
+    save(df, "btc_dominance_market_cap")
+    return df
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ⑧ 구글 트렌드 (bitcoin 검색량)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+def fetch_google_trends():
+    print(f"\n📥 구글 트렌드 (bitcoin 검색량)...")
+    try:
+        from pytrends.request import TrendReq
+    except ImportError:
+        print("  pip install pytrends 필요")
+        return pd.DataFrame()
+
+    try:
+        pt = TrendReq(hl="en-US", tz=0, timeout=(10, 30))
+        all_dfs = []
+
+        # 5년 단위로 나눠서 수집 (구글 트렌드 제한)
+        periods = [
+            ("2017-01-01", "2020-12-31"),
+            ("2021-01-01", "2024-12-31"),
+            ("2024-01-01", date.today().strftime("%Y-%m-%d")),
+        ]
+        for start, end in periods:
+            pt.build_payload(["bitcoin"], timeframe=f"{start} {end}")
+            df = pt.interest_over_time()
+            if df.empty: continue
+            df = df.reset_index()[["date","bitcoin"]]
+            df.columns = ["date","google_trend_bitcoin"]
+            all_dfs.append(df)
+            time.sleep(1)
+
+        if not all_dfs:
+            print("  ⚠️  데이터 없음"); return pd.DataFrame()
+
+        result = (pd.concat(all_dfs)
+                    .drop_duplicates("date")
+                    .sort_values("date")
+                    .reset_index(drop=True))
+        result["date"] = result["date"].astype(str)
+        print(f"  ✅ {len(result):,}주치  {result['date'].iloc[0]} ~ {result['date'].iloc[-1]}")
+        save(result, "google_trends_bitcoin")
+        return result
+    except Exception as e:
+        print(f"  ⚠️  구글 트렌드 실패: {e}")
+        return pd.DataFrame()
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ⑨ BTC 해시레이트 (blockchain.com)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+def fetch_hash_rate(days: int = 3650):
+    print(f"\n📥 BTC 해시레이트 & 채굴 난이도 (blockchain.com)...")
+    results = {}
+    endpoints = {
+        "hash_rate":        "https://api.blockchain.info/charts/hash-rate?timespan=all&format=json&sampled=true",
+        "mining_difficulty":"https://api.blockchain.info/charts/difficulty?timespan=all&format=json&sampled=true",
+    }
+    for name, url in endpoints.items():
+        try:
+            r = requests.get(url, timeout=60)
+            r.raise_for_status()
+            vals = r.json()["values"]
+            df = pd.DataFrame(vals, columns=["ts", name])
+            df["date"] = pd.to_datetime(df["ts"], unit="s").dt.date.astype(str)
+            df[name] = df[name].astype(float)
+            df = df[["date", name]].sort_values("date").reset_index(drop=True)
+            results[name] = df
+            print(f"  ✅ {name}: {len(df):,}일치")
+            time.sleep(0.5)
+        except Exception as e:
+            print(f"  ⚠️  {name} 실패: {e}")
+
+    if results:
+        merged = list(results.values())[0]
+        for df in list(results.values())[1:]:
+            merged = merged.merge(df, on="date", how="outer")
+        merged = merged.sort_values("date").reset_index(drop=True)
+        save(merged, "btc_hashrate_difficulty")
+        return merged
+    return pd.DataFrame()
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ⑩ BTC 활성 주소수 & 거래수 (blockchain.com)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+def fetch_onchain_metrics():
+    print(f"\n📥 온체인 지표 (활성주소/거래수/수수료)...")
+    endpoints = {
+        "active_addresses": "https://api.blockchain.info/charts/n-unique-addresses?timespan=all&format=json&sampled=true",
+        "tx_count":         "https://api.blockchain.info/charts/n-transactions?timespan=all&format=json&sampled=true",
+        "avg_fee_usd":      "https://api.blockchain.info/charts/cost-per-transaction?timespan=all&format=json&sampled=true",
+    }
+    results = {}
+    for name, url in endpoints.items():
+        try:
+            r = requests.get(url, timeout=60)
+            r.raise_for_status()
+            vals = r.json()["values"]
+            df = pd.DataFrame(vals, columns=["ts", name])
+            df["date"] = pd.to_datetime(df["ts"], unit="s").dt.date.astype(str)
+            df[name]   = df[name].astype(float)
+            df = df[["date", name]].sort_values("date").reset_index(drop=True)
+            results[name] = df
+            print(f"  ✅ {name}: {len(df):,}일치")
+            time.sleep(0.5)
+        except Exception as e:
+            print(f"  ⚠️  {name} 실패: {e}")
+
+    if results:
+        merged = list(results.values())[0]
+        for df in list(results.values())[1:]:
+            merged = merged.merge(df, on="date", how="outer")
+        merged = merged.sort_values("date").reset_index(drop=True)
+        save(merged, "btc_onchain_metrics")
+        return merged
+    return pd.DataFrame()
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ⑪ BTC 가격 (CoinGecko — 일봉 보조)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+def fetch_coingecko_btc_price(days: int = 3650):
+    print(f"\n📥 BTC 가격 (CoinGecko 일봉 보조)...")
+    try:
+        r = requests.get(
+            "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart",
+            params={"vs_currency": "usd", "days": days, "interval": "daily"},
+            headers={"accept": "application/json"}, timeout=60
+        )
+        r.raise_for_status()
+        data = r.json()
+        df_p = pd.DataFrame(data["prices"],        columns=["ts","price"])
+        df_v = pd.DataFrame(data["total_volumes"], columns=["ts","cg_volume"])
+        df_m = pd.DataFrame(data["market_caps"],   columns=["ts","market_cap"])
+
+        df = df_p.copy()
+        df["timestamp"] = pd.to_datetime(df["ts"], unit="ms")
+        df["cg_volume"] = df_v["cg_volume"].values
+        df["market_cap"]= df_m["market_cap"].values
+        df = df[["timestamp","price","cg_volume","market_cap"]].sort_values("timestamp").reset_index(drop=True)
+        print(f"  ✅ {len(df):,}일치")
+        save(df, "btc_coingecko_daily")
+        return df
+    except Exception as e:
+        print(f"  ⚠️  CoinGecko BTC 가격 실패: {e}")
+        return pd.DataFrame()
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 메인
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+def collect_all_indicators():
+    print("=" * 56)
+    print("  📊 외부 시장 지표 전체 수집")
+    print("=" * 56)
+
+    tasks = [
+        ("① 공포탐욕지수",            fetch_fear_greed,                  {}),
+        ("② BTC 자금조달비율",         fetch_funding_rate,                {"symbol":"BTCUSDT","days":730}),
+        ("③ ETH 자금조달비율",         fetch_funding_rate,                {"symbol":"ETHUSDT","days":730}),
+        ("④ BTC 미결제약정(1h)",       fetch_open_interest,               {"symbol":"BTCUSDT","interval":"1h","days":365}),
+        ("⑤ BTC 롱숏비율(1h)",        fetch_long_short_ratio,            {"symbol":"BTCUSDT","period":"1h","days":365}),
+        ("⑥ BTC 도미넌스/시총",        fetch_coingecko_global,            {"days":365}),
+        ("⑦ 구글 트렌드",             fetch_google_trends,               {}),
+        ("⑧ 해시레이트/난이도",        fetch_hash_rate,                   {}),
+        ("⑨ 온체인 지표",             fetch_onchain_metrics,             {}),
+        ("⑩ BTC 가격(CoinGecko)",     fetch_coingecko_btc_price,        {"days":3650}),
+    ]
+
+    success, fail = 0, 0
+    for label, fn, kwargs in tasks:
+        try:
+            result = fn(**kwargs)
+            if result is not None and not (hasattr(result,"empty") and result.empty):
+                success += 1
+            else:
+                fail += 1
+        except Exception as e:
+            print(f"  ❌ {label}: {e}")
+            fail += 1
+
+    print(f"\n{'='*56}")
+    print(f"  완료: {success}개 성공 / {fail}개 실패")
+    print(f"\n  저장된 파일:")
+    for f in sorted(os.listdir(SAVE_DIR)):
+        path = f"{SAVE_DIR}/{f}"
+        kb = os.path.getsize(path) // 1024
+        print(f"    {f:<45} {kb}KB")
+
+
+if __name__ == "__main__":
+    collect_all_indicators()
