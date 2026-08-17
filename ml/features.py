@@ -840,6 +840,59 @@ def _add_extra_indicators(df: pd.DataFrame) -> pd.DataFrame:
     df["chaikin_vol"]       = (ema_hl_10 - ema_hl_10.shift(10)) / (ema_hl_10.shift(10) + 1e-9)
     df["chaikin_vol_surge"] = (df["chaikin_vol"] > df["chaikin_vol"].rolling(50, min_periods=10).quantile(0.8)).astype(int)
 
+    # ═══════════════════════════════════════════════════
+    # 스크린샷 추가 확인 누락 4종
+    # OBV / Sonar / NCO / 로그차트
+    # ═══════════════════════════════════════════════════
+
+    # ── OBV (On Balance Volume) ────────────────────────
+    # 이전에는 기울기만 있었음 → 방향 시그널 추가
+    obv_raw = (np.sign(c.diff()) * v).fillna(0).cumsum()
+    obv_ema = obv_raw.ewm(span=20, adjust=False).mean()
+    obv_scale = obv_raw.abs().rolling(200, min_periods=20).max() + 1e-9
+    df["obv_raw"]       = obv_raw / obv_scale          # 정규화된 OBV 레벨
+    df["obv_vs_ema"]    = (obv_raw > obv_ema).astype(int)   # OBV > EMA → 강세
+    df["obv_cross_up"]  = ((obv_raw > obv_ema) & (obv_raw.shift(1) <= obv_ema.shift(1))).astype(int)
+    df["obv_cross_dn"]  = ((obv_raw < obv_ema) & (obv_raw.shift(1) >= obv_ema.shift(1))).astype(int)
+
+    # ── Sonar (Volume Sonar — 거래량 모멘텀 확인) ──────
+    # 가격 방향과 거래량이 일치하는지 측정
+    # 양수: 가격↑ + 거래량↑ = 강세 확인 / 음수: 발산
+    price_dir  = np.sign(c.diff())                          # +1 / -1
+    vol_ratio  = v / (v.rolling(20).mean() + 1e-9) - 1     # 평균 대비 거래량 초과분
+    sonar_raw  = price_dir * vol_ratio                      # 방향 × 거래량강도
+    df["sonar"]      = sonar_raw.ewm(span=9,  adjust=False).mean()   # 단기
+    df["sonar_slow"] = sonar_raw.ewm(span=21, adjust=False).mean()   # 장기
+    df["sonar_bull"] = (df["sonar"] > 0).astype(int)
+    df["sonar_cross_up"] = ((df["sonar"] > df["sonar_slow"]) &
+                            (df["sonar"].shift(1) <= df["sonar_slow"].shift(1))).astype(int)
+
+    # ── NCO (Normalized Coppock Oscillator) ────────────
+    # Coppock Curve의 정규화 버전: WMA(ROC14 + ROC11, 10)
+    # 장기 강세장 바닥 탐지용 (원래 월봉용이나 일봉에도 유효)
+    def wma(series, period):
+        weights = np.arange(1, period + 1, dtype=float)
+        return series.rolling(period).apply(
+            lambda x: np.dot(x, weights) / weights.sum(), raw=True)
+    roc14 = c.pct_change(14) * 100
+    roc11 = c.pct_change(11) * 100
+    coppock = wma(roc14 + roc11, 10)
+    coppock_scale = coppock.abs().rolling(200, min_periods=20).max() + 1e-9
+    df["nco"]          = coppock / coppock_scale         # 정규화 (-1~+1)
+    df["nco_bull"]     = (coppock > 0).astype(int)
+    df["nco_rising"]   = (coppock > coppock.shift(1)).astype(int)  # 상승 중
+    df["nco_cross_up"] = ((coppock > 0) & (coppock.shift(1) <= 0)).astype(int)  # 0선 돌파
+
+    # ── 로그차트 (Log Chart — 로그스케일 가격 피처) ────
+    # 로그가격은 수익률이 정규분포에 가까워 ML에 유리
+    log_c = np.log(c + 1e-9)
+    for p in [5, 20, 60]:
+        log_sma = log_c.rolling(p).mean()
+        df[f"log_ret_{p}"]   = log_c - log_c.shift(p)        # 로그 수익률
+        df[f"log_vs_ma_{p}"] = log_c - log_sma               # 로그 이격도
+    df["log_vol"]    = np.log(v + 1) - np.log(v.rolling(20).mean() + 1)  # 로그 거래량 비율
+    df["log_hl_ratio"] = np.log((h + 1e-9) / (l + 1e-9))   # 로그 고저비율 (변동성)
+
     return df
 
 
