@@ -1624,10 +1624,10 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ── 선박 영상 4개 끊김없이 순차 재생 ── */
   (function initSeaVideos() {
     var SRCS = [
-      'assets/sea-video-1.mov',
-      'assets/sea-video-2.mov',
-      'assets/sea-video-3.mov',
-      'assets/sea-video-4.mov'
+      'assets/sea-video-1.mp4',
+      'assets/sea-video-2.mp4',
+      'assets/sea-video-3.mp4',
+      'assets/sea-video-4.mp4'
     ];
     var ids  = ['seaVid1','seaVid2','seaVid3','seaVid4'];
     var vids = ids.map(function(id){ return document.getElementById(id); }).filter(Boolean);
@@ -1638,10 +1638,16 @@ document.addEventListener('DOMContentLoaded', () => {
     /* 영상별 시작 오프셋 (초) — 2·3·4번 영상 1초 스킵 */
     var SKIP = [0, 1.0, 1.0, 1.0];
 
-    /* fetch() 로 Blob URL 생성 → 모바일 preload 한계 완전 우회 */
-    SRCS.slice(1).forEach(function(src, i) {
-      var idx = i + 1;
-      fetch(src)
+    /* 로드 시작 여부 — 1번은 HTML src 로 이미 로드됨 */
+    var loadStarted = [true, false, false, false];
+
+    /* 필요한 시점에만 fetch → 초기 로딩량을 1번 영상 하나로 한정
+       (fetch + Blob URL 은 모바일 preload 한계 우회용, 기존 방식 유지) */
+    function ensureLoaded(idx) {
+      idx = idx % vids.length;
+      if (loadStarted[idx]) return;
+      loadStarted[idx] = true;
+      fetch(SRCS[idx])
         .then(function(r){ return r.blob(); })
         .then(function(blob){
           var url = URL.createObjectURL(blob);
@@ -1656,10 +1662,14 @@ document.addEventListener('DOMContentLoaded', () => {
           }, { once: true });
         })
         .catch(function(){
-          vids[idx].src = src;
+          vids[idx].src = SRCS[idx];
           vids[idx].load();
         });
-    });
+    }
+
+    /* 1번 영상이 재생 가능해진 뒤에 2번 준비 시작 (한 개 앞서 로드) */
+    if (vids[0].readyState >= 3) ensureLoaded(1);
+    else vids[0].addEventListener('canplay', function(){ ensureLoaded(1); }, { once: true });
 
     function doSwitch(nextIdx) {
       var prev = vids[cur], nxt = vids[nextIdx];
@@ -1672,6 +1682,8 @@ document.addEventListener('DOMContentLoaded', () => {
         prev.currentTime = SKIP[cur] || 0;
         cur = nextIdx; switching = false;
       }, 250);
+      /* 다음 순서 영상을 미리 준비 */
+      ensureLoaded(nextIdx + 1);
     }
 
     function switchTo(nextIdx) {
@@ -1682,7 +1694,7 @@ document.addEventListener('DOMContentLoaded', () => {
         doSwitch(nextIdx);
       } else {
         nxt.addEventListener('canplay', function(){ doSwitch(nextIdx); }, { once: true });
-        if (!nxt.src) { nxt.src = SRCS[nextIdx]; nxt.load(); }
+        ensureLoaded(nextIdx);
       }
     }
 
