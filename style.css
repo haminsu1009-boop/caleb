@@ -2219,6 +2219,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   border-top: 1px solid rgba(255,255,255,0.1);
 }
 .mobile-lang-btn {
+  display: inline-flex; align-items: center; gap: 7px;
   background: rgba(255,255,255,0.12);
   border: 1.5px solid rgba(255,255,255,0.35);
   color: #fff; border-radius: 14px;
@@ -2227,6 +2228,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   transition: background 0.18s;
 }
 .mobile-lang-btn:hover { background: rgba(255,255,255,0.25); }
+.mobile-lang-btn svg { flex-shrink: 0; opacity: 0.85; }
 
 /* ── 카카오톡 FAB ── */
 .fab-kakao {

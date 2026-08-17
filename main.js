@@ -493,13 +493,15 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       /* ── FTA 원산지증명 ── */
-      if (/fta|원산지증명|c\/o|co|한중|한미|한eu|한·중|apta|rcep|asean|아세안|form a|form b/.test(m)) {
+      if (/fta|원산지증명|c\/o|co|한중|한미|한eu|한·중|apta|rcep|asean|아세안|form a|form b|관세절감|관세 절감|관세혜택|관세 혜택|관세 감면|관세율 인하|관세 아끼/.test(m)) {
         if (/한중|한·중|china|중국 fta/.test(m))
           return '🇨🇳 한·중 FTA (2015.12.20 발효)\n\n발급방식: 기관발급\n• 중국 발급기관: 해관총서, 국제무역촉진위원회\n• 한국 발급기관: 세관 또는 상공회의소\n\n신청 가능자: 수출자, 생산자, 또는 수출자 대리인\n\n신청시기 및 유효기간:\n• 선적 전, 선적일, 선적 후 7일 이내 신청 가능\n• 선적 완료 후: 선적일로부터 1년 이내 소급발급 가능\n• 원산지증명서 유효기간: 1년\n\n필요서류: 수출신고필증, 송품장, 원산지확인서, 원산지소명서\n\n⚠️ FTA C/O는 발급 후 정정이 매우 까다로우므로 반드시 사전에 바이어 확인 후 발급하세요.';
         if (/한미|한·미|미국 fta|us fta/.test(m))
           return '🇺🇸 한·미 FTA (2012.03.15 발효)\n\n발급방식: 자율증명방식\n• 수출자, 생산자, 수입자가 자율적으로 증명서 발급\n• 정해진 양식 없음 (관세청 권고 서식 활용 권장)\n• 협정문 제6.15조의 필수 기재 요소 포함 필수\n\n원산지증명서 유효기간: 4년';
         if (/한eu|한·eu|eu fta|유럽 fta/.test(m))
           return '🇪🇺 한·EU FTA (2011.07.11 발효)\n\n발급방식: 자율증명방식\n• 수출자가 상업송장 등에 원산지 신고문안 기재\n• 금액 6,000유로 초과 시 인증수출자만 발급 가능\n• 6,000유로 이하는 누구나 발급 가능\n\n원산지증명서 유효기간: 12개월';
+        if (/관세절감|관세 절감|관세혜택|관세 혜택|관세 감면|관세율 인하|관세 아끼/.test(m))
+          return '💰 관세 절감 방법 — FTA 활용\n\nFTA(자유무역협정) 체결국과 거래 시 원산지증명서(C/O)를 발급받으면 협정세율이 적용되어 관세가 감면·면제됩니다.\n\n1. 거래 상대국이 한국과 FTA 체결국인지 확인 (한중·한미·한EU 등)\n2. 품목별 원산지 기준 충족 여부 확인\n3. 원산지증명서(C/O) 발급 — 기관발급 또는 자율증명방식(국가별 상이)\n4. 수입국 통관 시 협정세율 적용 신청\n\n국가별 발급방식이 달라 절차가 다릅니다. "한중FTA", "한미FTA", "한EU FTA"처럼 협정명을 입력해 주시면 상세 안내드립니다.\n\n📞 02-3142-4051 / 📧 op@ttt3.co.kr';
         return '📄 원산지증명서(C/O) 종류\n\nFORM A — 미국·일본·EU 등 대다수 선진국 인정 (일부 미인정 국가 있음)\nFORM B — 가장 기본, 거의 모든 국가 인정\nFORM TEXTILE — 독일 전용\nFORM O — 커피 전용\nFORM D — ASEAN 국가 간\nFORM E — ASEAN ↔ 중국\nFORM AK — ASEAN ↔ 한국\nFORM AJ — ASEAN ↔ 일본\n\nFTA별 C/O 문의:\n• 한·중 FTA / 한·미 FTA / 한·EU FTA\n위 협정명을 입력하시면 상세 안내드립니다.';
       }
 
@@ -553,6 +555,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (/수출신고|수출통관|적재의무|cut.?off|분할통관/.test(m))
         return '🛳 수출통관 안내\n\n[수출신고 시점]\n① 공장/창고에서 수출포장 완료 후 관할 세관으로 신고 가능\n② 선적지 반입지에 반입된 상태에서도 신고 가능\n③ 이동 중 신고 불가 (허위신고로 벌금)\n\n[중요 기한]\n• 수출자 → 포워더에게 수출신고필증을 document closing time(cut-off time)까지 제공 필수\n• 수출신고 수리일로부터 30일 이내 선적 완료 (적재의무기한)\n\n[분할통관]\n하나의 신고 건을 여러 번에 나누어 통관하는 방법\n단, 세관 승인 필요';
+
+      /* ── 서비스 안내 (채팅창 하단 빠른답변 버튼: 해상운송/항공운송/견적문의) ── */
+      if (/해상운송|해상 운송|해상 서비스|ocean freight|바다.*운송/.test(m))
+        return '🚢 해상운송 서비스\n\nFCL(Full Container Load): 컨테이너 1개를 단독으로 사용하는 방식, 대량 화물에 적합\nLCL(Less than Container Load): 여러 화주의 화물을 한 컨테이너에 혼적, 소량 화물에 유리\n\n전 세계 주요 항구 네트워크를 통해 최적의 스케줄과 운임을 안내해 드립니다.\n\n💡 화면 하단 "빠른견적문의"를 누르시면 구간·물량 입력만으로 바로 견적 문의가 가능합니다.\n📞 02-3142-4051 / 📧 op@ttt3.co.kr';
+
+      if (/항공운송|항공 운송|항공화물|air freight|비행기.*운송/.test(m))
+        return '✈️ 항공운송 서비스\n\n일반 항공화물부터 긴급·특수화물까지 신속하고 안전하게 처리합니다.\n접수 후 당일 또는 익일 출발이 가능하며, 화물 종류·목적지에 따라 스케줄이 안내됩니다.\n\n💡 화면 하단 "빠른견적문의"를 누르시면 구간·물량 입력만으로 바로 견적 문의가 가능합니다.\n📞 02-3142-4051 / 📧 op@ttt3.co.kr';
+
+      if (/견적문의|견적 문의|견적요청|견적 요청|견적 부탁|quote|estimate/.test(m))
+        return '📋 견적 문의 안내\n\n화면 하단의 "빠른견적문의" 버튼을 누르시면 해상(FCL/LCL)·항공·육상 중 원하시는 서비스를 선택해 구간·물량·물품 정보를 입력하실 수 있고, 담당자가 확인 후 회신드립니다.\n\n지금 바로 전화·이메일로도 문의 가능합니다.\n📞 02-3142-4051 / 📧 op@ttt3.co.kr';
 
       /* ── 연락처/회사정보 ── */
       if (/전화|연락처|주소|이메일|위치|어디|찾아|담당자/.test(m))
@@ -1518,7 +1530,11 @@ document.addEventListener('DOMContentLoaded', () => {
       lang = l;
       localStorage.setItem('lang', l);
       if (toggleBtn) toggleBtn.textContent = l === 'ko' ? 'EN' : 'KO';
-      if (mobileToggleBtn) mobileToggleBtn.textContent = l === 'ko' ? '🌐 English' : '🌐 한국어';
+      if (mobileToggleBtn) {
+        const mSpan = mobileToggleBtn.querySelector('.mobile-lang-text');
+        if (mSpan) mSpan.textContent = l === 'ko' ? 'English' : '한국어';
+        else mobileToggleBtn.textContent = l === 'ko' ? 'English' : '한국어';
+      }
       if (mobLangHdr) {
         const span = mobLangHdr.querySelector('.mob-lang-text');
         if (span) span.textContent = l === 'ko' ? 'EN' : 'KO';
