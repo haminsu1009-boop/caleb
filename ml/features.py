@@ -660,6 +660,110 @@ def _add_extra_indicators(df: pd.DataFrame) -> pd.DataFrame:
         df[f"smi_{p}_cross"] = ((smi > smi.ewm(span=10, adjust=False).mean()) &
                                 (smi.shift(1) <= smi.shift(1).ewm(span=10, adjust=False).mean())).astype(int)
 
+    # ═══════════════════════════════════════════════════
+    # 스크린샷 크로스/과매수과매도 시그널 전체 추가
+    # ═══════════════════════════════════════════════════
+
+    # ── RSI 과매수&과매도 (바이너리 시그널) ───────────
+    for p in [7, 14, 21]:
+        rsi_raw = df[f"rsi_{p}"] * 100   # 0~100 복원
+        df[f"rsi_{p}_ob"] = (rsi_raw > 70).astype(int)   # 과매수 구간
+        df[f"rsi_{p}_os"] = (rsi_raw < 30).astype(int)   # 과매도 구간
+        df[f"rsi_{p}_ob_exit"] = ((rsi_raw < 70) & (rsi_raw.shift(1) >= 70)).astype(int)  # 과매수 탈출
+        df[f"rsi_{p}_os_exit"] = ((rsi_raw > 30) & (rsi_raw.shift(1) <= 30)).astype(int)  # 과매도 탈출
+
+    # ── CCI 과매수&과매도 ──────────────────────────────
+    for p in [14, 20]:
+        cci_raw = df[f"cci_{p}"] * 100   # 정규화 복원
+        df[f"cci_{p}_ob"] = (cci_raw > 100).astype(int)    # 과매수 (>+100)
+        df[f"cci_{p}_os"] = (cci_raw < -100).astype(int)   # 과매도 (<-100)
+        df[f"cci_{p}_ob_exit"] = ((cci_raw < 100) & (cci_raw.shift(1) >= 100)).astype(int)
+        df[f"cci_{p}_os_exit"] = ((cci_raw > -100) & (cci_raw.shift(1) <= -100)).astype(int)
+
+    # ── Stochastic Fast 크로스 + 과매수&과매도 ─────────
+    # Fast: raw %K, D = 3-period SMA of K (smoothing 없음)
+    for p in [14, 21]:
+        lo_p = l.rolling(p).min()
+        hi_p = h.rolling(p).max()
+        fast_k = (c - lo_p) / (hi_p - lo_p + 1e-9) * 100
+        fast_d = fast_k.rolling(3).mean()
+        # 크로스: 상향(매수) / 하향(매도)
+        df[f"stoch_fast_cross_up_{p}"]  = ((fast_k > fast_d) & (fast_k.shift(1) <= fast_d.shift(1))).astype(int)
+        df[f"stoch_fast_cross_dn_{p}"]  = ((fast_k < fast_d) & (fast_k.shift(1) >= fast_d.shift(1))).astype(int)
+        # 과매수&과매도 구간
+        df[f"stoch_fast_ob_{p}"] = (fast_k > 80).astype(int)
+        df[f"stoch_fast_os_{p}"] = (fast_k < 20).astype(int)
+        # 과매수/과매도 탈출 (더 강한 시그널)
+        df[f"stoch_fast_ob_exit_{p}"] = ((fast_k < 80) & (fast_k.shift(1) >= 80)).astype(int)
+        df[f"stoch_fast_os_exit_{p}"] = ((fast_k > 20) & (fast_k.shift(1) <= 20)).astype(int)
+
+    # ── Stochastic Slow 크로스 + 과매수&과매도 ─────────
+    # Slow: K = 3-period SMA of raw %K, D = 3-period SMA of SlowK
+    for p in [14, 21]:
+        lo_p = l.rolling(p).min()
+        hi_p = h.rolling(p).max()
+        raw_k   = (c - lo_p) / (hi_p - lo_p + 1e-9) * 100
+        slow_k  = raw_k.rolling(3).mean()    # Slow %K
+        slow_d  = slow_k.rolling(3).mean()   # Slow %D
+        df[f"stoch_slow_cross_up_{p}"]  = ((slow_k > slow_d) & (slow_k.shift(1) <= slow_d.shift(1))).astype(int)
+        df[f"stoch_slow_cross_dn_{p}"]  = ((slow_k < slow_d) & (slow_k.shift(1) >= slow_d.shift(1))).astype(int)
+        df[f"stoch_slow_ob_{p}"] = (slow_k > 80).astype(int)
+        df[f"stoch_slow_os_{p}"] = (slow_k < 20).astype(int)
+        df[f"stoch_slow_k_{p}"]  = slow_k / 100
+        df[f"stoch_slow_d_{p}"]  = slow_d / 100
+
+    # ── TRIX 크로스 (시그널선 기준, 0선 아님) ─────────
+    # 기존 trix_cross는 >0 기준 → 시그널선(9-period SMA) 기준으로 교체
+    for p in [14, 20]:
+        e1 = c.ewm(span=p, adjust=False).mean()
+        e2 = e1.ewm(span=p, adjust=False).mean()
+        e3 = e2.ewm(span=p, adjust=False).mean()
+        trix = e3.pct_change() * 100
+        trix_sig = trix.rolling(9).mean()   # 시그널선
+        df[f"trix_{p}_sig"]          = trix_sig
+        df[f"trix_{p}_sig_cross_up"] = ((trix > trix_sig) & (trix.shift(1) <= trix_sig.shift(1))).astype(int)
+        df[f"trix_{p}_sig_cross_dn"] = ((trix < trix_sig) & (trix.shift(1) >= trix_sig.shift(1))).astype(int)
+        df[f"trix_{p}_zero_cross_up"] = ((trix > 0) & (trix.shift(1) <= 0)).astype(int)
+        df[f"trix_{p}_zero_cross_dn"] = ((trix < 0) & (trix.shift(1) >= 0)).astype(int)
+
+    # ── MACD 크로스 하향 (기존 상향 크로스 보완) ──────
+    e12 = c.ewm(span=12, adjust=False).mean()
+    e26 = c.ewm(span=26, adjust=False).mean()
+    macd2 = e12 - e26
+    sig2  = macd2.ewm(span=9, adjust=False).mean()
+    df["macd_cross_dn"]   = ((macd2 < sig2) & (macd2.shift(1) >= sig2.shift(1))).astype(int)
+    df["macd_zero_cross_up"] = ((macd2 > 0) & (macd2.shift(1) <= 0)).astype(int)   # 0선 상향
+    df["macd_zero_cross_dn"] = ((macd2 < 0) & (macd2.shift(1) >= 0)).astype(int)   # 0선 하향
+
+    # ── 이격도 과열&침체 (Disparity overbought/oversold) ─
+    for p in [5, 20, 60]:
+        sma = c.rolling(p).mean()
+        disp = (c / sma) - 1
+        # 과열: 이격도 상위 10%, 침체: 하위 10%
+        ob_th = disp.rolling(252, min_periods=60).quantile(0.90)
+        os_th = disp.rolling(252, min_periods=60).quantile(0.10)
+        df[f"disp_{p}_ob"] = (disp > ob_th).astype(int)   # 과열 구간
+        df[f"disp_{p}_os"] = (disp < os_th).astype(int)   # 침체 구간
+
+    # ── 거래대금 (Trading Value) ────────────────────────
+    # quote_volume = close × volume (이미 수집됨)
+    qv = df.get("quote_volume", c * v)
+    qv_ma20 = qv.rolling(20).mean()
+    df["qv_ratio_5"]  = qv.rolling(5).mean()  / (qv_ma20 + 1e-9)   # 5일 거래대금 비율
+    df["qv_ratio_10"] = qv.rolling(10).mean() / (qv_ma20 + 1e-9)   # 10일 거래대금 비율
+    df["qv_surge"]    = (qv > qv_ma20 * 2).astype(int)              # 거래대금 급증
+
+    # ── Williams %R 과매수&과매도 ─────────────────────
+    for p in [14, 21]:
+        wr = df[f"williams_r_{p}"]   # -1~0 범위
+        df[f"willr_{p}_ob"] = (wr > -0.2).astype(int)   # 과매수 (>-20)
+        df[f"willr_{p}_os"] = (wr < -0.8).astype(int)   # 과매도 (<-80)
+
+    # ── MFI 과매수&과매도 ──────────────────────────────
+    mfi = df["mfi_14"]
+    df["mfi_ob"] = (mfi > 0.8).astype(int)   # 과매수 (>80)
+    df["mfi_os"] = (mfi < 0.2).astype(int)   # 과매도 (<20)
+
     return df
 
 
