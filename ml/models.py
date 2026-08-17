@@ -229,9 +229,10 @@ class DirectionalEnsemble:
     - SHORT 모델: 가격 하락 확률 예측
     - 신호 결정: max(long_prob, short_prob) > threshold → 해당 방향 신호
     """
-    def __init__(self, w_xgb: float = 0.6, w_lstm: float = 0.4):
-        self.w_xgb  = w_xgb
-        self.w_lstm = w_lstm
+    def __init__(self, w_xgb: float = 0.6, w_lstm: float = 0.4, fast_mode: bool = False):
+        self.w_xgb     = w_xgb
+        self.w_lstm    = w_lstm
+        self.fast_mode = fast_mode  # True → TemporalXGB 스킵 (빠른 검증용)
         # LONG 방향 모델
         self.long_xgb  = None
         self.long_lstm = None
@@ -260,8 +261,9 @@ class DirectionalEnsemble:
                           X_val[feature_cols] if X_val is not None else None,
                           y_long_val)
 
-        self.long_lstm = SimpleLSTM(feature_cols)
-        self.long_lstm.fit(X_train[feature_cols], y_long_train)
+        if not self.fast_mode:
+            self.long_lstm = SimpleLSTM(feature_cols)
+            self.long_lstm.fit(X_train[feature_cols], y_long_train)
 
         print("  [DirectionalEnsemble] SHORT 모델 학습...")
         self.short_xgb  = XGBModel()
@@ -269,8 +271,9 @@ class DirectionalEnsemble:
                            X_val[feature_cols] if X_val is not None else None,
                            y_short_val)
 
-        self.short_lstm = SimpleLSTM(feature_cols)
-        self.short_lstm.fit(X_train[feature_cols], y_short_train)
+        if not self.fast_mode:
+            self.short_lstm = SimpleLSTM(feature_cols)
+            self.short_lstm.fit(X_train[feature_cols], y_short_train)
 
         self.is_fitted = True
         return self
@@ -278,11 +281,13 @@ class DirectionalEnsemble:
     def _ensemble_proba(
         self,
         xgb_model:  XGBModel,
-        lstm_model: SimpleLSTM,
+        lstm_model,              # SimpleLSTM 또는 None (fast_mode)
         X:          pd.DataFrame,
     ) -> np.ndarray:
-        """XGB + TemporalXGB 앙상블 확률"""
-        p_xgb  = xgb_model.predict_proba(X)[:, 1]
+        """XGB + TemporalXGB 앙상블 확률 (LSTM None이면 XGB만 사용)"""
+        p_xgb = xgb_model.predict_proba(X)[:, 1]
+        if lstm_model is None:
+            return p_xgb
         p_lstm = lstm_model.predict_proba(X)[:, 1]
         valid  = ~np.isnan(p_lstm)
         return np.where(valid,

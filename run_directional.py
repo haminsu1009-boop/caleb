@@ -81,12 +81,13 @@ def load_all_data() -> pd.DataFrame:
 # 2. 방향성 워크포워드 백테스트
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 def walk_forward_directional(
-    df:         pd.DataFrame,
+    df:          pd.DataFrame,
     feature_cols: list,
-    init_months: int = 18,
-    step_months: int = 3,
-    long_thr:   float = 0.60,
-    short_thr:  float = 0.60,
+    init_months: int   = 18,
+    step_months: int   = 3,
+    long_thr:    float = 0.60,
+    short_thr:   float = 0.60,
+    fast_mode:   bool  = False,  # True = XGB만, TemporalXGB 스킵 (~3배 빠름)
 ) -> pd.DataFrame:
     """
     롱/숏 방향성 워크포워드 백테스트
@@ -134,7 +135,7 @@ def walk_forward_directional(
               f"→ 검증 {val_start.date()}~{val_end.date()} ({len(X_val)}개)")
 
         try:
-            model = DirectionalEnsemble()
+            model = DirectionalEnsemble(fast_mode=fast_mode)
             model.fit(X_tr, y_lt, y_st,
                       X_val, y_lv, y_sv,
                       feature_cols)
@@ -347,7 +348,7 @@ def plot_directional_results(wf_df: pd.DataFrame):
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # 메인
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-def run_full_pipeline():
+def run_full_pipeline(args=None):
     banner("방향성 ML 파이프라인  (롱/숏 동시 지원 + 멀티 타임프레임)")
 
     # ── Step 1: 데이터 ──────────────────────────
@@ -360,11 +361,14 @@ def run_full_pipeline():
     print(f"  사용 피처: {len(feature_cols)}개")
 
     # ── Step 2: 방향성 워크포워드 ────────────────
-    print("\n[2/5] 방향성 워크포워드 (롱/숏 동시 검증)...")
+    fast = getattr(args, "fast", False)
+    mode_str = "빠른(XGB-only)" if fast else "전체(XGB+TemporalXGB)"
+    print(f"\n[2/5] 방향성 워크포워드 (롱/숏 동시 검증) — {mode_str}...")
     wf_df = walk_forward_directional(
         df, feature_cols,
         init_months=18, step_months=3,
         long_thr=0.60, short_thr=0.58,
+        fast_mode=fast,
     )
 
     print("\n  [워크포워드 결과]")
@@ -449,6 +453,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--scan",   action="store_true", help="스캔만 실행")
     parser.add_argument("--online", action="store_true", help="연속 학습 루프")
+    parser.add_argument("--fast",   action="store_true", help="XGB-only 빠른 모드 (TemporalXGB 스킵)")
     parser.add_argument("--interval", type=int, default=60, help="루프 간격(분)")
     parser.add_argument("--top",    type=int, default=5)
     args = parser.parse_args()
@@ -466,4 +471,4 @@ if __name__ == "__main__":
         run_continuous_learning(interval_min=args.interval)
 
     else:
-        run_full_pipeline()
+        run_full_pipeline(args)
