@@ -81,71 +81,112 @@ def load_all_data() -> pd.DataFrame:
 # 2. 방향성 워크포워드 백테스트
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 def walk_forward_directional(
-    df:          pd.DataFrame,
+    df:           pd.DataFrame,
     feature_cols: list,
-    init_months: int   = 18,
-    step_months: int   = 3,
-    long_thr:    float = 0.60,
-    short_thr:   float = 0.60,
-    fast_mode:   bool  = False,  # True = XGB만, TemporalXGB 스킵 (~3배 빠름)
+    init_months:  int   = 18,
+    step_months:  int   = 3,
+    long_thr:     float = 0.60,   # 폴백 임계값 (캘리브레이션 실패 시)
+    short_thr:    float = 0.58,
+    fast_mode:    bool  = False,  # True = XGB+LGBM만 (TemporalXGB 스킵)
+    use_regime:   bool  = True,   # True = 국면 필터 적용
 ) -> pd.DataFrame:
     """
     롱/숏 방향성 워크포워드 백테스트
 
+    핵심 개선:
+      - 학습 데이터 마지막 15%를 임계값 캘리브레이션에 사용
+      - 승률(정밀도) 기준 임계값 최적화 (AUC 아님)
+      - 국면 필터: BULL → LONG만, BEAR → SHORT만 (옵션)
+      - XGB + LightGBM 앙상블
+
     성과 지표:
-      - long_wr:  롱 신호 승률
-      - short_wr: 숏 신호 승률
+      - long_wr:     롱 신호 승률
+      - short_wr:    숏 신호 승률
       - combined_wr: 롱+숏 합산 승률
       - n_long, n_short: 신호 수
     """
     from ml.models import DirectionalEnsemble
 
-    # BTC 데이터만으로 날짜 기준 설정
+    # BTC 날짜 기준
     btc = df[df["symbol"] == "BTCUSDT"].copy() if "symbol" in df.columns else df.copy()
     btc["date"] = pd.to_datetime(btc["date"])
     btc = btc.sort_values("date").reset_index(drop=True)
 
     start_date  = btc["date"].min() + pd.DateOffset(months=init_months)
-    end_date    = btc["date"].max() - pd.DateOffset(days=7)  # 미래 예측 여유
+    end_date    = btc["date"].max() - pd.DateOffset(days=7)
     fold_starts = pd.date_range(start_date, end_date, freq=f"{step_months}MS")
 
     all_df = df.copy()
     all_df["date"] = pd.to_datetime(all_df["date"])
 
+    has_regime = "regime" in all_df.columns
+
     rows = []
     for fold_i, val_start in enumerate(fold_starts, 1):
         val_end = val_start + pd.DateOffset(months=step_months)
 
-        # 학습 데이터: val_start 이전 전체
         train_mask = all_df["date"] < val_start
         val_mask   = (all_df["date"] >= val_start) & (all_df["date"] < val_end)
 
-        X_tr   = all_df[train_mask][feature_cols]
-        y_lt   = all_df[train_mask]["target_long"]
-        y_st   = all_df[train_mask]["target_short"]
+        # 학습 데이터를 85%(모델학습) + 15%(임계값 캘리브레이션)으로 분리
+        tr_idx  = all_df[train_mask].index
+        split   = int(len(tr_idx) * 0.85)
+        fit_idx = tr_idx[:split]
+        cal_idx = tr_idx[split:]
+
+        X_fit  = all_df.loc[fit_idx][feature_cols]
+        y_lfit = all_df.loc[fit_idx]["target_long"]
+        y_sfit = all_df.loc[fit_idx]["target_short"]
+
+        X_cal  = all_df.loc[cal_idx][feature_cols]
+        y_lcal = all_df.loc[cal_idx]["target_long"]
+        y_scal = all_df.loc[cal_idx]["target_short"]
+
         X_val  = all_df[val_mask][feature_cols]
         y_lv   = all_df[val_mask]["target_long"]
         y_sv   = all_df[val_mask]["target_short"]
         ret_v  = all_df[val_mask]["target_ret"].fillna(0).values
 
-        if len(X_tr) < 200 or len(X_val) < 10:
+        if len(X_fit) < 200 or len(X_val) < 10:
             continue
 
-        print(f"  Fold {fold_i:2d}: 학습 {len(X_tr):,}개 "
+        print(f"  Fold {fold_i:2d}: 학습 {len(X_fit):,}개 "
               f"→ 검증 {val_start.date()}~{val_end.date()} ({len(X_val)}개)")
 
         try:
+            # 모델 학습 (캘리브레이션 세트를 validation으로 전달 → early stopping)
             model = DirectionalEnsemble(fast_mode=fast_mode)
-            model.fit(X_tr, y_lt, y_st,
-                      X_val, y_lv, y_sv,
+            model.fit(X_fit, y_lfit, y_sfit,
+                      X_cal, y_lcal, y_scal,
                       feature_cols)
+
+            # 임계값 캘리브레이션 (캘리브레이션 데이터 기준, 미래 누수 없음)
+            if len(X_cal) >= 20:
+                thr = model.find_precision_threshold(
+                    X_cal, y_lcal, y_scal,
+                    min_precision=0.54,
+                    min_signals=3,
+                )
+                l_thr = thr["long"]
+                s_thr = thr["short"]
+            else:
+                l_thr, s_thr = long_thr, short_thr
 
             lp = model.predict_proba_long(X_val)
             sp = model.predict_proba_short(X_val)
 
-            # 신호 결정
-            long_mask  = lp >= long_thr
-            short_mask = sp >= short_thr
+            # 국면 필터 (선택 옵션)
+            if use_regime and has_regime:
+                regime_val = all_df[val_mask]["regime"].fillna(1).values
+                # 국면 2=BULL → LONG 허용, 국면 0=BEAR → SHORT 허용
+                long_regime_ok  = (regime_val == 2)
+                short_regime_ok = (regime_val == 0)
+            else:
+                long_regime_ok  = np.ones(len(lp), dtype=bool)
+                short_regime_ok = np.ones(len(sp), dtype=bool)
+
+            long_mask  = (lp >= l_thr) & long_regime_ok
+            short_mask = (sp >= s_thr) & short_regime_ok
 
             # 승률 계산 (수수료 0.2% 차감)
             fee = 0.002
@@ -176,6 +217,8 @@ def walk_forward_directional(
                 "n_long":        int(long_mask.sum()),
                 "n_short":       int(short_mask.sum()),
                 "n_total":       int(combined_mask.sum()),
+                "long_thr":      round(l_thr, 2),
+                "short_thr":     round(s_thr, 2),
                 "long_wr":       round(long_wr,  4),
                 "short_wr":      round(short_wr, 4),
                 "combined_wr":   round(comb_wr,  4),
@@ -186,6 +229,7 @@ def walk_forward_directional(
 
         except Exception as e:
             print(f"    오류: {e}")
+            import traceback; traceback.print_exc()
             continue
 
     return pd.DataFrame(rows)
@@ -198,7 +242,6 @@ def train_and_save_directional(df: pd.DataFrame, feature_cols: list) -> dict:
     """전체 데이터로 최종 DirectionalEnsemble 학습 + 저장"""
     import pickle
     from ml.models import DirectionalEnsemble
-    from ml.tune   import find_optimal_threshold
 
     split = int(len(df) * 0.85)
     X_tr  = df.iloc[:split][feature_cols]
@@ -208,22 +251,17 @@ def train_and_save_directional(df: pd.DataFrame, feature_cols: list) -> dict:
     y_lv  = df.iloc[split:]["target_long"]
     y_sv  = df.iloc[split:]["target_short"]
 
-    print("  DirectionalEnsemble 최종 학습...")
-    model = DirectionalEnsemble()
+    print("  DirectionalEnsemble 최종 학습 (XGB + LightGBM + TemporalXGB)...")
+    model = DirectionalEnsemble(fast_mode=False)
     model.fit(X_tr, y_lt, y_st, X_val, y_lv, y_sv, feature_cols)
 
-    # 임계값 최적화
-    lp = model.predict_proba_long(X_val)
-    sp = model.predict_proba_short(X_val)
-    ret_val = df.iloc[split:]["target_ret"].fillna(0).values
-
-    long_opt  = find_optimal_threshold(lp, y_lv.values, ret_val,  min_signals=5)
-    short_opt = find_optimal_threshold(sp, y_sv.values, -ret_val, min_signals=5)
-
-    thresholds = {
-        "long":  long_opt["overall"],
-        "short": short_opt["overall"],
-    }
+    # 승률(정밀도) 기준 임계값 최적화
+    thr = model.find_precision_threshold(
+        X_val, y_lv, y_sv,
+        min_precision=0.56,
+        min_signals=5,
+    )
+    thresholds = {"long": thr["long"], "short": thr["short"]}
     print(f"  최적 임계값 — 롱: {thresholds['long']:.2f}  숏: {thresholds['short']:.2f}")
 
     # 저장
@@ -362,7 +400,7 @@ def run_full_pipeline(args=None):
 
     # ── Step 2: 방향성 워크포워드 ────────────────
     fast = getattr(args, "fast", False)
-    mode_str = "빠른(XGB-only)" if fast else "전체(XGB+TemporalXGB)"
+    mode_str = "빠른(XGB+LGBM)" if fast else "전체(XGB+LGBM+TemporalXGB)"
     print(f"\n[2/5] 방향성 워크포워드 (롱/숏 동시 검증) — {mode_str}...")
     wf_df = walk_forward_directional(
         df, feature_cols,
