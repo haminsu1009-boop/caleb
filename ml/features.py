@@ -547,6 +547,119 @@ def _add_extra_indicators(df: pd.DataFrame) -> pd.DataFrame:
     for w in [60, 120]:
         df[f"price_pctile_{w}"] = c.rolling(w).rank(pct=True)   # 0~1 (현재가의 과거 분위수)
 
+    # ═══════════════════════════════════════════════════
+    # 스크린샷 누락 지표 추가
+    # Williams Acc/Dist / BWI / AB Ratio /
+    # 그물망 / 르모차트 / CMF 크로스 / DMI 크로스 /
+    # Stochastic Momentum (SMI)
+    # ═══════════════════════════════════════════════════
+
+    # ── Williams Accumulation/Distribution ────────────
+    # Larry Williams의 A/D: 종가가 중간보다 위면 축적, 아래면 분산
+    true_high = pd.concat([h, c.shift(1)], axis=1).max(axis=1)
+    true_low  = pd.concat([l, c.shift(1)], axis=1).min(axis=1)
+    williams_ad = pd.Series(0.0, index=c.index)
+    for i in range(1, len(c)):
+        ci, hi_, li_ = float(c.iloc[i]), float(true_high.iloc[i]), float(true_low.iloc[i])
+        mid = (hi_ + li_) / 2
+        if ci > mid:
+            williams_ad.iloc[i] = williams_ad.iloc[i-1] + (ci - li_)
+        elif ci < mid:
+            williams_ad.iloc[i] = williams_ad.iloc[i-1] - (hi_ - ci)
+        else:
+            williams_ad.iloc[i] = williams_ad.iloc[i-1]
+    # 가격 대비 정규화
+    w_scale = williams_ad.abs().rolling(200, min_periods=20).max() + 1e-9
+    df["williams_ad"]       = williams_ad / w_scale
+    df["williams_ad_slope"] = (williams_ad.diff(5) / (w_scale + 1e-9))   # 방향성
+
+    # ── BWI (Bollinger Bandwidth Index) ───────────────
+    # (UpperBB - LowerBB) / MiddleBB × 100 → 변동성 확장/수축
+    for w, k in [(20, 2.0)]:
+        mid_bb = c.rolling(w).mean()
+        std_bb = c.rolling(w).std()
+        bwi = (2 * k * std_bb) / (mid_bb + 1e-9) * 100
+        df["bwi"] = bwi
+        # BWI 최저점 대비 현재 위치 (Squeeze 해소 시기 탐지)
+        df["bwi_vs_low"] = bwi / (bwi.rolling(100, min_periods=20).min() + 1e-9)
+
+    # ── AB Ratio (Advance/Bearish Ratio) ──────────────
+    # 상승/하락 거래량 비율: 상승일 거래량 ÷ 하락일 거래량
+    up_v   = v.where(c > c.shift(1), 0.0)
+    dn_v   = v.where(c < c.shift(1), 0.0)
+    for w in [10, 20]:
+        ab = up_v.rolling(w).sum() / (dn_v.rolling(w).sum() + 1e-9)
+        df[f"ab_ratio_{w}"] = ab / (ab.rolling(60, min_periods=10).mean() + 1e-9)  # 정규화
+
+    # ── 그물망 (Moving Average Web) ────────────────────
+    # 단/중/장기 MA 5개의 배열 상태 → 정배열(1) / 역배열(-1)
+    ma5   = c.rolling(5).mean()
+    ma10  = c.rolling(10).mean()
+    ma20  = c.rolling(20).mean()
+    ma60  = c.rolling(60).mean()
+    ma120 = c.rolling(120).mean()
+    # 정배열: 5 > 10 > 20 > 60 > 120
+    perfect_bull = ((ma5 > ma10) & (ma10 > ma20) & (ma20 > ma60) & (ma60 > ma120)).astype(int)
+    # 역배열: 5 < 10 < 20 < 60 < 120
+    perfect_bear = ((ma5 < ma10) & (ma10 < ma20) & (ma20 < ma60) & (ma60 < ma120)).astype(int)
+    # 배열 점수 (0~4): 몇 개나 순서대로 배열됐는지
+    score = ((ma5 > ma10).astype(int) + (ma10 > ma20).astype(int) +
+             (ma20 > ma60).astype(int) + (ma60 > ma120).astype(int))
+    df["ma_web_bull"]  = perfect_bull          # 완전 정배열
+    df["ma_web_bear"]  = perfect_bear          # 완전 역배열
+    df["ma_web_score"] = (score - 2) / 2       # -1(역배열)~+1(정배열) 정규화
+    # 그물망 수렴도: MA들이 얼마나 뭉쳐있나 (낮을수록 돌파 임박)
+    ma_spread = pd.concat([ma5, ma10, ma20, ma60, ma120], axis=1).std(axis=1)
+    df["ma_web_spread"] = ma_spread / (c + 1e-9)
+
+    # ── 르모차트 (Renko-style 피처) ────────────────────
+    # Renko: ATR 기준 벽돌 단위로 움직임만 기록 (시간 무시)
+    # 피처: 연속 상승/하락 벽돌 수, 방향 전환 신호
+    atr10 = tr.rolling(10).mean()  # ATR10 as brick size
+    brick = atr10.mean() if not atr10.empty else 1.0
+    # 방향 변화 = 가격 변동이 벽돌 크기 초과
+    price_chg = c.diff().abs()
+    df["renko_signal"]     = (price_chg > atr10).astype(int)          # 벽돌 생성 시그널
+    df["renko_bull"]       = ((c.diff() > atr10)).astype(int)         # 상승 벽돌
+    df["renko_bear"]       = ((c.diff() < -atr10)).astype(int)        # 하락 벽돌
+    # 연속 같은 방향 횟수 (모멘텀 강도 대리변수)
+    direction_sign = np.sign(c.diff())
+    df["renko_consec"] = direction_sign.groupby(
+        (direction_sign != direction_sign.shift()).cumsum()).cumcount() / 10  # 정규화
+
+    # ── Chaikin Money Flow 크로스 ─────────────────────
+    # CMF가 0선 위로 돌파 → 매수, 아래로 돌파 → 매도
+    cmf = df["cmf_20"]   # 이미 계산된 CMF 재사용
+    df["cmf_cross_up"]  = ((cmf > 0) & (cmf.shift(1) <= 0)).astype(int)   # 0선 상향돌파
+    df["cmf_cross_dn"]  = ((cmf < 0) & (cmf.shift(1) >= 0)).astype(int)   # 0선 하향돌파
+    df["cmf_bull_zone"] = (cmf > 0).astype(int)                            # 강세 구간
+
+    # ── DMI 크로스 (+DI / -DI 교차) ──────────────────
+    # 이미 계산된 +DI/-DI 재계산 (전역 변수 없으므로 다시 계산)
+    tr2b = pd.concat([h - l, (h - c.shift()).abs(), (l - c.shift()).abs()], axis=1).max(axis=1)
+    pdm2 = h.diff().clip(lower=0)
+    mdm2 = (-l.diff()).clip(lower=0)
+    atr2 = tr2b.rolling(14).mean()
+    pdi  = 100 * pdm2.rolling(14).mean() / (atr2 + 1e-9)
+    mdi  = 100 * mdm2.rolling(14).mean() / (atr2 + 1e-9)
+    df["dmi_cross_bull"] = ((pdi > mdi) & (pdi.shift(1) <= mdi.shift(1))).astype(int)  # +DI 상향돌파
+    df["dmi_cross_bear"] = ((pdi < mdi) & (pdi.shift(1) >= mdi.shift(1))).astype(int)  # -DI 상향돌파
+    df["dmi_bull_zone"]  = (pdi > mdi).astype(int)
+
+    # ── Stochastic Momentum Index (SMI) ───────────────
+    # 일반 스토캐스틱보다 정교: 중간값 기준 이중 스무딩
+    for p in [14]:
+        m = (h.rolling(p).max() + l.rolling(p).min()) / 2   # 중간값
+        d = h.rolling(p).max() - l.rolling(p).min()          # 범위
+        # 이중 EMA 스무딩
+        ds  = (c - m).ewm(span=3, adjust=False).mean().ewm(span=3, adjust=False).mean()
+        dhl = (d / 2).ewm(span=3, adjust=False).mean().ewm(span=3, adjust=False).mean()
+        smi = ds / (dhl + 1e-9) * 100
+        df[f"smi_{p}"]     = smi / 100                                           # -1~1 정규화
+        df[f"smi_{p}_sig"] = smi.ewm(span=10, adjust=False).mean() / 100
+        df[f"smi_{p}_cross"] = ((smi > smi.ewm(span=10, adjust=False).mean()) &
+                                (smi.shift(1) <= smi.shift(1).ewm(span=10, adjust=False).mean())).astype(int)
+
     return df
 
 
