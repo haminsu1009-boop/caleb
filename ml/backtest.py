@@ -9,7 +9,7 @@ ml/backtest.py
     python ml/backtest.py --from_year 2023                  # 2023년부터
 """
 
-import os, sys, glob, argparse, warnings, pickle
+import os, sys, argparse, warnings, pickle
 import numpy as np
 import pandas as pd
 import matplotlib
@@ -21,22 +21,18 @@ warnings.filterwarnings("ignore")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-from ml.models import DirectionalEnsemble
+# train_directional.py에서 동일한 피처/데이터 함수 import (컬럼명 일치 보장)
+from ml.train_directional import (
+    load_ohlcv, load_indicators, merge_indicators, add_features,
+    FEE_RATE, SLIPPAGE, TP_PCT, SL_PCT, HORIZON
+)
 
 # ── 경로 ──────────────────────────────────────────────
-DATA_DIR  = os.path.join(ROOT, "data")
-IND_DIR   = os.path.join(DATA_DIR, "indicators")
 MODEL_DIR = os.path.join(ROOT, "ml", "saved_models")
 CHART_DIR = os.path.join(ROOT, "charts")
 os.makedirs(CHART_DIR, exist_ok=True)
 
-# ── 백테스트 파라미터 ──────────────────────────────────
-FEE_RATE = 0.0005   # 편도 수수료 0.05%
-SLIPPAGE = 0.0005   # 슬리피지
-TP_PCT   = 0.005    # Take-Profit 0.5%
-SL_PCT   = 0.003    # Stop-Loss  0.3%
-HORIZON  = 12       # 타겟 계산 봉 수
-SIGNAL_THR = 0.58   # 신호 임계값 (모델 저장 threshold 없을 경우 기본값)
+SIGNAL_THR = 0.58   # 신호 임계값 기본값
 
 # 심볼×봉단위 목록
 ALL_SYMBOLS   = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT", "SOLUSDT", "XRPUSDT"]
@@ -46,43 +42,6 @@ ALL_INTERVALS = ["5m", "1h", "4h", "1d"]
 # ══════════════════════════════════════════════════════
 # 유틸
 # ══════════════════════════════════════════════════════
-
-def load_ohlcv(symbol: str, interval: str, from_year: int = 2024) -> pd.DataFrame:
-    pattern = os.path.join(DATA_DIR, f"{symbol}_{interval}_*.csv.gz")
-    files = sorted(f for f in glob.glob(pattern)
-                   if "_all" not in f
-                   and int(os.path.basename(f).split("_")[-1].replace(".csv.gz", "")) >= from_year)
-    if not files:
-        raise FileNotFoundError(f"파일 없음: {symbol} {interval} (from {from_year})")
-
-    dfs = []
-    for f in files:
-        df = pd.read_csv(f, compression="gzip")
-        ts_raw = df["timestamp"].astype(str).iloc[0]
-        try:
-            ts_test = pd.to_datetime(ts_raw)
-            if ts_test.year > 2100 or ts_test.year < 2010:
-                raise ValueError
-            df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
-        except Exception:
-            try:
-                df["timestamp"] = pd.to_datetime(
-                    df["timestamp"].astype(float).astype("int64"), unit="ms", errors="coerce")
-            except Exception:
-                df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
-        df = df[df["timestamp"].dt.year.between(2010, 2030)]
-        if df.empty:
-            continue
-        dfs.append(df)
-
-    df = (pd.concat(dfs)
-            .drop_duplicates("timestamp")
-            .sort_values("timestamp")
-            .reset_index(drop=True))
-    df = df.rename(columns={"timestamp": "datetime"})
-    for c in ["open", "high", "low", "close", "volume"]:
-        df[c] = df[c].astype(float)
-    return df
 
 
 def load_model(symbol: str, interval: str):
@@ -99,83 +58,6 @@ def load_model(symbol: str, interval: str):
         feature_cols = pickle.load(f)
     return model, feature_cols
 
-
-def add_features(df: pd.DataFrame) -> pd.DataFrame:
-    """train_directional.py와 동일한 피처 계산"""
-    df = df.copy()
-    c = df["close"]; h = df["high"]; l = df["low"]
-    v = df["volume"]; o = df["open"]
-
-    for n in [1, 3, 6, 12, 24, 48, 96, 288]:
-        df[f"ret_{n}"] = c.pct_change(n)
-    for w in [12, 24, 48, 96, 288]:
-        df[f"vol_{w}"] = c.pct_change().rolling(w).std()
-
-    for p in [6, 14, 24]:
-        delta = c.diff()
-        g  = delta.clip(lower=0).ewm(span=p, adjust=False).mean()
-        ls = (-delta.clip(upper=0)).ewm(span=p, adjust=False).mean()
-        rsi = 100 - 100 / (1 + g / (ls + 1e-9))
-        df[f"rsi_{p}"]       = rsi / 100
-        df[f"rsi_{p}_slope"] = rsi.diff(3)
-
-    e12 = c.ewm(span=12, adjust=False).mean()
-    e26 = c.ewm(span=26, adjust=False).mean()
-    macd = e12 - e26; sig = macd.ewm(span=9, adjust=False).mean()
-    df["macd"]           = macd / c
-    df["macd_sig"]       = sig  / c
-    df["macd_hist"]      = (macd - sig) / c
-    df["macd_cross_up"]  = ((macd > sig) & (macd.shift(1) <= sig.shift(1))).astype(int)
-    df["macd_cross_down"]= ((macd < sig) & (macd.shift(1) >= sig.shift(1))).astype(int)
-
-    for w in [20, 48]:
-        mid = c.rolling(w).mean(); std = c.rolling(w).std()
-        df[f"bb_pos_{w}"]    = (c - mid) / (2 * std + 1e-9)
-        df[f"bb_width_{w}"]  = (4 * std) / (mid + 1e-9)
-        df[f"bb_squeeze_{w}"]= (std < std.rolling(w * 2).mean() * 0.75).astype(int)
-
-    for p in [14, 24]:
-        lo = l.rolling(p).min(); hi = h.rolling(p).max()
-        k  = (c - lo) / (hi - lo + 1e-9); d = k.rolling(3).mean()
-        df[f"stoch_k_{p}"] = k; df[f"stoch_d_{p}"] = d
-        df[f"stoch_os_{p}"]= (k < 0.2).astype(int)
-        df[f"stoch_ob_{p}"]= (k > 0.8).astype(int)
-
-    tr = pd.concat([h - l, (h - c.shift()).abs(), (l - c.shift()).abs()], axis=1).max(axis=1)
-    atr14 = tr.ewm(span=14, adjust=False).mean()
-    df["atr_norm"] = atr14 / c
-    for p in [14, 28]:
-        dm_pos = (h.diff()).clip(lower=0)
-        dm_neg = (-l.diff()).clip(lower=0)
-        di_pos = dm_pos.ewm(span=p, adjust=False).mean()
-        di_neg = dm_neg.ewm(span=p, adjust=False).mean()
-        dx = (di_pos - di_neg).abs() / (di_pos + di_neg + 1e-9)
-        df[f"adx_{p}"]    = dx.ewm(span=p, adjust=False).mean()
-        df[f"di_pos_{p}"] = di_pos / (atr14 + 1e-9)
-        df[f"di_neg_{p}"] = di_neg / (atr14 + 1e-9)
-
-    for w in [5, 10, 20, 50, 100, 200]:
-        ma = c.rolling(w).mean()
-        df[f"ma_ratio_{w}"] = c / (ma + 1e-9) - 1
-        df[f"ma_slope_{w}"] = ma.pct_change(3)
-
-    df["vol_ratio"]   = v / (v.rolling(20).mean() + 1e-9)
-    df["vol_slope"]   = v.pct_change(5)
-    df["vol_burst"]   = (df["vol_ratio"] > 2.0).astype(int)
-    df["obv"]         = (np.sign(c.diff()) * v).cumsum()
-    df["obv_norm"]    = df["obv"] / (df["obv"].rolling(50).std() + 1e-9)
-    df["body"]        = (c - o).abs() / (h - l + 1e-9)
-    df["upper_wick"]  = (h - c.clip(lower=o)) / (h - l + 1e-9)
-    df["lower_wick"]  = (c.clip(upper=o) - l) / (h - l + 1e-9)
-    df["doji"]        = (df["body"] < 0.1).astype(int)
-    df["hour_sin"]    = np.sin(2 * np.pi * df["datetime"].dt.hour / 24)
-    df["hour_cos"]    = np.cos(2 * np.pi * df["datetime"].dt.hour / 24)
-    df["dow_sin"]     = np.sin(2 * np.pi * df["datetime"].dt.dayofweek / 7)
-    df["dow_cos"]     = np.cos(2 * np.pi * df["datetime"].dt.dayofweek / 7)
-    df["month_sin"]   = np.sin(2 * np.pi * df["datetime"].dt.month / 12)
-    df["month_cos"]   = np.cos(2 * np.pi * df["datetime"].dt.month / 12)
-
-    return df
 
 
 def simulate_trades(df: pd.DataFrame, model, feature_cols: list,
@@ -460,7 +342,14 @@ def run_backtest(symbol: str, interval: str, from_year: int) -> dict | None:
     except FileNotFoundError as e:
         print(f"  ❌ {e}"); return None
 
-    # 피처 생성
+    # 외부 지표 병합 (fear&greed, macro 등)
+    try:
+        ind = load_indicators()
+        df  = merge_indicators(df, ind)
+    except Exception:
+        pass  # 지표 없어도 진행
+
+    # 피처 생성 (train_directional.py와 동일 함수)
     df = add_features(df)
     df = df.dropna(subset=feature_cols).reset_index(drop=True)
     print(f"  🔧 피처 완성: {len(df):,}행 × {len(feature_cols)}피처")
