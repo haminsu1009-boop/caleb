@@ -1,0 +1,76 @@
+name: 🤖 ML 모델 학습 & 백테스트
+
+on:
+  workflow_dispatch:
+    inputs:
+      interval:
+        description: "봉 단위 (5m / 1h / 4h / 1d)"
+        required: false
+        default: "1h"
+      fast:
+        description: "fast mode — TemporalXGB 스킵 (true/false)"
+        required: false
+        default: "false"
+      from_year:
+        description: "데이터 시작 연도 (예: 2020)"
+        required: false
+        default: "2020"
+
+permissions:
+  contents: write
+
+jobs:
+  train:
+    name: "🤖 학습 (${{ github.event.inputs.interval }})"
+    runs-on: ubuntu-latest
+    timeout-minutes: 360   # 최대 6시간
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/quant-trading-bot-tkjtd
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+
+      - name: 패키지 설치
+        run: |
+          pip install pandas numpy scikit-learn xgboost lightgbm matplotlib
+
+      - name: ML 학습 & 워크포워드 백테스트
+        run: |
+          FAST_FLAG=""
+          if [ "${{ github.event.inputs.fast }}" = "true" ]; then
+            FAST_FLAG="--fast"
+          fi
+          python ml/train_directional.py \
+            --interval ${{ github.event.inputs.interval }} \
+            --from ${{ github.event.inputs.from_year }} \
+            $FAST_FLAG
+
+      - name: 결과 저장 (모델 + 차트 + CSV)
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add ml/saved_models/ charts/ 2>/dev/null || true
+          git diff --staged --quiet && echo "변경 없음" && exit 0
+          git commit -m "🤖 ML 학습 완료 — ${{ github.event.inputs.interval }} (fast=${{ github.event.inputs.fast }})"
+          for i in 1 2 3 4 5 6; do
+            sleep $((RANDOM % 15 + i * 3))
+            git fetch origin claude/quant-trading-bot-tkjtd
+            git rebase origin/claude/quant-trading-bot-tkjtd || { git rebase --abort; continue; }
+            git push origin claude/quant-trading-bot-tkjtd && break || true
+          done
+
+      - name: 결과 요약 출력
+        if: always()
+        run: |
+          echo "================================================"
+          echo "  모델 파일:"
+          ls -lh ml/saved_models/ 2>/dev/null || echo "  없음"
+          echo ""
+          echo "  차트 파일:"
+          ls -lh charts/*.png 2>/dev/null | tail -5 || echo "  없음"
+          echo "================================================"
