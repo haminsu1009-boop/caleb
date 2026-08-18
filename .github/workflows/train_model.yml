@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       interval:
-        description: "봉 단위 (5m / 1h / 4h / 1d)"
+        description: "봉 단위 — 하나만 입력하거나 all (예: 5m, 1h, 4h, 1d, all)"
         required: false
         default: "1h"
       fast:
@@ -45,10 +45,28 @@ jobs:
           if [ "${{ github.event.inputs.fast }}" = "true" ]; then
             FAST_FLAG="--fast"
           fi
-          python ml/train_directional.py \
-            --interval ${{ github.event.inputs.interval }} \
-            --from ${{ github.event.inputs.from_year }} \
-            $FAST_FLAG
+
+          INTERVAL="${{ github.event.inputs.interval }}"
+
+          # "all" 입력 시 주요 4개 타임프레임 순서대로 학습
+          if [ "$INTERVAL" = "all" ]; then
+            INTERVALS="5m 1h 4h 1d"
+          else
+            INTERVALS="$INTERVAL"
+          fi
+
+          for IV in $INTERVALS; do
+            echo "=========================================="
+            echo "  ▶ 학습 시작: $IV"
+            echo "=========================================="
+            python ml/train_directional.py \
+              --interval "$IV" \
+              --from ${{ github.event.inputs.from_year }} \
+              $FAST_FLAG || {
+              echo "⚠️  $IV 학습 실패 — 다음 봉 단위로 계속"
+              continue
+            }
+          done
 
       - name: 결과 저장 (모델 + 차트 + CSV)
         run: |
@@ -69,8 +87,8 @@ jobs:
         run: |
           echo "================================================"
           echo "  모델 파일:"
-          ls -lh ml/saved_models/ 2>/dev/null || echo "  없음"
+          ls -lh ml/saved_models/*.pkl 2>/dev/null || echo "  없음"
           echo ""
           echo "  차트 파일:"
-          ls -lh charts/*.png 2>/dev/null | tail -5 || echo "  없음"
+          ls -lh charts/directional_bt_*.png 2>/dev/null | tail -10 || echo "  없음"
           echo "================================================"
