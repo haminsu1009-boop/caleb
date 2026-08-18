@@ -716,6 +716,175 @@ def add_features(df: pd.DataFrame) -> pd.DataFrame:
     # 주말 여부
     df["is_weekend"]     = (dt.dt.dayofweek >= 5).astype(int)
 
+    # ══════════════════════════════════════════════
+    # Y. 추가 지표 세트 (+55 피처)
+    # ══════════════════════════════════════════════
+
+    # ── Y1. Supertrend (ATR 기반 추세 추적) ──────
+    for mult in [1.5, 2.0, 3.0]:
+        ema_st = c.ewm(span=10, adjust=False).mean()
+        upper_st = ema_st + mult * atr14
+        lower_st = ema_st - mult * atr14
+        trend_st = pd.Series(0, index=c.index)
+        for i in range(1, len(c)):
+            if c.iloc[i] > upper_st.iloc[i - 1]:
+                trend_st.iloc[i] = 1
+            elif c.iloc[i] < lower_st.iloc[i - 1]:
+                trend_st.iloc[i] = -1
+            else:
+                trend_st.iloc[i] = trend_st.iloc[i - 1]
+        m = str(mult).replace(".", "")
+        df[f"supertrend_{m}"]      = trend_st
+        df[f"supertrend_{m}_bull"] = (trend_st == 1).astype(int)
+        df[f"supertrend_{m}_bear"] = (trend_st == -1).astype(int)
+
+    # ── Y2. Hull Moving Average (HMA) ────────────
+    for p in [9, 21, 55]:
+        half_len = max(int(p / 2), 1)
+        sqrt_len = max(int(np.sqrt(p)), 1)
+        wma_half = c.rolling(half_len).mean()
+        wma_full = c.rolling(p).mean()
+        hma_raw  = 2 * wma_half - wma_full
+        hma      = hma_raw.rolling(sqrt_len).mean()
+        df[f"hma_{p}_vs_c"]    = (c / (hma + 1e-9)) - 1
+        df[f"hma_{p}_slope"]   = hma.pct_change(3)
+        df[f"hma_{p}_bull"]    = (c > hma).astype(int)
+
+    # ── Y3. Choppiness Index (추세 vs 횡보 판별) ─
+    for p in [14, 28]:
+        atr_sum = tr.rolling(p).sum()
+        hh_ll   = h.rolling(p).max() - l.rolling(p).min()
+        chop    = 100 * np.log10(atr_sum / (hh_ll + 1e-9)) / np.log10(p)
+        df[f"chop_{p}"]        = chop / 100
+        df[f"chop_{p}_trend"]  = (chop < 38.2).astype(int)   # < 38.2 = 강한 추세
+        df[f"chop_{p}_chop"]   = (chop > 61.8).astype(int)   # > 61.8 = 횡보
+
+    # ── Y4. Fisher Transform (가격 정규화 오실레이터)
+    for p in [9, 14]:
+        hi_p  = h.rolling(p).max()
+        lo_p  = l.rolling(p).min()
+        val   = 2 * ((c - lo_p) / (hi_p - lo_p + 1e-9)) - 1
+        val   = val.clip(-0.999, 0.999)
+        fish  = 0.5 * np.log((1 + val) / (1 - val + 1e-9))
+        df[f"fisher_{p}"]         = fish
+        df[f"fisher_{p}_signal"]  = fish.shift(1)
+        df[f"fisher_{p}_bull"]    = ((fish > fish.shift(1)) & (fish > 0)).astype(int)
+        df[f"fisher_{p}_bear"]    = ((fish < fish.shift(1)) & (fish < 0)).astype(int)
+
+    # ── Y5. Elder Ray (Bull/Bear Power) ──────────
+    ema13  = c.ewm(span=13, adjust=False).mean()
+    bull_p = h - ema13
+    bear_p = l - ema13
+    df["elder_bull"]       = bull_p / (c + 1e-9)
+    df["elder_bear"]       = bear_p / (c + 1e-9)
+    df["elder_bull_pos"]   = (bull_p > 0).astype(int)
+    df["elder_bear_neg"]   = (bear_p < 0).astype(int)
+    df["elder_bull_slope"] = bull_p.diff(3) / (c + 1e-9)
+    df["elder_bear_slope"] = bear_p.diff(3) / (c + 1e-9)
+
+    # ── Y6. True Strength Index (TSI) ────────────
+    m1   = c.diff()
+    sm1  = m1.ewm(span=25, adjust=False).mean().ewm(span=13, adjust=False).mean()
+    sm2  = m1.abs().ewm(span=25, adjust=False).mean().ewm(span=13, adjust=False).mean()
+    tsi  = 100 * sm1 / (sm2 + 1e-9)
+    df["tsi"]          = tsi / 100
+    df["tsi_signal"]   = tsi.ewm(span=7, adjust=False).mean() / 100
+    df["tsi_bull"]     = (tsi > 0).astype(int)
+    df["tsi_cross_up"] = ((tsi > tsi.ewm(span=7, adjust=False).mean()) &
+                          (tsi.shift(1) <= tsi.shift(1).ewm(span=7, adjust=False).mean())).astype(int)
+
+    # ── Y7. Heikin-Ashi 파생 피처 ────────────────
+    ha_c = (o + h + l + c) / 4
+    ha_o_raw = pd.Series(np.nan, index=c.index)
+    ha_o_raw.iloc[0] = (o.iloc[0] + c.iloc[0]) / 2
+    for i in range(1, len(c)):
+        ha_o_raw.iloc[i] = (ha_o_raw.iloc[i-1] + ha_c.iloc[i-1]) / 2
+    ha_h = pd.concat([h, ha_o_raw, ha_c], axis=1).max(axis=1)
+    ha_l = pd.concat([l, ha_o_raw, ha_c], axis=1).min(axis=1)
+    ha_body = ha_c - ha_o_raw
+    ha_rng  = (ha_h - ha_l).replace(0, np.nan)
+    df["ha_body_ratio"]  = ha_body / (ha_rng + 1e-9)  # 양수=상승봉
+    df["ha_no_lower"]    = (ha_l == ha_o_raw.clip(upper=ha_c)).astype(int)  # 강세(아래꼬리 없음)
+    df["ha_no_upper"]    = (ha_h == ha_o_raw.clip(lower=ha_c)).astype(int)  # 약세(위꼬리 없음)
+    ha_bull_streak = ha_body.gt(0).astype(int)
+    df["ha_streak"]      = ha_bull_streak.groupby(
+        (ha_bull_streak != ha_bull_streak.shift()).cumsum()).cumcount() + 1
+    df["ha_streak"]     *= ha_bull_streak.map({1:1, 0:-1}).fillna(0)
+
+    # ── Y8. Linear Regression (추세 강도) ────────
+    for p in [10, 20, 50]:
+        idx = np.arange(p, dtype=np.float32)
+        lr_slope = c.rolling(p).apply(
+            lambda x: np.polyfit(idx, x, 1)[0] / (x[-1] + 1e-9), raw=True)
+        lr_dev   = c.rolling(p).apply(
+            lambda x: (x[-1] - np.polyfit(idx, x, 1)[0] * (p-1) - np.polyfit(idx, x, 1)[1]) /
+                      (x.std() + 1e-9), raw=True)
+        df[f"lr_slope_{p}"] = lr_slope
+        df[f"lr_dev_{p}"]   = lr_dev
+        df[f"lr_bull_{p}"]  = (lr_slope > 0).astype(int)
+
+    # ── Y9. 연속 캔들 (Consecutive Candle Streak)
+    bull_c = (c > o).astype(int)
+    streak_arr = np.zeros(len(c), dtype=np.int8)
+    for i in range(1, len(c)):
+        if bull_c.iloc[i] == 1:
+            streak_arr[i] = max(streak_arr[i-1] + 1, 1)
+        else:
+            streak_arr[i] = min(streak_arr[i-1] - 1, -1)
+    df["candle_streak"]  = streak_arr                     # 양수=연속상승, 음수=연속하락
+    df["streak_bull_3"]  = (streak_arr >= 3).astype(int)  # 3봉 연속 상승
+    df["streak_bear_3"]  = (streak_arr <= -3).astype(int) # 3봉 연속 하락
+    df["streak_bull_5"]  = (streak_arr >= 5).astype(int)
+    df["streak_bear_5"]  = (streak_arr <= -5).astype(int)
+
+    # ── Y10. 피봇 포인트 확장 (R2/R3/S2/S3) ─────
+    pivot_v  = (h.shift(1) + l.shift(1) + c.shift(1)) / 3
+    rng_prev = h.shift(1) - l.shift(1)
+    r2 = pivot_v + rng_prev
+    r3 = h.shift(1) + 2 * (pivot_v - l.shift(1))
+    s2 = pivot_v - rng_prev
+    s3 = l.shift(1) - 2 * (h.shift(1) - pivot_v)
+    df["vs_r2"] = (c - r2) / (atr14 + 1e-9)
+    df["vs_r3"] = (c - r3) / (atr14 + 1e-9)
+    df["vs_s2"] = (c - s2) / (atr14 + 1e-9)
+    df["vs_s3"] = (c - s3) / (atr14 + 1e-9)
+    df["above_r2"] = (c > r2).astype(int)
+    df["below_s2"] = (c < s2).astype(int)
+
+    # ── Y11. Volume Price Trend (VPT) ────────────
+    vpt = (c.pct_change() * v).fillna(0).cumsum()
+    df["vpt_slope"]   = vpt.pct_change(12)
+    df["vpt_vs_ma24"] = (vpt / (vpt.rolling(24).mean() + 1e-9)) - 1
+    df["vpt_bull"]    = (vpt.pct_change(5) > 0).astype(int)
+
+    # ── Y12. 가격 가속도 (2차 미분) ──────────────
+    df["ret_accel_5"]  = c.pct_change(5) - c.pct_change(5).shift(5)
+    df["ret_accel_12"] = c.pct_change(12) - c.pct_change(12).shift(12)
+    df["accel_bull"]   = (df["ret_accel_5"] > 0).astype(int)
+
+    # ── Y13. 변동성 비율 확장 ─────────────────────
+    for w in [6, 20, 60]:
+        df[f"ret_std_{w}"] = c.pct_change().rolling(w).std()
+    df["vol_compress"] = (df["ret_std_6"] < df["ret_std_20"] * 0.5).astype(int)
+    df["vol_expand"]   = (df["ret_std_6"] > df["ret_std_20"] * 1.5).astype(int)
+
+    # ── Y14. 상대 변동성 지수 (RVI) ──────────────
+    rvi_num = (c - o).rolling(4).mean()
+    rng_bar = (h - l).rolling(4).mean()
+    rvi     = rvi_num / (rng_bar + 1e-9)
+    rvi_sig = rvi.rolling(4).mean()
+    df["rvi"]          = rvi
+    df["rvi_signal"]   = rvi_sig
+    df["rvi_cross_up"] = ((rvi > rvi_sig) & (rvi.shift(1) <= rvi_sig.shift(1))).astype(int)
+    df["rvi_bull"]     = (rvi > 0).astype(int)
+
+    # ── Y15. 과거 N봉 최고/최저 대비 위치 ────────
+    for p in [10, 30, 100]:
+        hi_p = h.rolling(p).max()
+        lo_p = l.rolling(p).min()
+        rng_p = (hi_p - lo_p).replace(0, np.nan)
+        df[f"pos_in_range_{p}"] = (c - lo_p) / (rng_p + 1e-9)  # 0=바닥, 1=천장
+
     return df
 
 
