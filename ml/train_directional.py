@@ -156,6 +156,167 @@ def merge_indicators(df: pd.DataFrame, ind: dict) -> pd.DataFrame:
     return df
 
 
+def load_futures_data(symbol: str) -> dict:
+    """펀딩비 / OI / LSR 캐시 파일 로드 (data/futures/ 디렉터리)"""
+    fut_dir = os.path.join(DATA_DIR, "futures")
+    fut = {}
+    for tag, fname in [
+        ("funding", f"{symbol}_funding.csv.gz"),
+        ("oi",      f"{symbol}_oi_1h.csv.gz"),
+        ("lsr",     f"{symbol}_lsr_1h.csv.gz"),
+    ]:
+        path = os.path.join(fut_dir, fname)
+        if os.path.exists(path):
+            try:
+                d = pd.read_csv(path, compression="gzip")
+                d["datetime"] = pd.to_datetime(d["datetime"])
+                fut[tag] = d
+                print(f"  {tag}: {len(d):,}건")
+            except Exception as e:
+                print(f"  {tag} 로드 실패: {e}")
+    return fut
+
+
+def merge_futures(df: pd.DataFrame, symbol: str) -> pd.DataFrame:
+    """펀딩비/OI/LSR을 OHLCV df에 병합 (시간 기반 asof merge)"""
+    fut = load_futures_data(symbol)
+    df = df.copy()
+    df = df.sort_values("datetime").reset_index(drop=True)
+
+    if "funding" in fut:
+        fd = fut["funding"].sort_values("datetime").set_index("datetime")
+        # 각 봉의 datetime에 가장 최근 펀딩비 forward-fill
+        fr = fd["fundingRate"].reindex(
+            df["datetime"].tolist() + fd.index.tolist()
+        ).sort_index().ffill().reindex(df["datetime"])
+        df["funding_rate"] = fr.values
+        df["funding_rate"] = df["funding_rate"].fillna(0)
+
+    if "oi" in fut:
+        oi = fut["oi"].sort_values("datetime").set_index("datetime")
+        for col in ["oi", "oi_value"]:
+            if col in oi.columns:
+                s = oi[col].reindex(
+                    df["datetime"].tolist() + oi.index.tolist()
+                ).sort_index().ffill().reindex(df["datetime"])
+                df[col] = s.values
+        df["oi"]       = df["oi"].fillna(method="ffill")
+        df["oi_value"] = df["oi_value"].fillna(method="ffill")
+
+    if "lsr" in fut:
+        ls = fut["lsr"].sort_values("datetime").set_index("datetime")
+        for col in ["lsr", "long_pct"]:
+            if col in ls.columns:
+                s = ls[col].reindex(
+                    df["datetime"].tolist() + ls.index.tolist()
+                ).sort_index().ffill().reindex(df["datetime"])
+                df[col] = s.values
+
+    return df
+
+
+def add_futures_features(df: pd.DataFrame) -> pd.DataFrame:
+    """펀딩비 / OI / LSR 파생 피처 추가"""
+    df = df.copy()
+
+    # ── 펀딩비 피처 ──────────────────────────────────
+    if "funding_rate" in df.columns:
+        fr = df["funding_rate"]
+        df["fr_pct"]          = fr * 100                           # 퍼센트 단위
+        df["fr_extreme_pos"]  = (fr > 0.001).astype(int)          # 과열 (>0.1%)
+        df["fr_extreme_neg"]  = (fr < -0.001).astype(int)         # 공포 (<-0.1%)
+        df["fr_positive"]     = (fr > 0).astype(int)
+        df["fr_ma8"]          = fr.rolling(8).mean()               # 8봉 평균
+        df["fr_vs_ma8"]       = fr - df["fr_ma8"]                  # 편차
+        df["fr_cumul_24h"]    = fr.rolling(3).sum()                # 24시간 누적
+        df["fr_slope"]        = fr.diff(3)
+
+    # ── OI 피처 ──────────────────────────────────────
+    if "oi" in df.columns:
+        oi = df["oi"]
+        df["oi_change_1h"]    = oi.pct_change(1)
+        df["oi_change_4h"]    = oi.pct_change(4)
+        df["oi_change_24h"]   = oi.pct_change(24)
+        df["oi_ma24"]         = oi.rolling(24).mean()
+        df["oi_vs_ma24"]      = (oi / (df["oi_ma24"] + 1e-9)) - 1
+        df["oi_spike"]        = (oi / (oi.rolling(24).mean() + 1e-9) > 1.3).astype(int)
+        df["oi_drop"]         = (oi / (oi.rolling(24).mean() + 1e-9) < 0.7).astype(int)
+        # OI와 가격 방향 불일치 (다이버전스)
+        c = df["close"]
+        df["oi_price_diverg"] = (
+            ((c.pct_change(4) > 0) & (oi.pct_change(4) < 0)) |
+            ((c.pct_change(4) < 0) & (oi.pct_change(4) > 0))
+        ).astype(int)
+
+    # ── LSR 피처 ─────────────────────────────────────
+    if "lsr" in df.columns:
+        ls = df["lsr"]
+        df["lsr_extreme_long"]  = (ls > 1.5).astype(int)   # 롱 과열
+        df["lsr_extreme_short"] = (ls < 0.7).astype(int)   # 숏 과열
+        df["lsr_ma8"]           = ls.rolling(8).mean()
+        df["lsr_vs_ma8"]        = ls - df["lsr_ma8"]
+        df["lsr_slope"]         = ls.diff(4)
+
+    return df
+
+
+def add_multitf_features(df: pd.DataFrame, symbol: str,
+                          interval: str, from_year: int = 2022) -> pd.DataFrame:
+    """
+    멀티타임프레임 컨텍스트 피처 추가
+    5m → 1h, 4h 트렌드 방향을 하위 봉에 forward-fill
+    1h → 4h 트렌드 방향
+    """
+    HTF_MAP = {
+        "1m":  ["5m", "1h"],
+        "5m":  ["1h", "4h"],
+        "15m": ["1h", "4h"],
+        "1h":  ["4h"],
+        "4h":  [],
+        "1d":  [],
+    }
+    htfs = HTF_MAP.get(interval, [])
+    if not htfs:
+        return df
+
+    df = df.copy()
+    df = df.sort_values("datetime").reset_index(drop=True)
+    base_idx = pd.Index(df["datetime"])
+
+    KEY_HTF_FEATS = [
+        "ema50_vs_200",   # 트렌드 방향 (골든/데드크로스)
+        "rsi_14",         # 모멘텀
+        "adx",            # 추세 강도
+        "bb_pos_20",      # 밴드 내 위치
+        "ichi_above_cloud",  # 일목균형표 방향
+        "vol_ratio_24",   # 거래량 비율
+        "macd_12_26_hist",   # MACD 히스토그램
+        "atr",            # 변동성
+        "cmf_14",         # 자금 흐름
+        "vs_sma96",       # 장기 이평 대비
+    ]
+
+    for htf in htfs:
+        print(f"  HTF {htf} 로드 중...")
+        try:
+            htf_df = load_ohlcv(symbol, htf, from_year=from_year)
+            htf_df = add_features(htf_df)
+            htf_df = htf_df.set_index("datetime").sort_index()
+
+            for feat in KEY_HTF_FEATS:
+                if feat not in htf_df.columns:
+                    continue
+                col_name = f"htf_{htf}_{feat}"
+                # 전체 인덱스(베이스 + HTF) 합집합에서 forward-fill 후 베이스 인덱스만 추출
+                combined_idx = base_idx.union(htf_df.index).sort_values()
+                s = htf_df[feat].reindex(combined_idx).ffill()
+                df[col_name] = s.reindex(base_idx).values
+        except Exception as e:
+            print(f"  HTF {htf} 실패: {e}")
+
+    return df
+
+
 # ══════════════════════════════════════════════════════
 # 2. 피처 엔지니어링
 # ══════════════════════════════════════════════════════
@@ -1047,10 +1208,14 @@ def main():
     print("\n[2/5] 외부 지표 로딩 & 병합...")
     ind = load_indicators()
     df  = merge_indicators(df, ind)
+    df  = merge_futures(df, sym)          # 펀딩비 / OI / LSR 병합 (파일 있으면)
 
     # ── 피처 & 타겟 생성 ─────────────────────────
     print("\n[3/5] 피처 엔지니어링...")
     df = add_features(df)
+    df = add_futures_features(df)         # 펀딩비 / OI / LSR 파생 피처
+    if not args.fast:
+        df = add_multitf_features(df, sym, ivl, from_year=args.from_year)  # 멀티TF
     df = make_targets(df, horizon=horizon, tp=TP_PCT, sl=SL_PCT)
     feature_cols = get_feature_cols(df)
 
