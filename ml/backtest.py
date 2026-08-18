@@ -27,6 +27,10 @@ from ml.train_directional import (
     FEE_RATE, SLIPPAGE, TP_PCT, SL_PCT, HORIZON
 )
 
+# 봉 단위별 HORIZON 자동 조정 (train_directional.py와 동일한 로직)
+HORIZON_MAP = {"1m": 30, "3m": 20, "5m": 12, "15m": 8, "30m": 6,
+               "1h": 12, "2h": 8, "4h": 6, "6h": 4, "12h": 3, "1d": 2}
+
 # ── 경로 ──────────────────────────────────────────────
 MODEL_DIR = os.path.join(ROOT, "ml", "saved_models")
 CHART_DIR = os.path.join(ROOT, "charts")
@@ -36,7 +40,7 @@ SIGNAL_THR = 0.58   # 신호 임계값 기본값
 
 # 심볼×봉단위 목록
 ALL_SYMBOLS   = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT", "SOLUSDT", "XRPUSDT"]
-ALL_INTERVALS = ["5m", "1h", "4h", "1d"]
+ALL_INTERVALS = ["1m", "5m", "1h", "4h", "1d"]
 
 
 # ══════════════════════════════════════════════════════
@@ -61,7 +65,8 @@ def load_model(symbol: str, interval: str):
 
 
 def simulate_trades(df: pd.DataFrame, model, feature_cols: list,
-                    threshold: float = SIGNAL_THR) -> pd.DataFrame:
+                    threshold: float = SIGNAL_THR,
+                    horizon: int = None) -> pd.DataFrame:
     """모델 신호로 TP/SL 시뮬레이션"""
     X = df[feature_cols].fillna(0)
     lp = model.predict_proba_long(X)
@@ -79,8 +84,10 @@ def simulate_trades(df: pd.DataFrame, model, feature_cols: list,
 
     trades = []
     fee = FEE_RATE; slip = SLIPPAGE; tp = TP_PCT; sl = SL_PCT
+    if horizon is None:
+        horizon = HORIZON
 
-    for i in range(n - HORIZON):
+    for i in range(n - horizon):
         direction = None; prob = 0.0
         if long_sig[i] and not short_sig[i]:
             direction, prob = "LONG", float(lp[i])
@@ -100,7 +107,7 @@ def simulate_trades(df: pd.DataFrame, model, feature_cols: list,
         sl_price = entry * (1 - sl) if direction == "LONG" else entry * (1 + sl)
 
         exit_price = None; exit_type = "timeout"
-        for j in range(i + 1, min(i + HORIZON + 1, n)):
+        for j in range(i + 1, min(i + horizon + 1, n)):
             hj, lj = highs[j], lows[j]
             if direction == "LONG":
                 if hj >= tp_price: exit_price = tp_price; exit_type = "tp"; break
@@ -110,7 +117,7 @@ def simulate_trades(df: pd.DataFrame, model, feature_cols: list,
                 if hj >= sl_price: exit_price = sl_price; exit_type = "sl"; break
 
         if exit_price is None:
-            exit_price = closes[min(i + HORIZON, n - 1)] * (1 - slip if direction == "LONG" else 1 + slip)
+            exit_price = closes[min(i + horizon, n - 1)] * (1 - slip if direction == "LONG" else 1 + slip)
 
         pnl = (exit_price / entry - 1) - 2 * fee if direction == "LONG" \
               else (entry / exit_price - 1) - 2 * fee
@@ -357,8 +364,11 @@ def run_backtest(symbol: str, interval: str, from_year: int) -> dict | None:
     if len(df) < 500:
         print(f"  ⚠️  데이터 부족 ({len(df)}행) — 스킵"); return None
 
+    # 봉 단위별 HORIZON 자동 적용
+    horizon = HORIZON_MAP.get(interval, HORIZON)
+
     # 시뮬레이션
-    trades = simulate_trades(df, model, feature_cols)
+    trades = simulate_trades(df, model, feature_cols, horizon=horizon)
     metrics = calc_metrics(trades)
 
     # 출력

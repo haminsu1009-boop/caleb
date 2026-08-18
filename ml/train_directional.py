@@ -1029,9 +1029,15 @@ def main():
     sym = args.symbol
     ivl = args.interval
 
+    # ── 봉 단위별 HORIZON 자동 조정 ───────────────────────────
+    # 1m: 30봉 = 30분 / 5m: 12봉 = 60분 / 1h+: 12봉 그대로
+    HORIZON_MAP = {"1m": 30, "3m": 20, "5m": 12, "15m": 8, "30m": 6,
+                   "1h": 12, "2h": 8, "4h": 6, "6h": 4, "12h": 3, "1d": 2}
+    horizon = HORIZON_MAP.get(ivl, HORIZON)
+
     print("=" * 65)
     print(f"  DirectionalEnsemble 학습 & 워크포워드 백테스트")
-    print(f"  {sym} {ivl}  |  fast={args.fast}")
+    print(f"  {sym} {ivl}  |  horizon={horizon}봉  fast={args.fast}")
     print("=" * 65)
 
     # ── 데이터 로딩 ───────────────────────────────
@@ -1045,7 +1051,7 @@ def main():
     # ── 피처 & 타겟 생성 ─────────────────────────
     print("\n[3/5] 피처 엔지니어링...")
     df = add_features(df)
-    df = make_targets(df, horizon=HORIZON, tp=TP_PCT, sl=SL_PCT)
+    df = make_targets(df, horizon=horizon, tp=TP_PCT, sl=SL_PCT)
     feature_cols = get_feature_cols(df)
 
     # NaN 행 제거 (앞부분 지표 계산 안정화 구간)
