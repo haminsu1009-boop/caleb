@@ -19,10 +19,15 @@ BASE_URL = "https://data.binance.vision/data/spot/monthly/klines"
 SAVE_DIR = "data"
 
 INTERVAL_NAMES = {
-    "1m":"1분봉","5m":"5분봉","15m":"15분봉","30m":"30분봉",
+    "1m":"1분봉","3m":"3분봉","5m":"5분봉","15m":"15분봉","30m":"30분봉",
     "1h":"1시간봉","2h":"2시간봉","4h":"4시간봉","6h":"6시간봉",
     "12h":"12시간봉","1d":"일봉","3d":"3일봉","1w":"주봉","1mo":"월봉",
 }
+
+# GitHub 100MB 제한 — 연간 파일만 저장하는 고빈도 봉 단위 (전체 합산 파일 생략)
+SKIP_ALL_FILE_INTERVALS = {"1m", "3m", "5m"}
+# 전체 합산 파일 크기 상한 (GitHub 100MB 제한 안전 마진)
+MAX_ALL_FILE_MB = 80
 
 # 심볼별 기본 타임프레임
 BTC_INTERVALS = ["1mo","1w","3d","1d","12h","6h","4h","2h","1h","30m","15m","5m","3m","1m"]
@@ -119,12 +124,26 @@ def collect_interval(interval:str="5m", start_year:int=2017,
 
     if not year_files: return None
 
+    # 고빈도 봉 단위는 _all 합산 파일을 건너뜀 (GitHub 100MB 제한)
+    if interval in SKIP_ALL_FILE_INTERVALS:
+        total_kb = sum(os.path.getsize(f) for f in year_files) // 1024
+        print(f"\n  📦 {interval}: 연도별 파일 {len(year_files)}개 저장 완료 ({total_kb:,}KB)")
+        print(f"     ⚠️  전체 합산 파일 생략 — GitHub 100MB 제한 방지")
+        return year_files[-1]  # 마지막 연도 파일 경로 반환
+
     all_out = f"{SAVE_DIR}/{symbol}_{interval}_all.csv.gz"
     all_dfs = [pd.read_csv(f, compression="gzip") for f in sorted(year_files)]
     total = (pd.concat(all_dfs).drop_duplicates("timestamp")
                .sort_values("timestamp").reset_index(drop=True))
     total.to_csv(all_out, index=False, compression="gzip")
     mb = os.path.getsize(all_out) / 1024 / 1024
+
+    if mb > MAX_ALL_FILE_MB:
+        os.remove(all_out)
+        print(f"\n  ⚠️  {all_out} 크기 {mb:.1f}MB — GitHub 100MB 제한 초과, 삭제")
+        print(f"     연도별 파일 {len(year_files)}개는 정상 저장됨")
+        return year_files[-1]
+
     print(f"\n  📦 {all_out}  ({len(total):,}개 · {mb:.1f}MB)")
     print(f"     {total['timestamp'].iloc[0]} ~ {total['timestamp'].iloc[-1]}")
     return all_out
