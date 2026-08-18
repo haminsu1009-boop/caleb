@@ -3,14 +3,18 @@ name: 🤖 ML 모델 학습 & 백테스트
 on:
   workflow_dispatch:
     inputs:
+      symbol:
+        description: "심볼 — 하나만 입력하거나 all (예: BTCUSDT, ETHUSDT, all)"
+        required: false
+        default: "BTCUSDT"
       interval:
-        description: "봉 단위 — 하나만 입력하거나 all (예: 5m, 1h, 4h, 1d, all)"
+        description: "봉 단위 — 하나만 입력하거나 all (예: 1h, 4h, 1d, all)"
         required: false
         default: "1h"
       fast:
         description: "fast mode — TemporalXGB 스킵 (true/false)"
         required: false
-        default: "false"
+        default: "true"
       from_year:
         description: "데이터 시작 연도 (예: 2020)"
         required: false
@@ -21,7 +25,7 @@ permissions:
 
 jobs:
   train:
-    name: "🤖 학습 (${{ github.event.inputs.interval }})"
+    name: "🤖 학습 (${{ github.event.inputs.symbol }} / ${{ github.event.inputs.interval }})"
     runs-on: ubuntu-latest
     timeout-minutes: 360   # 최대 6시간
 
@@ -46,26 +50,37 @@ jobs:
             FAST_FLAG="--fast"
           fi
 
-          INTERVAL="${{ github.event.inputs.interval }}"
-
-          # "all" 입력 시 주요 4개 타임프레임 순서대로 학습
-          if [ "$INTERVAL" = "all" ]; then
-            INTERVALS="5m 1h 4h 1d"
+          # 심볼 목록 결정
+          SYM_INPUT="${{ github.event.inputs.symbol }}"
+          if [ "$SYM_INPUT" = "all" ]; then
+            SYMBOLS="BTCUSDT ETHUSDT BNBUSDT ADAUSDT SOLUSDT XRPUSDT"
           else
-            INTERVALS="$INTERVAL"
+            SYMBOLS="$SYM_INPUT"
           fi
 
-          for IV in $INTERVALS; do
-            echo "=========================================="
-            echo "  ▶ 학습 시작: $IV"
-            echo "=========================================="
-            python ml/train_directional.py \
-              --interval "$IV" \
-              --from ${{ github.event.inputs.from_year }} \
-              $FAST_FLAG || {
-              echo "⚠️  $IV 학습 실패 — 다음 봉 단위로 계속"
-              continue
-            }
+          # 봉 단위 목록 결정
+          IV_INPUT="${{ github.event.inputs.interval }}"
+          if [ "$IV_INPUT" = "all" ]; then
+            INTERVALS="1h 4h 1d"
+          else
+            INTERVALS="$IV_INPUT"
+          fi
+
+          # 심볼 × 봉 단위 조합 전체 학습
+          for SYM in $SYMBOLS; do
+            for IV in $INTERVALS; do
+              echo "=========================================="
+              echo "  ▶ 학습 시작: $SYM  $IV"
+              echo "=========================================="
+              python ml/train_directional.py \
+                --symbol "$SYM" \
+                --interval "$IV" \
+                --from ${{ github.event.inputs.from_year }} \
+                $FAST_FLAG || {
+                echo "⚠️  $SYM $IV 학습 실패 — 다음으로 계속"
+                continue
+              }
+            done
           done
 
       - name: 결과 저장 (모델 + 차트 + CSV)
@@ -74,7 +89,7 @@ jobs:
           git config user.email "actions@github.com"
           git add ml/saved_models/ charts/ 2>/dev/null || true
           git diff --staged --quiet && echo "변경 없음" && exit 0
-          git commit -m "🤖 ML 학습 완료 — ${{ github.event.inputs.interval }} (fast=${{ github.event.inputs.fast }})"
+          git commit -m "🤖 ML 학습 완료 — ${{ github.event.inputs.symbol }} ${{ github.event.inputs.interval }} (fast=${{ github.event.inputs.fast }})"
           for i in 1 2 3 4 5 6; do
             sleep $((RANDOM % 15 + i * 3))
             git fetch origin claude/quant-trading-bot-tkjtd
@@ -87,8 +102,8 @@ jobs:
         run: |
           echo "================================================"
           echo "  모델 파일:"
-          ls -lh ml/saved_models/*.pkl 2>/dev/null || echo "  없음"
+          ls -lh ml/saved_models/directional_*.pkl 2>/dev/null || echo "  없음"
           echo ""
           echo "  차트 파일:"
-          ls -lh charts/directional_bt_*.png 2>/dev/null | tail -10 || echo "  없음"
+          ls -lh charts/directional_bt_*.png 2>/dev/null | tail -20 || echo "  없음"
           echo "================================================"
