@@ -1,17 +1,13 @@
 name: 📥 전체 데이터 수집 (BTC + ETH + ALT + 외부지표)
 
 on:
-  workflow_dispatch:    # 수동 실행 전용 — Actions 탭에서 버튼 클릭
+  workflow_dispatch:
 
-# 모든 job은 claude/quant-trading-bot-tkjtd 브랜치의 코드를 사용
-env:
-  BOT_BRANCH: claude/quant-trading-bot-tkjtd
+permissions:
+  contents: write
 
 jobs:
 
-  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  # BTC — 고속 봉 (병렬, 타임아웃 40분)
-  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   btc-fast:
     name: "BTC ${{ matrix.interval }}"
     runs-on: ubuntu-latest
@@ -24,6 +20,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: claude/quant-trading-bot-tkjtd
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - run: pip install pandas requests
@@ -33,14 +30,11 @@ jobs:
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
           for i in 1 2 3; do git pull --rebase origin claude/quant-trading-bot-tkjtd && break || sleep 5; done
-          git add "data/BTCUSDT_${{ matrix.interval }}_*.csv.gz" 2>/dev/null || true
-          git diff --staged --quiet && exit 0
+          git add data/BTCUSDT_${{ matrix.interval }}_*.csv.gz 2>/dev/null || true
+          git diff --staged --quiet && echo "no changes" && exit 0
           git commit -m "📊 BTC ${{ matrix.interval }} 수집 완료"
           for i in 1 2 3; do git push origin claude/quant-trading-bot-tkjtd && break || sleep $((i*5)); done
 
-  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  # BTC 5m (별도 — 60분 타임아웃)
-  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   btc-5m:
     name: "BTC 5m"
     runs-on: ubuntu-latest
@@ -49,6 +43,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: claude/quant-trading-bot-tkjtd
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - run: pip install pandas requests
@@ -58,14 +53,11 @@ jobs:
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
           for i in 1 2 3; do git pull --rebase origin claude/quant-trading-bot-tkjtd && break || sleep 5; done
-          git add "data/BTCUSDT_5m_*.csv.gz" 2>/dev/null || true
-          git diff --staged --quiet && exit 0
+          git add data/BTCUSDT_5m_*.csv.gz 2>/dev/null || true
+          git diff --staged --quiet && echo "no changes" && exit 0
           git commit -m "📊 BTC 5m 수집 완료"
           for i in 1 2 3; do git push origin claude/quant-trading-bot-tkjtd && break || sleep $((i*5)); done
 
-  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  # BTC 3m
-  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   btc-3m:
     name: "BTC 3m"
     runs-on: ubuntu-latest
@@ -74,6 +66,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: claude/quant-trading-bot-tkjtd
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - run: pip install pandas requests
@@ -83,14 +76,11 @@ jobs:
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
           for i in 1 2 3; do git pull --rebase origin claude/quant-trading-bot-tkjtd && break || sleep 5; done
-          git add "data/BTCUSDT_3m_*.csv.gz" 2>/dev/null || true
-          git diff --staged --quiet && exit 0
+          git add data/BTCUSDT_3m_*.csv.gz 2>/dev/null || true
+          git diff --staged --quiet && echo "no changes" && exit 0
           git commit -m "📊 BTC 3m 수집 완료"
           for i in 1 2 3; do git push origin claude/quant-trading-bot-tkjtd && break || sleep $((i*5)); done
 
-  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  # BTC 1m (최대 3시간)
-  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   btc-1m:
     name: "BTC 1m"
     runs-on: ubuntu-latest
@@ -99,6 +89,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: claude/quant-trading-bot-tkjtd
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - run: pip install pandas requests
@@ -108,14 +99,11 @@ jobs:
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
           for i in 1 2 3; do git pull --rebase origin claude/quant-trading-bot-tkjtd && break || sleep 5; done
-          git add "data/BTCUSDT_1m_*.csv.gz" 2>/dev/null || true
-          git diff --staged --quiet && exit 0
+          git add data/BTCUSDT_1m_*.csv.gz 2>/dev/null || true
+          git diff --staged --quiet && echo "no changes" && exit 0
           git commit -m "📊 BTC 1m 수집 완료"
           for i in 1 2 3; do git push origin claude/quant-trading-bot-tkjtd && break || sleep $((i*5)); done
 
-  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  # ETH — 주요 타임프레임
-  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   eth:
     name: "ETH ${{ matrix.interval }}"
     runs-on: ubuntu-latest
@@ -128,6 +116,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: claude/quant-trading-bot-tkjtd
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - run: pip install pandas requests
@@ -137,14 +126,11 @@ jobs:
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
           for i in 1 2 3; do git pull --rebase origin claude/quant-trading-bot-tkjtd && break || sleep 5; done
-          git add "data/ETHUSDT_${{ matrix.interval }}_*.csv.gz" 2>/dev/null || true
-          git diff --staged --quiet && exit 0
+          git add data/ETHUSDT_${{ matrix.interval }}_*.csv.gz 2>/dev/null || true
+          git diff --staged --quiet && echo "no changes" && exit 0
           git commit -m "📊 ETH ${{ matrix.interval }} 수집 완료"
           for i in 1 2 3; do git push origin claude/quant-trading-bot-tkjtd && break || sleep $((i*5)); done
 
-  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  # 알트코인 — BNB / SOL / XRP / ADA
-  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   alt:
     name: "${{ matrix.symbol }} ${{ matrix.interval }}"
     runs-on: ubuntu-latest
@@ -158,6 +144,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: claude/quant-trading-bot-tkjtd
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - run: pip install pandas requests
@@ -167,14 +154,11 @@ jobs:
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
           for i in 1 2 3; do git pull --rebase origin claude/quant-trading-bot-tkjtd && break || sleep 5; done
-          git add "data/${{ matrix.symbol }}_${{ matrix.interval }}_*.csv.gz" 2>/dev/null || true
-          git diff --staged --quiet && exit 0
+          git add data/${{ matrix.symbol }}_${{ matrix.interval }}_*.csv.gz 2>/dev/null || true
+          git diff --staged --quiet && echo "no changes" && exit 0
           git commit -m "📊 ${{ matrix.symbol }} ${{ matrix.interval }} 수집 완료"
           for i in 1 2 3; do git push origin claude/quant-trading-bot-tkjtd && break || sleep $((i*5)); done
 
-  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  # 외부 지표 (크립토 + 거시경제 + 청산)
-  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   indicators:
     name: "📊 외부 지표 14종"
     runs-on: ubuntu-latest
@@ -183,6 +167,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: claude/quant-trading-bot-tkjtd
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - run: pip install pandas requests pytrends yfinance
@@ -193,13 +178,10 @@ jobs:
           git config user.email "actions@github.com"
           for i in 1 2 3; do git pull --rebase origin claude/quant-trading-bot-tkjtd && break || sleep 5; done
           git add data/indicators/ 2>/dev/null || true
-          git diff --staged --quiet && exit 0
-          git commit -m "📊 외부 지표 수집 완료 (크립토+거시경제+청산)"
+          git diff --staged --quiet && echo "no changes" && exit 0
+          git commit -m "📊 외부 지표 수집 완료"
           for i in 1 2 3; do git push origin claude/quant-trading-bot-tkjtd && break || sleep $((i*5)); done
 
-  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  # 완료 요약
-  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   summary:
     name: "✅ 전체 완료"
     runs-on: ubuntu-latest
@@ -213,18 +195,18 @@ jobs:
       - name: 수집 결과 요약
         run: |
           echo "================================================"
-          echo "  📦 BTC OHLCV"
-          ls -lh data/BTCUSDT_*_all.csv.gz 2>/dev/null | awk '{print "  "$5"\t"$9}' || echo "  없음"
+          echo "  BTC csv.gz 파일:"
+          ls data/BTCUSDT_*.csv.gz 2>/dev/null | head -20 || echo "  없음!"
           echo ""
-          echo "  📦 ETH OHLCV"
-          ls -lh data/ETHUSDT_*_all.csv.gz 2>/dev/null | awk '{print "  "$5"\t"$9}' || echo "  없음"
+          echo "  ETH csv.gz 파일:"
+          ls data/ETHUSDT_*.csv.gz 2>/dev/null | head -10 || echo "  없음!"
           echo ""
-          echo "  📦 알트코인"
-          ls -lh data/BNB*_all.csv.gz data/SOL*_all.csv.gz data/XRP*_all.csv.gz data/ADA*_all.csv.gz 2>/dev/null | awk '{print "  "$5"\t"$9}' || echo "  없음"
+          echo "  ALT csv.gz 파일:"
+          ls data/BNB*.csv.gz data/SOL*.csv.gz data/XRP*.csv.gz data/ADA*.csv.gz 2>/dev/null | head -20 || echo "  없음!"
           echo ""
-          echo "  📊 외부 지표"
-          ls -lh data/indicators/*.csv 2>/dev/null | awk '{print "  "$5"\t"$9}' || echo "  없음"
+          echo "  외부지표:"
+          ls data/indicators/ 2>/dev/null || echo "  없음!"
           echo ""
-          echo "  💾 총 용량"
+          echo "  총 용량:"
           du -sh data/ 2>/dev/null
           echo "================================================"
