@@ -20,7 +20,7 @@ permissions:
   contents: write
 
 jobs:
-  # ── 심볼 목록 파싱 ──────────────────────────────────────
+  # ── 심볼 목록 파싱 ─────────────────────────────────────
   setup:
     name: "설정"
     runs-on: ubuntu-latest
@@ -31,13 +31,13 @@ jobs:
         run: |
           SYMBOLS="${{ github.event.inputs.symbols }}"
           JSON=$(python3 -c "
-import json, sys
-s = '$SYMBOLS'.split()
-print(json.dumps(s))
-")
+          import json, sys
+          s = '$SYMBOLS'.split()
+          print(json.dumps(s))
+          ")
           echo "matrix={\"symbol\":$JSON}" >> $GITHUB_OUTPUT
 
-  # ── 심볼별 병렬 학습 ──────────────────────────────
+  # ── 심볼별 병렬 학습 ──────────────────────────────────
   train:
     name: "🤖 ${{ matrix.symbol }}"
     needs: setup
@@ -45,7 +45,7 @@ print(json.dumps(s))
     timeout-minutes: 360
     strategy:
       matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
-      fail-fast: false
+      fail-fast: false   # 한 심볼 실패해도 나머지 계속
 
     steps:
       - uses: actions/checkout@v4
@@ -65,10 +65,12 @@ print(json.dumps(s))
         id: intervals
         run: |
           SYM="${{ matrix.symbol }}"
+          # BTC/ETH: 1m 데이터 존재 → 1m 5m 1h 4h 1d
+          # 나머지 알트: 5m 데이터 존재 → 5m 1h 4h 1d
           if [ "$SYM" = "BTCUSDT" ] || [ "$SYM" = "ETHUSDT" ]; then
-            echo "intervals=5m 1h 4h 1d" >> $GITHUB_OUTPUT
+            echo "intervals=1m 5m 1h 4h 1d" >> $GITHUB_OUTPUT
           else
-            echo "intervals=1h 4h 1d" >> $GITHUB_OUTPUT
+            echo "intervals=5m 1h 4h 1d" >> $GITHUB_OUTPUT
           fi
 
       - name: ML 학습 & 워크포워드 백테스트
@@ -80,6 +82,7 @@ print(json.dumps(s))
 
           SYM="${{ matrix.symbol }}"
           INTERVALS="${{ steps.intervals.outputs.intervals }}"
+          BASE_FROM=${{ github.event.inputs.from_year }}
 
           echo "##################################################"
           echo "  심볼: $SYM"
@@ -92,10 +95,20 @@ print(json.dumps(s))
             echo "=========================================="
             echo "  ▶ $SYM  $IV  학습 시작"
             echo "=========================================="
+
+            # 1m 봉: 데이터 수 억제 (메모리 절감) — from_year=2023 고정
+            # 5m 봉: from_year=2022 이상으로 보정 (너무 많은 데이터 방지)
+            FROM_YEAR=$BASE_FROM
+            if [ "$IV" = "1m" ]; then
+              FROM_YEAR=2023
+            elif [ "$IV" = "5m" ] && [ "$BASE_FROM" -lt "2022" ]; then
+              FROM_YEAR=2022
+            fi
+
             python ml/train_directional.py \
               --symbol "$SYM" \
               --interval "$IV" \
-              --from ${{ github.event.inputs.from_year }} \
+              --from $FROM_YEAR \
               $FAST_FLAG || {
               echo "⚠️  $SYM $IV 학습 실패 — 다음으로 계속"
               continue
@@ -109,6 +122,7 @@ print(json.dumps(s))
           git add ml/saved_models/ charts/ 2>/dev/null || true
           git diff --staged --quiet && echo "변경 없음" && exit 0
           git commit -m "🤖 학습 완료 — ${{ matrix.symbol }} (fast=${{ github.event.inputs.fast }})"
+          # 병렬 push 충돌 방지: 최대 10회 재시도
           for i in $(seq 1 10); do
             SLEEP=$((RANDOM % 20 + i * 5))
             sleep $SLEEP
