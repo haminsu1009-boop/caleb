@@ -168,127 +168,392 @@ def add_features(df: pd.DataFrame) -> pd.DataFrame:
     v  = df["volume"]
     o  = df["open"]
 
-    # ── 수익률 ───────────────────────────────────
-    for n in [1, 3, 6, 12, 24, 48, 96, 288]:
+    # ══════════════════════════════════════════════
+    # A. 수익률 & 변동성
+    # ══════════════════════════════════════════════
+    for n in [1, 2, 3, 5, 6, 12, 24, 48, 96, 288]:
         df[f"ret_{n}"] = c.pct_change(n)
-
-    # ── 변동성 ───────────────────────────────────
-    for w in [12, 24, 48, 96, 288]:
+    for w in [6, 12, 24, 48, 96, 288]:
         df[f"vol_{w}"] = c.pct_change().rolling(w).std()
+    # 실현변동성 (고저 기반)
+    df["hl_vol"]   = (np.log(h / l)).rolling(14).mean()
+    # 왜도 / 첨도
+    ret1 = c.pct_change()
+    df["skew_24"]  = ret1.rolling(24).skew()
+    df["kurt_24"]  = ret1.rolling(24).kurt()
+    df["skew_96"]  = ret1.rolling(96).skew()
 
-    # ── RSI ──────────────────────────────────────
-    for p in [6, 14, 24]:
+    # ══════════════════════════════════════════════
+    # B. RSI (다중 기간 + 다이버전스 근사)
+    # ══════════════════════════════════════════════
+    rsi_dict = {}
+    for p in [6, 9, 14, 21, 24]:
         delta = c.diff()
         g  = delta.clip(lower=0).ewm(span=p, adjust=False).mean()
         ls = (-delta.clip(upper=0)).ewm(span=p, adjust=False).mean()
         rsi = 100 - 100 / (1 + g / (ls + 1e-9))
-        df[f"rsi_{p}"]   = rsi / 100
+        df[f"rsi_{p}"]       = rsi / 100
         df[f"rsi_{p}_slope"] = rsi.diff(3)
+        rsi_dict[p] = rsi
+    # RSI 다이버전스 근사: 가격은 상승인데 RSI는 하락
+    df["rsi_div_bull"] = ((c > c.shift(14)) & (rsi_dict[14] < rsi_dict[14].shift(14))).astype(int)
+    df["rsi_div_bear"] = ((c < c.shift(14)) & (rsi_dict[14] > rsi_dict[14].shift(14))).astype(int)
 
-    # ── MACD ──────────────────────────────────────
-    e12 = c.ewm(span=12, adjust=False).mean()
-    e26 = c.ewm(span=26, adjust=False).mean()
-    macd = e12 - e26
-    sig  = macd.ewm(span=9, adjust=False).mean()
-    df["macd"]      = macd / c
-    df["macd_sig"]  = sig  / c
-    df["macd_hist"] = (macd - sig) / c
-    df["macd_cross_up"]   = ((macd > sig) & (macd.shift(1) <= sig.shift(1))).astype(int)
-    df["macd_cross_down"] = ((macd < sig) & (macd.shift(1) >= sig.shift(1))).astype(int)
+    # ══════════════════════════════════════════════
+    # C. MACD
+    # ══════════════════════════════════════════════
+    for fast, slow, sig_p in [(12, 26, 9), (5, 13, 5)]:
+        ef = c.ewm(span=fast, adjust=False).mean()
+        es = c.ewm(span=slow, adjust=False).mean()
+        macd = ef - es
+        sig  = macd.ewm(span=sig_p, adjust=False).mean()
+        tag  = f"macd_{fast}_{slow}"
+        df[f"{tag}"]      = macd / c
+        df[f"{tag}_sig"]  = sig  / c
+        df[f"{tag}_hist"] = (macd - sig) / c
+        df[f"{tag}_cross_up"]  = ((macd > sig) & (macd.shift(1) <= sig.shift(1))).astype(int)
+        df[f"{tag}_cross_dn"]  = ((macd < sig) & (macd.shift(1) >= sig.shift(1))).astype(int)
 
-    # ── 볼린저 밴드 ───────────────────────────────
-    for w in [20, 48]:
+    # ══════════════════════════════════════════════
+    # D. 볼린저 밴드
+    # ══════════════════════════════════════════════
+    for w in [14, 20, 48]:
         mid = c.rolling(w).mean()
         std = c.rolling(w).std()
-        df[f"bb_pos_{w}"]  = (c - mid) / (2 * std + 1e-9)
-        df[f"bb_width_{w}"]= (4 * std) / (mid + 1e-9)
+        df[f"bb_pos_{w}"]     = (c - mid) / (2 * std + 1e-9)
+        df[f"bb_width_{w}"]   = (4 * std) / (mid + 1e-9)
         df[f"bb_squeeze_{w}"] = (std < std.rolling(w * 2).mean() * 0.75).astype(int)
+        df[f"bb_upper_{w}"]   = (c >= mid + 2 * std).astype(int)  # 상단 터치
+        df[f"bb_lower_{w}"]   = (c <= mid - 2 * std).astype(int)  # 하단 터치
 
-    # ── 스토캐스틱 ───────────────────────────────
-    for p in [14, 24]:
+    # ══════════════════════════════════════════════
+    # E. 켈트너 채널 (Keltner Channel)
+    # ══════════════════════════════════════════════
+    tr = pd.concat([h - l, (h - c.shift()).abs(), (l - c.shift()).abs()], axis=1).max(axis=1)
+    atr14 = tr.ewm(span=14, adjust=False).mean()
+    for mult in [1.5, 2.0]:
+        ema20 = c.ewm(span=20, adjust=False).mean()
+        kc_upper = ema20 + mult * atr14
+        kc_lower = ema20 - mult * atr14
+        m = str(mult).replace(".", "")
+        df[f"kc_pos_{m}"] = (c - ema20) / (mult * atr14 + 1e-9)
+        df[f"kc_above_{m}"] = (c > kc_upper).astype(int)
+        df[f"kc_below_{m}"] = (c < kc_lower).astype(int)
+    # 스퀴즈 (BB < KC)
+    bb20_std = c.rolling(20).std()
+    bb20_mid = c.rolling(20).mean()
+    df["squeeze_kc"] = (4 * bb20_std < 2.0 * atr14).astype(int)
+
+    # ══════════════════════════════════════════════
+    # F. 스토캐스틱
+    # ══════════════════════════════════════════════
+    for p in [9, 14, 24]:
         lo = l.rolling(p).min()
         hi = h.rolling(p).max()
         k  = (c - lo) / (hi - lo + 1e-9)
         d  = k.rolling(3).mean()
-        df[f"stoch_k_{p}"] = k
-        df[f"stoch_d_{p}"] = d
-        df[f"stoch_os_{p}"] = (k < 0.2).astype(int)  # 과매도
-        df[f"stoch_ob_{p}"] = (k > 0.8).astype(int)  # 과매수
+        df[f"stoch_k_{p}"]  = k
+        df[f"stoch_d_{p}"]  = d
+        df[f"stoch_kd_{p}"] = k - d
+        df[f"stoch_os_{p}"] = (k < 0.2).astype(int)
+        df[f"stoch_ob_{p}"] = (k > 0.8).astype(int)
 
-    # ── ADX / DI ──────────────────────────────────
-    tr  = pd.concat([h - l,
-                     (h - c.shift()).abs(),
-                     (l - c.shift()).abs()], axis=1).max(axis=1)
+    # ══════════════════════════════════════════════
+    # G. ADX / DI
+    # ══════════════════════════════════════════════
     pdm = h.diff().clip(lower=0)
     mdm = (-l.diff()).clip(lower=0)
-    atr14 = tr.ewm(span=14, adjust=False).mean()
     pdi   = 100 * pdm.ewm(span=14, adjust=False).mean() / (atr14 + 1e-9)
     mdi   = 100 * mdm.ewm(span=14, adjust=False).mean() / (atr14 + 1e-9)
     dx    = (pdi - mdi).abs() / (pdi + mdi + 1e-9) * 100
     adx   = dx.ewm(span=14, adjust=False).mean()
-    df["adx"]      = adx / 100
-    df["di_diff"]  = (pdi - mdi) / 100
+    df["adx"]          = adx / 100
+    df["di_diff"]      = (pdi - mdi) / 100
     df["adx_trending"] = (adx > 25).astype(int)
+    df["adx_slope"]    = adx.diff(3) / 100
 
-    # ── ATR ───────────────────────────────────────
-    df["atr"] = atr14 / c
+    # ══════════════════════════════════════════════
+    # H. ATR + Normalized
+    # ══════════════════════════════════════════════
+    df["atr"]     = atr14 / c
+    atr7  = tr.ewm(span=7,  adjust=False).mean()
+    atr28 = tr.ewm(span=28, adjust=False).mean()
+    df["atr7"]    = atr7  / c
+    df["atr28"]   = atr28 / c
+    df["atr_ratio"] = atr7 / (atr28 + 1e-9)  # 단기/장기 변동성 비율
 
-    # ── 이동평균 위치 ─────────────────────────────
-    for p in [12, 24, 48, 96, 288, 576]:
+    # ══════════════════════════════════════════════
+    # I. CCI (Commodity Channel Index)
+    # ══════════════════════════════════════════════
+    tp_cci = (h + l + c) / 3
+    for p in [14, 20]:
+        mean_tp = tp_cci.rolling(p).mean()
+        mad     = tp_cci.rolling(p).apply(lambda x: np.mean(np.abs(x - x.mean())), raw=True)
+        df[f"cci_{p}"] = (tp_cci - mean_tp) / (0.015 * mad + 1e-9) / 200
+
+    # ══════════════════════════════════════════════
+    # J. Williams %R
+    # ══════════════════════════════════════════════
+    for p in [14, 28]:
+        hi_p = h.rolling(p).max()
+        lo_p = l.rolling(p).min()
+        df[f"willr_{p}"] = -100 * (hi_p - c) / (hi_p - lo_p + 1e-9) / 100
+
+    # ══════════════════════════════════════════════
+    # K. 이동평균 위치 (SMA + EMA)
+    # ══════════════════════════════════════════════
+    for p in [12, 24, 48, 96, 200, 288, 576]:
         sma = c.rolling(p).mean()
         df[f"vs_sma{p}"] = (c / sma) - 1
-    ema9  = c.ewm(span=9,  adjust=False).mean()
-    ema21 = c.ewm(span=21, adjust=False).mean()
-    ema55 = c.ewm(span=55, adjust=False).mean()
-    df["ema9_vs_21"]  = (ema9  / ema21) - 1
-    df["ema21_vs_55"] = (ema21 / ema55) - 1
-    df["ema9_slope"]  = ema9.pct_change(3)
+    ema_map = {}
+    for sp in [9, 21, 50, 55, 100, 200]:
+        ema_map[sp] = c.ewm(span=sp, adjust=False).mean()
+    df["ema9_vs_21"]   = (ema_map[9]  / ema_map[21])  - 1
+    df["ema21_vs_55"]  = (ema_map[21] / ema_map[55])  - 1
+    df["ema50_vs_200"] = (ema_map[50] / ema_map[200]) - 1
+    df["ema9_slope"]   = ema_map[9].pct_change(3)
+    df["ema21_slope"]  = ema_map[21].pct_change(5)
+    # 골든크로스 / 데드크로스
+    df["golden_cross"] = ((ema_map[50] > ema_map[200]) & (ema_map[50].shift(1) <= ema_map[200].shift(1))).astype(int)
+    df["dead_cross"]   = ((ema_map[50] < ema_map[200]) & (ema_map[50].shift(1) >= ema_map[200].shift(1))).astype(int)
 
-    # ── 거래량 지표 ───────────────────────────────
-    for w in [12, 48, 96]:
+    # ══════════════════════════════════════════════
+    # L. Parabolic SAR (근사)
+    # ══════════════════════════════════════════════
+    # 단순 근사: 최근 고점/저점 기반 추세 방향
+    high_5  = h.rolling(5).max()
+    low_5   = l.rolling(5).min()
+    df["sar_bull"] = (c > high_5.shift(1)).astype(int)  # SAR 상승 신호
+    df["sar_bear"] = (c < low_5.shift(1)).astype(int)   # SAR 하락 신호
+
+    # ══════════════════════════════════════════════
+    # M. Donchian Channel
+    # ══════════════════════════════════════════════
+    for p in [20, 55]:
+        dc_high = h.rolling(p).max()
+        dc_low  = l.rolling(p).min()
+        dc_mid  = (dc_high + dc_low) / 2
+        df[f"dc_pos_{p}"]      = (c - dc_mid) / (dc_high - dc_low + 1e-9)
+        df[f"dc_breakout_up_{p}"]  = (c >= dc_high.shift(1)).astype(int)
+        df[f"dc_breakout_dn_{p}"]  = (c <= dc_low.shift(1)).astype(int)
+
+    # ══════════════════════════════════════════════
+    # N. 일목균형표 (Ichimoku Cloud)
+    # ══════════════════════════════════════════════
+    tenkan  = (h.rolling(9).max()  + l.rolling(9).min())  / 2
+    kijun   = (h.rolling(26).max() + l.rolling(26).min()) / 2
+    senkou_a = ((tenkan + kijun) / 2).shift(26)
+    senkou_b = ((h.rolling(52).max() + l.rolling(52).min()) / 2).shift(26)
+    df["ichi_tk"]       = (tenkan - kijun) / c              # 전환-기준 차이
+    df["ichi_above_cloud"] = (c > senkou_a.clip(lower=senkou_b)).astype(int)
+    df["ichi_below_cloud"] = (c < senkou_a.clip(upper=senkou_b)).astype(int)
+    df["ichi_cloud_bull"]  = (senkou_a > senkou_b).astype(int)  # 구름 색상
+    df["ichi_tk_cross_up"] = ((tenkan > kijun) & (tenkan.shift(1) <= kijun.shift(1))).astype(int)
+    df["ichi_tk_cross_dn"] = ((tenkan < kijun) & (tenkan.shift(1) >= kijun.shift(1))).astype(int)
+
+    # ══════════════════════════════════════════════
+    # O. Aroon 오실레이터
+    # ══════════════════════════════════════════════
+    for p in [14, 25]:
+        aroon_up = h.rolling(p + 1).apply(lambda x: (np.argmax(x) / p) * 100, raw=True)
+        aroon_dn = l.rolling(p + 1).apply(lambda x: (np.argmin(x) / p) * 100, raw=True)
+        df[f"aroon_{p}"] = (aroon_up - aroon_dn) / 100
+
+    # ══════════════════════════════════════════════
+    # P. MFI (Money Flow Index)
+    # ══════════════════════════════════════════════
+    tp2 = (h + l + c) / 3
+    mf  = tp2 * v
+    for p in [14]:
+        pos_mf = mf.where(tp2 > tp2.shift(1), 0).rolling(p).sum()
+        neg_mf = mf.where(tp2 < tp2.shift(1), 0).rolling(p).sum()
+        df[f"mfi_{p}"] = 100 - 100 / (1 + pos_mf / (neg_mf + 1e-9))
+        df[f"mfi_{p}"] /= 100
+        df[f"mfi_os_{p}"] = (df[f"mfi_{p}"] < 0.2).astype(int)
+        df[f"mfi_ob_{p}"] = (df[f"mfi_{p}"] > 0.8).astype(int)
+
+    # ══════════════════════════════════════════════
+    # Q. CMF (Chaikin Money Flow)
+    # ══════════════════════════════════════════════
+    clv = ((c - l) - (h - c)) / (h - l + 1e-9)
+    for p in [14, 21]:
+        df[f"cmf_{p}"] = (clv * v).rolling(p).sum() / (v.rolling(p).sum() + 1e-9)
+
+    # ══════════════════════════════════════════════
+    # R. ROC (Rate of Change)
+    # ══════════════════════════════════════════════
+    for p in [9, 14, 21]:
+        df[f"roc_{p}"] = c.pct_change(p)
+
+    # ══════════════════════════════════════════════
+    # S. TRIX
+    # ══════════════════════════════════════════════
+    ema1 = c.ewm(span=15, adjust=False).mean()
+    ema2 = ema1.ewm(span=15, adjust=False).mean()
+    ema3 = ema2.ewm(span=15, adjust=False).mean()
+    df["trix"] = ema3.pct_change()
+
+    # ══════════════════════════════════════════════
+    # T. 거래량 지표
+    # ══════════════════════════════════════════════
+    for w in [12, 24, 48, 96]:
         df[f"vol_ratio_{w}"] = v / (v.rolling(w).mean() + 1e-9)
+    df["vol_slope"] = v.pct_change(5)
+    df["vol_burst"] = (v / (v.rolling(48).mean() + 1e-9) > 2.5).astype(int)
+    # OBV
     obv = (np.sign(c.diff()) * v).fillna(0).cumsum()
-    df["obv_slope"] = obv.pct_change(12)
-    # 거래량 가중 가격 (VWAP 근사)
-    vwap = (c * v).rolling(96).sum() / (v.rolling(96).sum() + 1e-9)
-    df["vwap_pos"] = (c / (vwap + 1e-9)) - 1
+    df["obv_slope"]  = obv.pct_change(12)
+    df["obv_slope2"] = obv.pct_change(24)
+    # 거래량 가중 가격 (VWAP)
+    for vw in [48, 96, 288]:
+        vwap = (c * v).rolling(vw).sum() / (v.rolling(vw).sum() + 1e-9)
+        df[f"vwap_pos_{vw}"] = (c / (vwap + 1e-9)) - 1
+    # Force Index
+    df["force_idx"] = c.diff() * v / (v.rolling(14).mean() + 1e-9)
 
-    # ── 캔들 패턴 ─────────────────────────────────
-    body  = (c - o).abs()
-    range_= (h - l).replace(0, np.nan)
-    df["body_ratio"]   = body / (range_ + 1e-9)
-    df["upper_shadow"]  = (h - c.where(c > o, o)) / (range_ + 1e-9)
-    df["lower_shadow"]  = (c.where(c < o, o) - l) / (range_ + 1e-9)
-    df["is_bullish"]    = (c > o).astype(int)
-    df["gap"]           = (o - c.shift()) / c.shift()
+    # ══════════════════════════════════════════════
+    # U. 캔들 패턴 (완전판)
+    # ══════════════════════════════════════════════
+    body   = (c - o)
+    body_a = body.abs()
+    rng    = (h - l).replace(0, np.nan)
+    up_shd = (h - c.where(c > o, o))
+    dn_shd = (c.where(c < o, o) - l)
 
-    # ── 외부 지표 파생 ────────────────────────────
+    df["body_ratio"]   = body_a / (rng + 1e-9)
+    df["upper_shadow"] = up_shd / (rng + 1e-9)
+    df["lower_shadow"] = dn_shd / (rng + 1e-9)
+    df["is_bullish"]   = (c > o).astype(int)
+    df["gap"]          = (o - c.shift()) / (c.shift() + 1e-9)
+    df["gap_up"]       = (o > h.shift(1)).astype(int)
+    df["gap_down"]     = (o < l.shift(1)).astype(int)
+
+    # 도지
+    df["doji"]         = (body_a / (rng + 1e-9) < 0.1).astype(int)
+    df["dragonfly"]    = ((dn_shd > body_a * 2) & (up_shd < body_a * 0.5)).astype(int)
+    df["gravestone"]   = ((up_shd > body_a * 2) & (dn_shd < body_a * 0.5)).astype(int)
+    # 망치형 / 슈팅스타
+    df["hammer"]       = ((dn_shd >= body_a * 2) & (up_shd <= body_a * 0.5) & (c > o)).astype(int)
+    df["inv_hammer"]   = ((up_shd >= body_a * 2) & (dn_shd <= body_a * 0.5) & (c > o)).astype(int)
+    df["shooting_star"]= ((up_shd >= body_a * 2) & (dn_shd <= body_a * 0.5) & (c < o)).astype(int)
+    df["hanging_man"]  = ((dn_shd >= body_a * 2) & (up_shd <= body_a * 0.5) & (c < o)).astype(int)
+    # 마루보주
+    df["marubozu_bull"]= ((up_shd < rng * 0.05) & (dn_shd < rng * 0.05) & (c > o)).astype(int)
+    df["marubozu_bear"]= ((up_shd < rng * 0.05) & (dn_shd < rng * 0.05) & (c < o)).astype(int)
+    # 장악형 (Engulfing)
+    df["engulf_bull"]  = ((c > o) & (c.shift(1) < o.shift(1)) &
+                          (o < c.shift(1)) & (c > o.shift(1))).astype(int)
+    df["engulf_bear"]  = ((c < o) & (c.shift(1) > o.shift(1)) &
+                          (o > c.shift(1)) & (c < o.shift(1))).astype(int)
+    # 관통형 / 먹구름
+    df["piercing"]     = ((c > o) & (c.shift(1) < o.shift(1)) &
+                          (o < l.shift(1)) & (c > (o.shift(1) + c.shift(1)) / 2)).astype(int)
+    df["dark_cloud"]   = ((c < o) & (c.shift(1) > o.shift(1)) &
+                          (o > h.shift(1)) & (c < (o.shift(1) + c.shift(1)) / 2)).astype(int)
+    # 샛별형 / 저녁별형
+    mid_body_1 = (o.shift(2) + c.shift(2)) / 2
+    df["morning_star"] = ((c.shift(2) < o.shift(2)) &
+                          (body_a.shift(1) < rng.shift(1) * 0.3) &
+                          (c > o) & (c > mid_body_1)).astype(int)
+    df["evening_star"] = ((c.shift(2) > o.shift(2)) &
+                          (body_a.shift(1) < rng.shift(1) * 0.3) &
+                          (c < o) & (c < mid_body_1)).astype(int)
+    # 세 병사 / 세 까마귀
+    df["three_soldiers"]= ((c > o) & (c.shift(1) > o.shift(1)) & (c.shift(2) > o.shift(2)) &
+                            (o > o.shift(1)) & (o.shift(1) > o.shift(2))).astype(int)
+    df["three_crows"]   = ((c < o) & (c.shift(1) < o.shift(1)) & (c.shift(2) < o.shift(2)) &
+                            (o < o.shift(1)) & (o.shift(1) < o.shift(2))).astype(int)
+    # 핀바 (Pin Bar) — 꼬리가 몸통의 3배 이상
+    df["pinbar_bull"]  = ((dn_shd >= body_a * 3) & (up_shd <= dn_shd * 0.3)).astype(int)
+    df["pinbar_bear"]  = ((up_shd >= body_a * 3) & (dn_shd <= up_shd * 0.3)).astype(int)
+    # 인사이드바 (IB)
+    df["inside_bar"]   = ((h < h.shift(1)) & (l > l.shift(1))).astype(int)
+    # 아웃사이드바 (OB)
+    df["outside_bar"]  = ((h > h.shift(1)) & (l < l.shift(1))).astype(int)
+
+    # ══════════════════════════════════════════════
+    # V. 차트 구조 (지지/저항 / 고점저점 패턴)
+    # ══════════════════════════════════════════════
+    # 프랙탈 고점/저점
+    df["fractal_high"] = ((h > h.shift(1)) & (h > h.shift(2)) &
+                          (h > h.shift(-1)) & (h > h.shift(-2))).astype(int)
+    df["fractal_low"]  = ((l < l.shift(1)) & (l < l.shift(2)) &
+                          (l < l.shift(-1)) & (l < l.shift(-2))).astype(int)
+    # HH/HL/LH/LL 패턴 (추세 구조)
+    recent_high = h.rolling(20).max()
+    recent_low  = l.rolling(20).min()
+    df["near_high"]    = (c >= recent_high * 0.99).astype(int)   # 고점 근접
+    df["near_low"]     = (c <= recent_low  * 1.01).astype(int)   # 저점 근접
+    df["hh"]           = (h > h.rolling(20).max().shift(1)).astype(int)  # 더 높은 고점
+    df["ll"]           = (l < l.rolling(20).min().shift(1)).astype(int)  # 더 낮은 저점
+    # 피봇 레벨 대비 위치
+    pivot = (h.shift(1) + l.shift(1) + c.shift(1)) / 3
+    r1    = 2 * pivot - l.shift(1)
+    s1    = 2 * pivot - h.shift(1)
+    df["vs_pivot"]    = (c - pivot) / (atr14 + 1e-9)
+    df["above_r1"]    = (c > r1).astype(int)
+    df["below_s1"]    = (c < s1).astype(int)
+    # 지지/저항 근접
+    df["vs_high_20"]  = (c / (h.rolling(20).max() + 1e-9)) - 1
+    df["vs_low_20"]   = (c / (l.rolling(20).min() + 1e-9)) - 1
+    df["vs_high_55"]  = (c / (h.rolling(55).max() + 1e-9)) - 1
+    df["vs_low_55"]   = (c / (l.rolling(55).min() + 1e-9)) - 1
+
+    # ══════════════════════════════════════════════
+    # W. 외부 지표 파생 (공포탐욕 + 거시경제)
+    # ══════════════════════════════════════════════
     if "fear_greed" in df.columns:
         fg = df["fear_greed"]
-        df["fg_norm"]        = fg / 100
-        df["fg_extreme_fear"]= (fg < 20).astype(int)
-        df["fg_extreme_greed"]=(fg > 80).astype(int)
-        df["fg_change_7d"]   = fg - fg.shift(288 * 7)  # 7일 변화
+        df["fg_norm"]          = fg / 100
+        df["fg_extreme_fear"]  = (fg < 20).astype(int)
+        df["fg_extreme_greed"] = (fg > 80).astype(int)
+        df["fg_fear"]          = (fg < 40).astype(int)
+        df["fg_greed"]         = (fg > 60).astype(int)
+        df["fg_change_7d"]     = (fg - fg.shift(7)).fillna(0)
+        df["fg_change_30d"]    = (fg - fg.shift(30)).fillna(0)
+        df["fg_ma14"]          = (fg / (fg.rolling(14).mean() + 1e-9)) - 1
 
-    for col in ["sp500","nasdaq","gold","dxy","vix","us10y"]:
+    for col in ["sp500", "nasdaq", "gold", "dxy", "vix", "us10y"]:
         if col in df.columns:
             s = df[col]
-            df[f"{col}_ret5d"]   = s.pct_change(288 * 5)
-            df[f"{col}_above_ma"]= (s > s.rolling(288 * 50).mean()).astype(int)
+            df[f"{col}_ret1d"]   = s.pct_change(1)
+            df[f"{col}_ret5d"]   = s.pct_change(5)
+            df[f"{col}_ret20d"]  = s.pct_change(20)
+            df[f"{col}_above_ma"]= (s > s.rolling(50).mean()).astype(int)
+            df[f"{col}_above_ma200"] = (s > s.rolling(200).mean()).astype(int)
             if col == "vix":
-                df["vix_spike"] = (s > s.shift(1) * 1.1).astype(int)
-                df["vix_high"]  = (s > 30).astype(int)
+                df["vix_spike"]  = (s > s.shift(1) * 1.1).astype(int)
+                df["vix_high"]   = (s > 30).astype(int)
+                df["vix_low"]    = (s < 15).astype(int)
             if col == "dxy":
-                df["dxy_rising"]= (s > s.shift(288)).astype(int)
+                df["dxy_rising"] = (s > s.shift(5)).astype(int)
+                df["dxy_vs_ma"]  = (s / (s.rolling(20).mean() + 1e-9)) - 1
+            if col == "gold":
+                df["gold_vs_ma"] = (s / (s.rolling(20).mean() + 1e-9)) - 1
+            if col == "us10y":
+                df["yield_rising"] = (s > s.shift(5)).astype(int)
 
-    # ── 시간 주기성 ───────────────────────────────
+    # ══════════════════════════════════════════════
+    # X. 시간 주기성 (확장)
+    # ══════════════════════════════════════════════
     dt = df["datetime"]
-    df["hour"]      = dt.dt.hour / 23
-    df["dow"]       = dt.dt.dayofweek / 6  # 0=월, 6=일
-    df["hour_sin"]  = np.sin(2 * np.pi * dt.dt.hour / 24)
-    df["hour_cos"]  = np.cos(2 * np.pi * dt.dt.hour / 24)
-    df["dow_sin"]   = np.sin(2 * np.pi * dt.dt.dayofweek / 7)
-    df["dow_cos"]   = np.cos(2 * np.pi * dt.dt.dayofweek / 7)
+    df["hour"]       = dt.dt.hour / 23
+    df["dow"]        = dt.dt.dayofweek / 6
+    df["month"]      = dt.dt.month / 12
+    df["hour_sin"]   = np.sin(2 * np.pi * dt.dt.hour / 24)
+    df["hour_cos"]   = np.cos(2 * np.pi * dt.dt.hour / 24)
+    df["dow_sin"]    = np.sin(2 * np.pi * dt.dt.dayofweek / 7)
+    df["dow_cos"]    = np.cos(2 * np.pi * dt.dt.dayofweek / 7)
+    df["month_sin"]  = np.sin(2 * np.pi * dt.dt.month / 12)
+    df["month_cos"]  = np.cos(2 * np.pi * dt.dt.month / 12)
+    # 아시아/유럽/미국 세션
+    hr = dt.dt.hour
+    df["session_asia"]   = ((hr >= 0)  & (hr < 8)).astype(int)
+    df["session_europe"] = ((hr >= 8)  & (hr < 16)).astype(int)
+    df["session_us"]     = ((hr >= 14) & (hr < 22)).astype(int)
+    df["session_overlap"]= ((hr >= 14) & (hr < 16)).astype(int)  # 유럽+미국 겹침
+    # 주말 여부
+    df["is_weekend"]     = (dt.dt.dayofweek >= 5).astype(int)
 
     return df
 
