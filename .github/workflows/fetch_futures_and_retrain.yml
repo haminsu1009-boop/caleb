@@ -118,7 +118,7 @@ jobs:
             echo "intervals=5m 1h 4h 1d" >> $GITHUB_OUTPUT
           fi
 
-      - name: 재학습 (새 피처 포함)
+      - name: 재학습 (Y1-Y15 신규 피처 포함)
         run: |
           FAST_FLAG=""
           if [ "${{ github.event.inputs.fast }}" = "true" ]; then
@@ -157,7 +157,7 @@ jobs:
           git config user.email "actions@github.com"
           git add ml/saved_models/ charts/ 2>/dev/null || true
           git diff --staged --quiet && echo "변경 없음" && exit 0
-          git commit -m "🤖 재학습 완료 — ${{ matrix.symbol }} (펀딩비+OI+멀티TF 피처)"
+          git commit -m "🤖 재학습 완료 — ${{ matrix.symbol }} (Y1-Y15 + 펀딩비 + OI + 멀티TF)"
           for i in $(seq 1 10); do
             SLEEP=$((RANDOM % 20 + i * 5))
             sleep $SLEEP
@@ -203,7 +203,7 @@ jobs:
           git config user.email "actions@github.com"
           git add charts/pattern_report.html ml/saved_models/pattern_rules.csv 2>/dev/null || true
           git diff --staged --quiet && echo "변경 없음" && exit 0
-          git commit -m "🔍 패턴 분석 완료 — 전체 239+피처 + 멀티TF + 펀딩비"
+          git commit -m "🔍 패턴 분석 완료 — 294+피처 (Y1-Y15) + 멀티TF + 펀딩비"
           for i in $(seq 1 5); do
             sleep $((i * 3))
             git fetch origin claude/quant-trading-bot-tkjtd
