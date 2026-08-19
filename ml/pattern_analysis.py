@@ -177,7 +177,8 @@ def mine_rules(df: pd.DataFrame, direction: str,
                min_wr: float = 0.70,
                min_n:  int   = 25) -> list:
     sub = df[df["direction"] == direction].copy()
-    if len(sub) < 100:
+    min_required = min_n * 4   # 최소 샘플: min_n의 4배
+    if len(sub) < min_required:
         return []
 
     feat_cols = list(dict.fromkeys(c for c in feature_cols if c in sub.columns))
@@ -351,8 +352,10 @@ def analyze_all():
                   f"LONG:{wr_L*100:.1f}%  SHORT:{wr_S*100:.1f}%  "
                   f"피처:{len(all_feats)}개")
 
-            rules_L = mine_rules(merged, "LONG",  all_feats, min_wr=0.70)
-            rules_S = mine_rules(merged, "SHORT", all_feats, min_wr=0.70)
+            # 1d봉은 샘플 수가 적어 min_n 완화
+            _min_n = 10 if ivl == "1d" else 25
+            rules_L = mine_rules(merged, "LONG",  all_feats, min_wr=0.70, min_n=_min_n)
+            rules_S = mine_rules(merged, "SHORT", all_feats, min_wr=0.70, min_n=_min_n)
             top_L   = top_features(merged, "LONG",  all_feats)
             top_S   = top_features(merged, "SHORT", all_feats)
 
