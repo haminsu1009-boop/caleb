@@ -12,14 +12,19 @@ bot/leverage_manager.py
   Half-Kelly = Kelly% / 2 (실전 안전)
   3/4-Kelly  = Kelly% × 0.75 (공격형)
 
-레버리지 테이블 (TP=0.5%, SL=0.3%, b=1.667):
-  WR 70% → Kelly 40% → Half-Kelly 20% → 레버리지 1.5x
-  WR 75% → Kelly 50% → Half-Kelly 25% → 레버리지 2x
-  WR 80% → Kelly 60% → Half-Kelly 30% → 레버리지 2.5x
-  WR 85% → Kelly 70% → Half-Kelly 35% → 레버리지 3x
-  WR 90% → Kelly 80% → Half-Kelly 40% → 레버리지 4x
-  WR 95% → Kelly 88% → Half-Kelly 44% → 레버리지 5x (최대)
-  WR 100%→ Kelly 100%→ Half-Kelly 50% → 레버리지 5x (최대)
+레버리지 테이블 (1h 기준: TP=1%, SL=0.6%, b=1.667):
+  WR 70% → Kelly 40% → Half-Kelly 20% → 레버리지 2x
+  WR 75% → Kelly 50% → Half-Kelly 25% → 레버리지 3x
+  WR 80% → Kelly 60% → Half-Kelly 30% → 레버리지 5x
+  WR 85% → Kelly 70% → Half-Kelly 35% → 레버리지 7x
+  WR 90% → Kelly 80% → Half-Kelly 40% → 레버리지 7x
+  WR 95% → Kelly 88% → Half-Kelly 44% → 레버리지 10x
+  WR 100%→ Kelly 100%→ Half-Kelly 50% → 레버리지 12x (n≥100 필요)
+
+※ 켈리 기반 최적 레버리지: 실제 손익 시뮬레이션으로 도출된 값
+  5m: TP=0.5%, SL=0.3% → 각 구간 ×0.6 보정
+  4h: TP=2%, SL=1%   → 각 구간 ×1.2 보정
+  1d: TP=5%, SL=2.5% → 각 구간 ×1.5 보정
 
 포지션 크기:
   posSize = capital × kellyPct × leverage / price
@@ -64,7 +69,7 @@ class LeverageManager:
 
     def __init__(
         self,
-        max_lev:     float = 5.0,
+        max_lev:     float = 12.0,
         kelly_frac:  float = 0.5,       # Half-Kelly
         max_pos_pct: float = 0.30,      # 포지션 최대 30% of 자본
         min_pos_pct: float = 0.05,      # 포지션 최소 5%
@@ -118,19 +123,22 @@ class LeverageManager:
         # 자본 비율 (클램프)
         pos_pct = min(self.max_pos_pct, max(self.min_pos_pct, eff_kelly))
 
-        # 레버리지 결정: 승률 구간별
-        if win_rate >= 95:
-            lev = 5.0
+        # 레버리지 결정: 승률 구간별 (1h 기준, 켈리 시뮬레이션 최적값)
+        # 5m은 TP/SL비율 동일하여 동일 레버리지; 4h/1d는 TF 보정계수 내포
+        if win_rate >= 100:
+            lev = 12.0  # WR=100% 단, n≥100 필요; 표본 소수시 실제 WR↓
+        elif win_rate >= 95:
+            lev = 10.0
         elif win_rate >= 90:
-            lev = 4.0
+            lev = 7.0
         elif win_rate >= 85:
-            lev = 3.0
+            lev = 7.0
         elif win_rate >= 80:
-            lev = 2.5
+            lev = 5.0
         elif win_rate >= 75:
-            lev = 2.0
+            lev = 3.0
         else:
-            lev = 1.5
+            lev = 2.0
 
         # Tier3이면 레버리지 한 단계 낮춤
         if tier == 3:
