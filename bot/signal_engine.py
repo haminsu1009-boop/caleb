@@ -39,17 +39,124 @@ sys.path.insert(0, ROOT)
 # ──────────────────────────────────────────────────────────
 @dataclass
 class Signal:
-    symbol:      str
-    interval:    str
-    direction:   str          # "LONG" | "SHORT"
-    tier:        int          # 1=패턴룰, 2=볼륨폭발, 3=ML
-    win_rate:    float        # 0~100
-    confidence:  float        # 0~1 (ML 확률 or 규칙 WR/100)
-    reason:      str          # 신호 근거 텍스트
-    rule_text:   str = ""     # 패턴룰 전문 (Tier1)
-    lift:        float = 1.0  # 패턴룰 lift
-    count:       int   = 0    # 룰 샘플 수
-    extra:       dict  = field(default_factory=dict)
+    symbol:           str
+    interval:         str
+    direction:        str          # "LONG" | "SHORT"
+    tier:             int          # 1=패턴룰, 2=볼륨폭발, 3=ML
+    win_rate:         float        # 0~100
+    confidence:       float        # 0~1 (ML 확률 or 규칙 WR/100)
+    reason:           str          # 신호 근거 텍스트
+    rule_text:        str = ""     # 패턴룰 전문 (Tier1)
+    lift:             float = 1.0  # 패턴룰 lift
+    count:            int   = 0    # 룰 샘플 수
+    extra:            dict  = field(default_factory=dict)
+    # ── 트레일링 스탑 설정 ──────────────────────────────────
+    trailing_stop_pct: float = 0.0   # 고점 대비 청산 비율 (예: 0.15 = 15%)
+    hold_style:        str   = ""    # "trend" | "swing" | "scalp"
+
+
+# ──────────────────────────────────────────────────────────
+# 트레일링 스탑 계산 유틸
+# ──────────────────────────────────────────────────────────
+# 레버리지별 권장 트레일링 스탑 비율
+_TRAILING_BY_LEV = {
+    2:  0.25,   # 2x → 25%
+    3:  0.20,   # 3x → 20%
+    5:  0.13,   # 5x → 13%
+    7:  0.09,   # 7x → 9%
+    10: 0.07,   # 10x → 7%
+    12: 0.06,   # 12x → 6%
+}
+
+# 인터벌별 기본 트레일링 스탑 (레버리지 정보 없을 때)
+_TRAILING_BY_INTERVAL = {
+    "1d": 0.20,   # 일봉 — 큰 추세 보존
+    "4h": 0.12,   # 4h 스윙
+    "1h": 0.08,   # 1h 단기
+    "30m": 0.06,
+    "15m": 0.05,
+    "5m": 0.04,
+}
+
+# 인터벌별 홀딩 스타일
+_HOLD_STYLE = {
+    "1d": "trend",   "3d": "trend",
+    "4h": "swing",   "12h": "swing",
+    "1h": "scalp",   "30m": "scalp",
+    "15m": "scalp",  "5m": "scalp",
+}
+
+
+def calc_trailing_stop(interval: str, leverage: float = None) -> float:
+    """
+    레버리지 또는 인터벌 기준으로 트레일링 스탑 비율 반환.
+
+    Args:
+        interval:  "1d", "4h", "1h" 등
+        leverage:  포지션 레버리지 (없으면 인터벌 기준)
+
+    Returns:
+        float: 0.0~1.0 (예: 0.15 = 고점 대비 -15% 시 청산)
+    """
+    if leverage is not None and leverage > 0:
+        # 가장 가까운 레버리지 키 찾기
+        levs = sorted(_TRAILING_BY_LEV.keys())
+        closest = min(levs, key=lambda x: abs(x - leverage))
+        return _TRAILING_BY_LEV[closest]
+    return _TRAILING_BY_INTERVAL.get(interval, 0.12)
+
+
+class TrailingStopTracker:
+    """
+    포지션별 트레일링 스탑 추적기.
+    매 캔들마다 update() 호출 → should_exit() True 시 청산.
+
+    사용 예:
+        tracker = TrailingStopTracker(entry=4100, pct=0.20)
+        for price in prices:
+            if tracker.update(price).should_exit:
+                break
+    """
+
+    def __init__(self, entry: float, pct: float):
+        """
+        Args:
+            entry: 진입가
+            pct:   트레일링 비율 (0.15 = 15%)
+        """
+        self.entry       = float(entry)
+        self.pct         = float(pct)
+        self.peak        = float(entry)
+        self.stop_price  = entry * (1 - pct)
+        self.current     = float(entry)
+        self.should_exit = False
+        self.bars_held   = 0
+
+    def update(self, price: float) -> "TrailingStopTracker":
+        """새 가격으로 스탑 갱신. self 반환 (체이닝 가능)"""
+        self.current = float(price)
+        self.bars_held += 1
+        if price > self.peak:
+            self.peak       = price
+            self.stop_price = price * (1 - self.pct)
+        if price <= self.stop_price:
+            self.should_exit = True
+        return self
+
+    @property
+    def return_pct(self) -> float:
+        """현재 수익률 (진입가 기준)"""
+        return (self.current - self.entry) / self.entry
+
+    @property
+    def peak_return_pct(self) -> float:
+        """고점 수익률"""
+        return (self.peak - self.entry) / self.entry
+
+    def __repr__(self):
+        return (f"TrailingStop(entry={self.entry:.0f}, peak={self.peak:.0f}, "
+                f"stop={self.stop_price:.0f}, ret={self.return_pct*100:.1f}%, "
+                f"exit={self.should_exit})")
 
 
 # ──────────────────────────────────────────────────────────
@@ -501,6 +608,13 @@ class SignalEngine:
             if k not in seen:
                 seen[k] = s
         result = list(seen.values())
+
+        # ── 트레일링 스탑 & 홀딩 스타일 자동 설정 ────────────
+        for s in result:
+            if s.trailing_stop_pct == 0.0:
+                s.trailing_stop_pct = calc_trailing_stop(s.interval)
+            if not s.hold_style:
+                s.hold_style = _HOLD_STYLE.get(s.interval, "swing")
 
         # 정렬: tier → win_rate 내림차순
         result.sort(key=lambda x: (x.tier, -x.win_rate))
