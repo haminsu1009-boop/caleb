@@ -8,9 +8,9 @@ on:
         required: false
         default: "BTCUSDT ETHUSDT BNBUSDT ADAUSDT SOLUSDT XRPUSDT"
       from_year:
-        description: "시작 연도"
+        description: "시작 연도 (OHLCV+선물 모두)"
         required: false
-        default: "2022"
+        default: "2019"
       skip_retrain:
         description: "재학습 건너뛰기 (true/false)"
         required: false
@@ -45,13 +45,15 @@ jobs:
       - name: 패키지 설치
         run: pip install pandas numpy scikit-learn xgboost lightgbm matplotlib requests
 
-      - name: "📡 STEP1 - 선물 데이터 수집 (펀딩비+OI+LSR)"
+      - name: "📡 STEP1 - Bybit 선물 데이터 수집 (펀딩비+OI+LSR)"
         run: |
           mkdir -p data/futures
           for SYM in ${{ github.event.inputs.symbols }}; do
-            echo "▶ $SYM 수집 중..."
+            echo "▶ $SYM 수집 중 (Bybit API)..."
             python ml/fetch_futures_data.py --symbol "$SYM" --from_year ${{ github.event.inputs.from_year }} || echo "⚠️ $SYM 실패"
           done
+          echo "수집된 선물 파일:"
+          ls -lh data/futures/ 2>/dev/null || echo "선물 파일 없음"
 
       - name: "🤖 STEP2 - 재학습"
         if: ${{ github.event.inputs.skip_retrain != 'true' }}
@@ -75,7 +77,7 @@ jobs:
           git config user.email "actions@github.com"
           git add data/futures/ ml/saved_models/ charts/ 2>/dev/null || true
           git diff --staged --quiet && echo "변경 없음" && exit 0
-          git commit -m "🤖 재학습+패턴분석 완료 (Y1-Y15 피처)"
+          git commit -m "🤖 재학습+패턴분석 완료 (Bybit 선물 + Y1-Y15 피처)"
           for i in 1 2 3 4 5; do
             sleep $((i * 5))
             git fetch origin claude/quant-trading-bot-tkjtd
@@ -86,11 +88,13 @@ jobs:
       - name: "📊 결과 요약"
         if: always()
         run: |
+          echo "=== 선물 데이터 ==="
+          ls -lh data/futures/ 2>/dev/null || echo "없음"
+          echo "=== 패턴 룰 ==="
           RULES_FILE="ml/saved_models/pattern_rules.csv"
           if [ -f "$RULES_FILE" ]; then
             TOTAL=$(awk 'END{print NR-1}' "$RULES_FILE")
-            echo "✅ 총 룰: ${TOTAL}개"
-            echo "--- 상위 10개 ---"
+            echo "총 룰: ${TOTAL}개"
             head -11 "$RULES_FILE"
           else
             echo "패턴 룰 파일 없음"
