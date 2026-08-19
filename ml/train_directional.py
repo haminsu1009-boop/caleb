@@ -132,6 +132,16 @@ def load_indicators() -> dict:
         ind["macro"] = mac
         print(f"  거시경제: {len(mac)}일  컬럼={num_cols}")
 
+    # BTC 도미넌스 (일봉)
+    btcd_path = os.path.join(DATA_DIR, "btc_dominance.csv")
+    if os.path.exists(btcd_path):
+        btcd = pd.read_csv(btcd_path)
+        btcd["date"] = pd.to_datetime(btcd["date"])
+        btcd = btcd[["date", "btc_dominance"]].dropna(subset=["btc_dominance"])
+        btcd["btc_dominance"] = btcd["btc_dominance"].astype(float)
+        ind["btc_dominance"] = btcd
+        print(f"  BTC 도미넌스: {len(btcd)}일")
+
     return ind
 
 
@@ -151,6 +161,11 @@ def merge_indicators(df: pd.DataFrame, ind: dict) -> pd.DataFrame:
         for c in [col for col in mac.columns if col != "_date"]:
             if c in df.columns:
                 df[c] = df[c].ffill()
+
+    if "btc_dominance" in ind:
+        btcd = ind["btc_dominance"].rename(columns={"date": "_date"})
+        df = df.merge(btcd, on="_date", how="left")
+        df["btc_dominance"] = df["btc_dominance"].ffill()
 
     df = df.drop(columns=["_date"], errors="ignore")
     return df
@@ -673,6 +688,24 @@ def add_features(df: pd.DataFrame) -> pd.DataFrame:
         df["fg_change_7d"]     = (fg - fg.shift(7)).fillna(0)
         df["fg_change_30d"]    = (fg - fg.shift(30)).fillna(0)
         df["fg_ma14"]          = (fg / (fg.rolling(14).mean() + 1e-9)) - 1
+
+    # ── BTC 도미넌스 파생 피처 ───────────────────
+    if "btc_dominance" in df.columns:
+        btcd = df["btc_dominance"].ffill()
+        df["btcd_norm"]       = btcd / 100                                      # 정규화 (0~1)
+        df["btcd_ma14"]       = btcd.rolling(14, min_periods=1).mean() / 100
+        df["btcd_vs_ma14"]    = (btcd / (btcd.rolling(14, min_periods=1).mean() + 1e-9)) - 1
+        df["btcd_vs_ma30"]    = (btcd / (btcd.rolling(30, min_periods=1).mean() + 1e-9)) - 1
+        df["btcd_slope7"]     = btcd.diff(7) / 100                              # 7일 기울기
+        df["btcd_slope30"]    = btcd.diff(30) / 100                             # 30일 기울기
+        df["btcd_falling"]    = (btcd < btcd.shift(7)).astype(int)              # 7일 전보다 낮음 = 알트 우세
+        df["btcd_rising"]     = (btcd > btcd.shift(7)).astype(int)              # 7일 전보다 높음 = BTC 우세
+        df["btcd_altseason"]  = (btcd < 45).astype(int)                         # < 45% = 알트시즌
+        df["btcd_btc_season"] = (btcd > 60).astype(int)                         # > 60% = BTC 시즌
+        df["btcd_rotation"]   = ((btcd.between(50, 60)) &
+                                  (btcd < btcd.shift(14))).astype(int)           # 50~60% & 하락 = 로테이션 초입
+        df["btcd_peak"]       = ((btcd > btcd.shift(3)) &
+                                  (btcd > btcd.shift(-3))).astype(int)           # 국소 고점 = 알트 반등 임박
 
     for col in ["sp500", "nasdaq", "gold", "dxy", "vix", "us10y"]:
         if col in df.columns:
