@@ -162,18 +162,64 @@ class TrailingStopTracker:
 # ──────────────────────────────────────────────────────────
 # 패턴룰 평가기
 # ──────────────────────────────────────────────────────────
-class PatternRuleEvaluator:
-    """패턴룰 CSV 로드 → DataFrame 행에 적용"""
+def _wilson_lower(wins: float, n: int, z: float = 1.645) -> float:
+    """Wilson Score 95% 신뢰구간 하한 (단측).
 
-    def __init__(self, rules_path: str = None):
+    샘플 수가 적을 때 WR이 과장되는 문제를 보정.
+    예: n=35, WR=94% → Wilson 하한 = 85% (실제 기대 WR)
+        n=10, WR=100% → Wilson 하한 = 74% (매우 불확실)
+    """
+    if n <= 0:
+        return 0.0
+    p = wins / n
+    denom = 1 + z * z / n
+    center = p + z * z / (2 * n)
+    margin = z * np.sqrt((p * (1 - p) + z * z / (4 * n)) / n)
+    return max(0.0, (center - margin) / denom)
+
+
+class PatternRuleEvaluator:
+    """패턴룰 CSV 로드 → DataFrame 행에 적용.
+
+    통계 필터: n≥100 AND Wilson 하한 ≥80% 기준으로 룰 선별.
+    (전체 302개 → 58개로 줄지만 이 58개가 통계적으로 신뢰 가능)
+    """
+
+    # 통계 유효성 기준 (변경 시 SignalEngine 상수와 동기화)
+    DEFAULT_MIN_N       = 100
+    DEFAULT_MIN_WILSON  = 80.0
+
+    def __init__(self, rules_path: str = None,
+                 min_n: int = None, min_wilson: float = None):
         if rules_path is None:
             rules_path = os.path.join(MODEL_DIR, "pattern_rules.csv")
         self.rules = pd.DataFrame()
+
+        _min_n      = min_n      if min_n      is not None else self.DEFAULT_MIN_N
+        _min_wilson = min_wilson if min_wilson is not None else self.DEFAULT_MIN_WILSON
+
         if os.path.exists(rules_path):
-            self.rules = pd.read_csv(rules_path)
+            raw = pd.read_csv(rules_path)
             # win_rate가 0~100 스케일인지 확인
-            if self.rules["win_rate"].max() <= 1.01:
-                self.rules["win_rate"] = self.rules["win_rate"] * 100
+            if raw["win_rate"].max() <= 1.01:
+                raw["win_rate"] = raw["win_rate"] * 100
+
+            # ── Wilson 신뢰구간 필터 ──────────────────────────
+            raw["_wins"]    = (raw["win_rate"] / 100 * raw["count"]).round()
+            raw["_wilson"]  = raw.apply(
+                lambda r: _wilson_lower(r["_wins"], int(r["count"])) * 100, axis=1
+            )
+            before = len(raw)
+            filtered = raw[(raw["count"] >= _min_n) &
+                           (raw["_wilson"] >= _min_wilson)].copy()
+            after = len(filtered)
+
+            self.rules = filtered.drop(columns=["_wins", "_wilson"])
+            import logging
+            logging.getLogger(__name__).info(
+                f"PatternRules 통계 필터: {before}개 → {after}개 "
+                f"(n≥{_min_n}, Wilson하한≥{_min_wilson}%)"
+            )
 
     def _eval_rule(self, row: pd.Series, rule_str: str) -> bool:
         """단일 조건 룰 평가 (AND 체인) — 유니코드/ASCII 비교 연산자 모두 지원"""
@@ -355,7 +401,14 @@ class SignalEngine:
     TIER2_MIN_WR = 80.0   # 볼륨폭발 기준 WR
     TIER3_MIN_WR = 70.0   # ML Tier3 최소 WR
 
-    # 볼륨폭발 파라미터 (실증: BTC 1d 94.4% WR)
+    # ── 통계 유효성 필터 (Wilson 95% 신뢰구간 하한 기준) ──────
+    # 근거: n=35에서 WR=94%를 신뢰할 수 없음 (실제 CI: 41~72%)
+    # Wilson 하한 = 진짜 WR의 보수적 추정값 (95% 신뢰)
+    MIN_SAMPLE_COUNT    = 100    # 최소 샘플 수 — 미만이면 룰 제외
+    MIN_WILSON_LOWER    = 80.0   # Wilson 95% 하한 — 미만이면 룰 제외
+    # 위 기준으로 302개 패턴룰 중 58개만 통과 (검증일: 2026-08-19)
+
+    # 볼륨폭발 파라미터 (BTC 1d n=35로 통계 불충분 — 다심볼 합산 후 재검증 필요)
     VOL_EXPLOSION = {
         "1d": {"mult": 2.0, "ret_min": 0.015},   # 볼륨>2x, 당일+1.5%
         "4h": {"mult": 2.0, "ret_min": 0.010},
