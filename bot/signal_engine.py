@@ -4,8 +4,8 @@ bot/signal_engine.py
 멀티 타임프레임 신호 엔진 — 최대 승률 + 최대 실행률
 
 신호 우선순위 (Tier):
-  Tier-1 (WR 90%+):  패턴룰 매칭 (DecisionTree 마이닝)
-  Tier-2 (WR 80%+):  볼륨폭발 패턴 (실증 94%+ BTC)
+  Tier-1 (WR 90%+):  패턴룰 매칭 (DecisionTree 마이닝, Wilson 95% CI 필터)
+  Tier-2 (WR 70%+):  볼륨폭발 패턴 [추정 70~75%, 다심볼 OOS 검증 필요]
   Tier-3 (WR 70%+):  ML 모델 (DirectionalEnsemble) + 기술필터
 
 타임프레임별 역할:
@@ -397,8 +397,8 @@ class SignalEngine:
         )
     """
 
-    TIER1_MIN_WR = 90.0   # 패턴룰 Tier1 최소 WR
-    TIER2_MIN_WR = 80.0   # 볼륨폭발 기준 WR
+    TIER1_MIN_WR = 90.0   # 패턴룰 Tier1 최소 WR (Wilson CI 필터 통과 58개)
+    TIER2_MIN_WR = 70.0   # 볼륨폭발 — 보수적 추정 (다심볼 검증 전 70% 하한)
     TIER3_MIN_WR = 70.0   # ML Tier3 최소 WR
 
     # ── 통계 유효성 필터 (Wilson 95% 신뢰구간 하한 기준) ──────
@@ -483,6 +483,12 @@ class SignalEngine:
         return signals
 
     # ── Tier-2: 볼륨폭발 패턴 ──────────────────────
+    # ⚠ 통계 주의: BTC 1d VE 단독 검증 n=35, WR=57.1% (CI 41~72%) — 불충분.
+    # 현재 WR은 15개 심볼 합산 추정치. count=0 으로 기록하고, 반드시
+    # 다심볼 OOS 검증 후 실제 WR 로 업데이트 필요.
+    # 트레일링 스탑: 모멘텀 스파이크 특성상 디폴트의 절반 → 빠른 청산.
+    _VE_TRAILING_FACTOR = 0.60   # 인터벌 기본 트레일링의 60% (더 빡빡하게)
+
     def _scan_volume_explosion(self, df: pd.DataFrame, symbol: str,
                                interval: str) -> list:
         if not self.use_volume_explosion:
@@ -498,21 +504,31 @@ class SignalEngine:
         ret1       = float(last.get("ret1", 0.0))
         rsi        = float(last.get("rsi14", 50.0))
 
+        # 모멘텀 트레일링 스탑: 빠른 추세 포착 후 빠르게 이익 실현
+        # (VE = 진입 트리거, 트레일링 스탑 = 청산 결정)
+        ve_trailing = calc_trailing_stop(interval) * self._VE_TRAILING_FACTOR
+
         # LONG 볼륨폭발: 상승추세 + 볼륨 폭발 + 양봉
+        # WR 근거: 15심볼 추정치 (미검증). 강한 VE(3x+)=75%, 중간(2x)=70%
+        # BTC 1d 단독 WR=57.1%이므로 보수적 추정값 사용.
         if (bull_trend and
             vol_ratio >= cfg["mult"] and
             ret1 >= cfg["ret_min"] and
             rsi < 80):
-            wr = 90.0 if vol_ratio >= 2.5 else 82.0
+            wr = 75.0 if vol_ratio >= 3.0 else 70.0
             signals.append(Signal(
-                symbol    = symbol,
-                interval  = interval,
-                direction = "LONG",
-                tier      = 2,
-                win_rate  = wr,
-                confidence= wr / 100,
-                reason    = f"볼륨폭발 {vol_ratio:.1f}x, +{ret1*100:.1f}%, 상승추세",
-                extra     = {"vol_ratio": vol_ratio, "ret1": ret1},
+                symbol           = symbol,
+                interval         = interval,
+                direction        = "LONG",
+                tier             = 2,
+                win_rate         = wr,
+                confidence       = wr / 100,
+                reason           = f"볼륨폭발 {vol_ratio:.1f}x, +{ret1*100:.1f}%, 상승추세 [통계미검증]",
+                count            = 0,           # 다심볼 OOS 검증 전 — Wilson 필터 미적용
+                trailing_stop_pct= ve_trailing,  # 모멘텀 청산: 빠른 트레일링
+                hold_style       = "scalp" if interval in ("5m","15m","1h") else "swing",
+                extra            = {"vol_ratio": vol_ratio, "ret1": ret1,
+                                    "ve_stat": "pending_verification"},
             ))
 
         # SHORT 볼륨폭발: 하락추세 + 볼륨 폭발 + 음봉
@@ -520,30 +536,39 @@ class SignalEngine:
             vol_ratio >= cfg["mult"] and
             ret1 <= -cfg["ret_min"] and
             rsi > 20):
-            wr = 88.0 if vol_ratio >= 2.5 else 80.0
+            wr = 73.0 if vol_ratio >= 3.0 else 68.0
+            # SHORT WR은 LONG보다 낮게: 크립토 상방 바이어스 고려
             signals.append(Signal(
-                symbol    = symbol,
-                interval  = interval,
-                direction = "SHORT",
-                tier      = 2,
-                win_rate  = wr,
-                confidence= wr / 100,
-                reason    = f"볼륨폭발(숏) {vol_ratio:.1f}x, {ret1*100:.1f}%, 하락추세",
-                extra     = {"vol_ratio": vol_ratio, "ret1": ret1},
+                symbol           = symbol,
+                interval         = interval,
+                direction        = "SHORT",
+                tier             = 2,
+                win_rate         = wr,
+                confidence       = wr / 100,
+                reason           = f"볼륨폭발(숏) {vol_ratio:.1f}x, {ret1*100:.1f}%, 하락추세 [통계미검증]",
+                count            = 0,
+                trailing_stop_pct= ve_trailing,
+                hold_style       = "scalp" if interval in ("5m","15m","1h") else "swing",
+                extra            = {"vol_ratio": vol_ratio, "ret1": ret1,
+                                    "ve_stat": "pending_verification"},
             ))
 
         # 상승다이버전스 + 볼륨증가
         bull_div = bool(last.get("bull_div", 0))
         if bull_div and vol_ratio >= 1.2 and rsi < 65:
             signals.append(Signal(
-                symbol    = symbol,
-                interval  = interval,
-                direction = "LONG",
-                tier      = 2,
-                win_rate  = 78.0,
-                confidence= 0.78,
-                reason    = f"상승다이버전스 + 볼륨{vol_ratio:.1f}x",
-                extra     = {"divergence": True, "split_entry": True},
+                symbol           = symbol,
+                interval         = interval,
+                direction        = "LONG",
+                tier             = 2,
+                win_rate         = 72.0,
+                confidence       = 0.72,
+                reason           = f"상승다이버전스 + 볼륨{vol_ratio:.1f}x [통계미검증]",
+                count            = 0,
+                trailing_stop_pct= ve_trailing,
+                hold_style       = "swing",
+                extra            = {"divergence": True, "split_entry": True,
+                                    "ve_stat": "pending_verification"},
             ))
 
         return signals
