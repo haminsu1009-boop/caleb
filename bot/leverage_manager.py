@@ -67,6 +67,13 @@ class LeverageManager:
         "1d": {"tp": 0.050, "sl": 0.025},    # 5.0% / 2.5%
     }
 
+    # ── 미검증 신호 레버리지 상한 ─────────────────────────
+    # Tier2(볼륨폭발, count=0): 다심볼 OOS 검증 전까지 최대 2x
+    # Tier3(ML): Wilson CI 검증 있으나 시장 체제 의존성 있음 → 최대 3x
+    # Tier1(패턴룰, Wilson 필터 통과): 제한 없음 (max_lev 따름)
+    TIER2_UNVERIFIED_MAX_LEV = 2.0   # VE 신호 — 검증 완료 전 hard cap
+    TIER3_ML_MAX_LEV         = 3.0   # ML 신호 — OOS WR 있으나 보수적
+
     def __init__(
         self,
         max_lev:     float = 12.0,
@@ -140,9 +147,15 @@ class LeverageManager:
         else:
             lev = 2.0
 
-        # Tier3이면 레버리지 한 단계 낮춤
-        if tier == 3:
-            lev = max(1.5, lev - 0.5)
+        # ── Tier별 레버리지 상한 적용 ──────────────────────
+        # Tier2: 볼륨폭발 — 다심볼 OOS 검증 전, count=0 상태
+        #        → WR 70~75% 추정치이므로 2x hard cap
+        if tier == 2:
+            lev = min(lev, self.TIER2_UNVERIFIED_MAX_LEV)
+        # Tier3: ML 신호 — OOS WR 있으나 시장 체제 의존
+        #        → 기존 "한 단계 낮춤" 대신 3x cap으로 통일
+        elif tier == 3:
+            lev = min(lev, self.TIER3_ML_MAX_LEV)
 
         # 연속손실 감쇄 (exponential decay)
         if self._consec_loss > 0:

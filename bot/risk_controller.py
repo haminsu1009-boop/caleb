@@ -310,3 +310,53 @@ class RiskController:
         for sym, p in s["positions"].items():
             print(f"    {sym} {p['dir']} {p['lev']}x ({p['ivl']})")
         print(f"{'─'*50}")
+
+    # ──────────────────────────────────────────────
+    # Kelly 포지션 사이징 (coin/risk.py 호환)
+    # ──────────────────────────────────────────────
+    def kelly_position_size(
+        self,
+        capital:  float,
+        win_rate: float = 0.55,    # 0~1 스케일
+        avg_win:  float = 0.05,
+        avg_loss: float = 0.03,
+        max_ratio: float = 0.20,   # 단일 포지션 최대 20% of 자본
+    ) -> float:
+        """
+        Kelly Criterion → Half-Kelly 포지션 크기 (USDT)
+
+        Args:
+            win_rate:  0~1 스케일 (0.55 = 55%)
+            avg_win:   평균 수익률 (예: 0.05 = 5%)
+            avg_loss:  평균 손실률 (예: 0.03 = 3%)
+            max_ratio: 단일 포지션 최대 자본 비율
+
+        Returns:
+            투자 USDT 금액
+        """
+        b = avg_win / max(avg_loss, 1e-9)
+        p, q = win_rate, 1 - win_rate
+        kelly = max(0.0, (p * b - q) / b)
+        ratio = min(kelly * 0.5, max_ratio)   # Half-Kelly + 캡
+        return round(capital * ratio, 2)
+
+    def position_info(self, symbol: str, current_price: float) -> str:
+        """단일 포지션 상태 문자열 (coin/risk.py 호환)"""
+        pos = self.positions.get(symbol)
+        if not pos:
+            return f"{symbol}: 포지션 없음"
+        pnl_pct = (current_price - pos.entry_price) / pos.entry_price
+        if pos.direction == "SHORT":
+            pnl_pct = -pnl_pct
+        return (
+            f"{symbol} [{pos.direction}×{pos.leverage}]  "
+            f"진입: ${pos.entry_price:,.2f}  현재: ${current_price:,.2f}  "
+            f"수익: {pnl_pct*100:+.2f}%  SL: ${pos.sl_price:,.2f}  "
+            f"TP: ${pos.tp_price:,.2f}"
+        )
+
+
+# ──────────────────────────────────────────────────
+# coin/risk.py 호환 alias — 기존 임포트 그대로 동작
+# ──────────────────────────────────────────────────
+RiskManager = RiskController

@@ -1,6 +1,19 @@
 """
 bybit/live_trader.py
-Bybit 실시간 자동매매 봇 (USDT 영구선물 - 롱/숏 모두 가능)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Bybit USDT 영구선물 자동매매 봇
+SignalEngine(Tier1/2/3) + RiskController + LeverageManager 통합 버전
+
+아키텍처:
+  1. SignalEngine.scan()   → 신호 탐지 (Tier1 패턴룰 / Tier2 VE / Tier3 ML)
+  2. LeverageManager.decide()  → 동적 레버리지 결정
+       Tier2 (VE 미검증) → 최대 2x 강제 캡
+       Tier3 (ML)        → 최대 3x 강제 캡
+  3. RiskController.can_enter() → 리스크 게이트키핑
+       일일 손실 / 낙폭 / 연속손실 / 중복 포지션 등 체크
+  4. Bybit place_order()   → 진입 + SL/TP 지정가 주문 동시 설정
+       (stopLoss / takeProfit 파라미터로 한 번에 거래소에 등록)
+  5. RiskController.update_price() → 루프마다 실시간 SL/TP/트레일링 체크
 
 사용법:
     python bybit/live_trader.py             # 실거래 (주의!)
@@ -10,14 +23,21 @@ Bybit 실시간 자동매매 봇 (USDT 영구선물 - 롱/숏 모두 가능)
 .env 필수 설정:
     BYBIT_API_KEY=...
     BYBIT_SECRET=...
-    BYBIT_TESTNET=false
+    BYBIT_TESTNET=false          # 테스트넷 사용 시 true
     TRADING_SYMBOL=BTCUSDT
-    TRADING_LEVERAGE=1
-    TRADE_USDT=10
-    CANDLE_INTERVAL=5
+    TRADING_LEVERAGE=3           # 기본 레버리지 (LeverageManager가 동적 결정)
+    TRADE_USDT=50                # 단일 포지션 기본 투자 USDT (자본 자동 계산)
+    CANDLE_INTERVAL=60           # 캔들 인터벌 (분): 5 / 60 / 240 / D
+    INITIAL_CAPITAL=500          # 초기 자본 (리스크 관리 기준)
+
+.env 선택 설정:
+    MAX_POSITIONS=5
+    DAILY_LOSS_LIMIT=0.05        # 일일 손실 한도 5%
+    MAX_DRAWDOWN=0.15            # 최대 낙폭 15%
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
-import os, sys, time, json, pickle, argparse
+import os, sys, time, argparse, logging
 from datetime import datetime
 
 import numpy as np
@@ -28,277 +48,387 @@ load_dotenv()
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from pybit.unified_trading import HTTP
-from ml.features import add_features, get_feature_cols
-from ml.signal_filter import top_percentile_signals
-from bybit.collect_bybit import fetch_latest
+from bybit.collect_bybit    import fetch_latest
+from bot.signal_engine      import SignalEngine, Signal
+from bot.risk_controller    import RiskController, Position
+from bot.leverage_manager   import LeverageManager
 
 
-# ── 설정 ────────────────────────────────────────────────
-SYMBOL    = os.getenv("TRADING_SYMBOL", "BTCUSDT")
-LEVERAGE  = int(os.getenv("TRADING_LEVERAGE", "1"))
-TRADE_AMT = float(os.getenv("TRADE_USDT", "10"))    # 건당 투자 USDT
-INTERVAL  = os.getenv("CANDLE_INTERVAL", "5")
-TESTNET   = os.getenv("BYBIT_TESTNET", "false").lower() == "true"
+# ── 환경변수 설정 ────────────────────────────────────
+SYMBOL          = os.getenv("TRADING_SYMBOL",    "BTCUSDT")
+DEFAULT_LEV     = int(os.getenv("TRADING_LEVERAGE",  "3"))
+CANDLE_INTERVAL = os.getenv("CANDLE_INTERVAL",   "60")   # 분 단위 문자열
+TESTNET         = os.getenv("BYBIT_TESTNET", "false").lower() == "true"
+INITIAL_CAPITAL = float(os.getenv("INITIAL_CAPITAL", "500"))
+MAX_POSITIONS   = int(os.getenv("MAX_POSITIONS",      "5"))
+DAILY_LOSS_LIM  = float(os.getenv("DAILY_LOSS_LIMIT", "0.05"))
+MAX_DRAWDOWN    = float(os.getenv("MAX_DRAWDOWN",      "0.15"))
 
-MODEL_PATH = "ml/saved_models/directional_model.pkl"
-THR_PATH   = "ml/saved_models/directional_thresholds.json"
+# Bybit 인터벌 코드 변환: 분 문자열 → API 파라미터
+_INTERVAL_MAP = {
+    "1": "1", "3": "3", "5": "5", "15": "15", "30": "30",
+    "60": "60", "120": "120", "240": "240", "360": "360",
+    "720": "720", "D": "D", "W": "W", "M": "M",
+}
+_SIGNAL_INTERVAL_MAP = {
+    "1": "1m", "3": "3m", "5": "5m", "15": "15m", "30": "30m",
+    "60": "1h", "120": "2h", "240": "4h", "D": "1d",
+}
 
-# 신호 설정
-SIGNAL_PCT = 10.0   # 상위 10% 신호 (분봉은 일봉보다 완화)
-MIN_THR    = 0.58
-
-
-def load_model():
-    with open(MODEL_PATH, "rb") as f:
-        saved = pickle.load(f)
-    with open(THR_PATH) as f:
-        thr = json.load(f)
-    return saved["model"], saved["feature_cols"], thr
-
-
-def prepare_df(raw: pd.DataFrame) -> pd.DataFrame:
-    """Bybit 캔들 → features.py 호환 포맷으로 변환"""
-    df = raw.copy()
-    df = df.rename(columns={"timestamp": "date"})
-    df["date"] = df["date"].astype(str)
-    # add_features 는 open 컬럼 필요
-    if "open" not in df.columns and "open" not in df.columns:
-        df["open"] = df["close"].shift(1).fillna(df["close"])
-    df = df[["date","open","high","low","close","volume"]].copy()
-    return df
+# 로거 설정
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%H:%M:%S",
+)
+log = logging.getLogger("bybit_trader")
 
 
-def get_signal(model, feat_cols) -> dict:
+# ─────────────────────────────────────────────────────────
+# 캔들 데이터 → SignalEngine용 dict 변환
+# ─────────────────────────────────────────────────────────
+def _build_dfs(symbol: str, api_interval: str, signal_interval: str) -> dict:
     """
-    최신 캔들 가져와서 ML 신호 계산
-    Returns: {"action": "LONG"|"SHORT"|"NONE", "long_prob": float, "short_prob": float}
+    여러 타임프레임 캔들 데이터 수집 → {"1h": df, "4h": df, "1d": df} 형태로 반환.
+    현재 인터벌을 포함해 상위 타임프레임까지 함께 가져온다.
     """
-    raw = fetch_latest(SYMBOL, INTERVAL, n=300)
-    if raw.empty or len(raw) < 50:
-        return {"action": "NONE", "long_prob": 0, "short_prob": 0}
+    intervals_needed = {"60": "1h", "240": "4h", "D": "1d"}
 
-    df = prepare_df(raw)
-    df = add_features(df)
+    # 현재 인터벌이 포함되도록 조정
+    if api_interval not in intervals_needed:
+        intervals_needed[api_interval] = signal_interval
 
-    fc = [c for c in feat_cols if c in df.columns]
-    X  = df[fc].fillna(0)
-
-    lp = model.predict_proba_long(X)
-    sp = model.predict_proba_short(X)
-
-    # regime (없으면 모두 1=neutral)
-    regime = df["regime"].fillna(1).values if "regime" in df.columns else np.ones(len(df))
-
-    long_sig, short_sig = top_percentile_signals(
-        lp, sp, regime=regime, pct=SIGNAL_PCT, min_thr=MIN_THR
-    )
-
-    # 마지막 캔들 (현재 완성된 캔들)
-    last = -2   # -1은 진행중 캔들, -2는 완성된 마지막 캔들
-
-    action = "NONE"
-    if long_sig[last]:
-        action = "LONG"
-    elif short_sig[last]:
-        action = "SHORT"
-
-    return {
-        "action":     action,
-        "long_prob":  round(float(lp[last]), 4),
-        "short_prob": round(float(sp[last]), 4),
-        "close":      float(df["close"].iloc[last]),
-        "time":       df["date"].iloc[last],
-    }
+    dfs = {}
+    for api_ivl, sig_ivl in intervals_needed.items():
+        raw = fetch_latest(symbol, api_ivl, n=300)
+        if raw is not None and not raw.empty:
+            raw = raw.rename(columns={"timestamp": "datetime"})
+            raw["datetime"] = pd.to_datetime(raw["datetime"], errors="coerce")
+            dfs[sig_ivl] = raw
+    return dfs
 
 
-# ── Bybit 주문 함수 ──────────────────────────────────────
+# ─────────────────────────────────────────────────────────
+# Bybit 주문 래퍼
+# ─────────────────────────────────────────────────────────
 class BybitTrader:
+    """
+    Bybit V5 API 래퍼.
+    진입 시 stopLoss + takeProfit을 거래소에 함께 등록.
+    """
+
     def __init__(self, paper: bool = False):
-        self.paper    = paper
-        self.position = None   # "LONG" | "SHORT" | None
-        self.entry_px = 0.0
-        self.qty      = 0.0
-        self.pnl_log  = []
+        self.paper = paper
+        # ── 리스크 / 레버리지 관리자 ──────────────────
+        self.risk_ctrl = RiskController(
+            initial_capital  = INITIAL_CAPITAL,
+            max_positions    = MAX_POSITIONS,
+            daily_loss_lim   = DAILY_LOSS_LIM,
+            max_drawdown     = MAX_DRAWDOWN,
+        )
+        self.lev_mgr = LeverageManager(
+            max_lev     = DEFAULT_LEV,   # 실제 상한은 Tier별 cap이 우선
+            max_pos_pct = 0.20,          # 단일 포지션 최대 20%
+        )
+        self.signal_engine = SignalEngine()
+
+        # ── 페이퍼 트레이딩 내부 상태 ─────────────────
+        self._paper_capital = INITIAL_CAPITAL
+        self._paper_price   = {}   # symbol → last price (paper mock)
 
         if not paper:
             self.session = HTTP(
-                testnet   = TESTNET,
-                api_key   = os.getenv("BYBIT_API_KEY"),
-                api_secret= os.getenv("BYBIT_SECRET"),
+                testnet    = TESTNET,
+                api_key    = os.getenv("BYBIT_API_KEY"),
+                api_secret = os.getenv("BYBIT_SECRET"),
             )
-            self._set_leverage()
+            log.info("Bybit 실거래 세션 연결 완료 (testnet=%s)", TESTNET)
         else:
             self.session = None
-            print("📝 페이퍼 트레이딩 모드 (실제 주문 없음)")
+            log.info("📝 페이퍼 트레이딩 모드 — 실제 주문 없음")
 
-    def _set_leverage(self):
-        try:
-            self.session.set_leverage(
-                category="linear", symbol=SYMBOL,
-                buyLeverage=str(LEVERAGE), sellLeverage=str(LEVERAGE)
-            )
-        except Exception as e:
-            print(f"  레버리지 설정: {e}")
-
-    def get_price(self) -> float:
+    # ── 현재가 조회 ──────────────────────────────────
+    def _get_price(self) -> float:
         if self.paper:
-            # 페이퍼: fetch_latest 에서 마지막 가격
-            raw = fetch_latest(SYMBOL, INTERVAL, n=3)
-            return float(raw["close"].iloc[-1]) if not raw.empty else 0.0
+            raw = fetch_latest(SYMBOL, _INTERVAL_MAP.get(CANDLE_INTERVAL, "60"), n=3)
+            return float(raw["close"].iloc[-1]) if raw is not None and not raw.empty else 0.0
         resp = self.session.get_tickers(category="linear", symbol=SYMBOL)
         return float(resp["result"]["list"][0]["lastPrice"])
 
-    def get_position(self) -> dict | None:
-        """현재 포지션 조회"""
+    # ── 잔고 조회 ────────────────────────────────────
+    def _get_capital(self) -> float:
         if self.paper:
-            return {"side": self.position, "size": self.qty, "avgPrice": self.entry_px} if self.position else None
+            return self._paper_capital
         try:
-            resp = self.session.get_positions(category="linear", symbol=SYMBOL)
-            pos  = resp["result"]["list"]
-            for p in pos:
-                if float(p["size"]) > 0:
-                    return {"side": p["side"], "size": float(p["size"]), "avgPrice": float(p["avgPrice"])}
+            resp = self.session.get_wallet_balance(accountType="UNIFIED")
+            for item in resp["result"]["list"]:
+                for coin in item.get("coin", []):
+                    if coin["coin"] == "USDT":
+                        return float(coin["walletBalance"])
         except Exception as e:
-            print(f"  포지션 조회 실패: {e}")
-        return None
+            log.warning("잔고 조회 실패: %s", e)
+        return self.risk_ctrl.capital
 
-    def open_long(self, price: float):
-        qty = round(TRADE_AMT * LEVERAGE / price, 3)
+    # ── 레버리지 설정 (거래소) ───────────────────────
+    def _set_leverage(self, lev: int):
         if self.paper:
-            self.position = "LONG"; self.entry_px = price; self.qty = qty
-            print(f"  📗 [PAPER LONG] qty={qty} @ ${price:,.1f}")
             return
         try:
-            r = self.session.place_order(
-                category="linear", symbol=SYMBOL,
-                side="Buy", orderType="Market",
-                qty=str(qty), timeInForce="IOC"
+            self.session.set_leverage(
+                category    = "linear",
+                symbol      = SYMBOL,
+                buyLeverage = str(lev),
+                sellLeverage= str(lev),
             )
-            print(f"  📗 LONG 주문: {r['result']}")
         except Exception as e:
-            print(f"  ❌ LONG 주문 실패: {e}")
+            log.debug("레버리지 설정: %s", e)
 
-    def open_short(self, price: float):
-        qty = round(TRADE_AMT * LEVERAGE / price, 3)
-        if self.paper:
-            self.position = "SHORT"; self.entry_px = price; self.qty = qty
-            print(f"  📕 [PAPER SHORT] qty={qty} @ ${price:,.1f}")
+    # ────────────────────────────────────────────────
+    # 진입: 시장가 주문 + SL/TP 지정가 동시 등록
+    # ────────────────────────────────────────────────
+    def _open_position(self, signal: Signal, price: float):
+        """
+        신호에 따라 진입 주문 + SL/TP를 거래소에 한 번에 설정.
+
+        Bybit V5 place_order의 stopLoss / takeProfit 파라미터를 사용.
+        """
+        capital = self._get_capital()
+        allowed, reason = self.risk_ctrl.can_enter(
+            symbol    = SYMBOL,
+            direction = signal.direction,
+            interval  = signal.interval,
+        )
+        if not allowed:
+            log.info("진입 차단: %s", reason)
             return
-        try:
-            r = self.session.place_order(
-                category="linear", symbol=SYMBOL,
-                side="Sell", orderType="Market",
-                qty=str(qty), timeInForce="IOC"
-            )
-            print(f"  📕 SHORT 주문: {r['result']}")
-        except Exception as e:
-            print(f"  ❌ SHORT 주문 실패: {e}")
 
-    def close_position(self, price: float):
-        pos = self.get_position()
+        # 동적 레버리지 결정
+        dec = self.lev_mgr.decide(
+            win_rate = signal.win_rate,
+            interval = signal.interval,
+            tier     = signal.tier,
+            lift     = signal.lift,
+        )
+        lev      = int(dec.leverage)
+        pos_usdt = capital * dec.position_pct
+
+        # RiskController TF_CONFIG 기반 SL/TP 계산
+        cfg      = self.risk_ctrl.TF_CONFIG.get(signal.interval, self.risk_ctrl.TF_CONFIG["1h"])
+        sl_r     = cfg["sl"]
+        tp_r     = cfg["tp"]
+
+        if signal.direction == "LONG":
+            sl_price = round(price * (1 - sl_r), 2)
+            tp_price = round(price * (1 + tp_r), 2)
+            side     = "Buy"
+        else:
+            sl_price = round(price * (1 + sl_r), 2)
+            tp_price = round(price * (1 - tp_r), 2)
+            side     = "Sell"
+
+        qty = round(pos_usdt * lev / price, 3)
+        if qty <= 0:
+            log.warning("수량 0 — 진입 스킵 (자본 부족?)")
+            return
+
+        log.info(
+            "📌 진입: %s %s  qty=%.3f @ $%.1f  lev=%dx  "
+            "SL=$%.2f  TP=$%.2f  WR=%.0f%%  Tier%d  [%s]",
+            signal.direction, SYMBOL, qty, price, lev,
+            sl_price, tp_price, signal.win_rate, signal.tier, dec.reason,
+        )
+
+        if self.paper:
+            # 페이퍼: RiskController에만 등록
+            pos = self.risk_ctrl.open_position(
+                symbol      = SYMBOL,
+                interval    = signal.interval,
+                direction   = signal.direction,
+                entry_price = price,
+                usdt_amount = pos_usdt,
+                leverage    = float(lev),
+                win_rate    = signal.win_rate,
+                tier        = signal.tier,
+            )
+            log.info("  [PAPER] 포지션 등록 완료  SL=$%.2f  TP=$%.2f", pos.sl_price, pos.tp_price)
+            return
+
+        # ── 실거래: 거래소에 레버리지 설정 → 시장가 진입 + SL/TP ──
+        self._set_leverage(lev)
+        try:
+            resp = self.session.place_order(
+                category      = "linear",
+                symbol        = SYMBOL,
+                side          = side,
+                orderType     = "Market",
+                qty           = str(qty),
+                timeInForce   = "IOC",
+                # 진입과 동시에 거래소에 SL/TP 설정
+                stopLoss      = str(sl_price),
+                takeProfit    = str(tp_price),
+                slTriggerBy   = "LastPrice",
+                tpTriggerBy   = "LastPrice",
+                positionIdx   = 0,   # 단방향 포지션 모드
+            )
+            order_id = resp.get("result", {}).get("orderId", "N/A")
+            log.info("  ✅ 주문 접수: orderId=%s", order_id)
+
+            # RiskController에 포지션 등록 (로컬 추적용)
+            self.risk_ctrl.open_position(
+                symbol      = SYMBOL,
+                interval    = signal.interval,
+                direction   = signal.direction,
+                entry_price = price,
+                usdt_amount = pos_usdt,
+                leverage    = float(lev),
+                win_rate    = signal.win_rate,
+                tier        = signal.tier,
+            )
+        except Exception as e:
+            log.error("  ❌ 주문 실패: %s", e)
+
+    # ────────────────────────────────────────────────
+    # 청산: 시장가 reduce-only
+    # ────────────────────────────────────────────────
+    def _close_position(self, price: float, reason: str):
+        pos = self.risk_ctrl.positions.get(SYMBOL)
         if not pos:
             return
 
-        side  = pos["side"] if not self.paper else self.position
-        entry = pos["avgPrice"] if not self.paper else self.entry_px
-        qty   = pos["size"]   if not self.paper else self.qty
+        pnl_pct  = (price - pos.entry_price) / pos.entry_price
+        if pos.direction == "SHORT":
+            pnl_pct = -pnl_pct
+        pnl_usdt = pos.usdt_amount * pnl_pct * pos.leverage
+        is_win   = pnl_usdt > 0
 
+        log.info(
+            "🔒 청산 [%s]  %s %s  진입=$%.1f → 현재=$%.1f  "
+            "PnL=%+.2f%% ($%+.2f)",
+            reason, pos.direction, SYMBOL,
+            pos.entry_price, price, pnl_pct * 100, pnl_usdt,
+        )
+
+        if not self.paper:
+            close_side = "Sell" if pos.direction == "LONG" else "Buy"
+            try:
+                self.session.place_order(
+                    category    = "linear",
+                    symbol      = SYMBOL,
+                    side        = close_side,
+                    orderType   = "Market",
+                    qty         = str(pos.quantity),
+                    reduceOnly  = True,
+                    timeInForce = "IOC",
+                    positionIdx = 0,
+                )
+            except Exception as e:
+                log.error("  ❌ 청산 주문 실패: %s", e)
+
+        # RiskController 기록 업데이트
+        self.risk_ctrl.close_position(SYMBOL, pnl_usdt, is_win)
+        self.lev_mgr.record_result(is_win)
         if self.paper:
-            if self.position == "LONG":
-                pnl_pct = (price - entry) / entry * 100
-            else:
-                pnl_pct = (entry - price) / entry * 100
-            pnl_usdt = TRADE_AMT * pnl_pct / 100
-            self.pnl_log.append({"time": datetime.utcnow(), "pnl_pct": pnl_pct, "pnl_usdt": pnl_usdt})
-            emoji = "✅" if pnl_pct > 0 else "❌"
-            print(f"  {emoji} [PAPER CLOSE] {self.position}  PnL: {pnl_pct:+.2f}% (${pnl_usdt:+.2f})")
-            self.position = None; self.entry_px = 0; self.qty = 0
+            self._paper_capital += pnl_usdt
+
+    # ────────────────────────────────────────────────
+    # 메인 루프 — 한 tick 처리
+    # ────────────────────────────────────────────────
+    def tick(self):
+        """캔들 하나 완성될 때마다 호출"""
+        price = self._get_price()
+        if price <= 0:
+            log.warning("가격 조회 실패")
             return
 
-        close_side = "Sell" if side == "Buy" else "Buy"
-        try:
-            r = self.session.place_order(
-                category="linear", symbol=SYMBOL,
-                side=close_side, orderType="Market",
-                qty=str(qty), reduceOnly=True, timeInForce="IOC"
-            )
-            print(f"  🔒 포지션 종료: {r['result']}")
-        except Exception as e:
-            print(f"  ❌ 종료 실패: {e}")
+        # ① 기존 포지션 SL/TP/트레일링 체크
+        result = self.risk_ctrl.update_price(SYMBOL, price)
+        action = result.get("action", "none")
+        if action in ("close_tp", "close_sl", "close_trail"):
+            self._close_position(price, action)
+            return   # 청산 tick이면 새 진입은 다음 봉에
+
+        # ② 신호 탐지
+        api_ivl    = _INTERVAL_MAP.get(CANDLE_INTERVAL, "60")
+        sig_ivl    = _SIGNAL_INTERVAL_MAP.get(CANDLE_INTERVAL, "1h")
+        dfs        = _build_dfs(SYMBOL, api_ivl, sig_ivl)
+        signals    = self.signal_engine.scan(dfs, SYMBOL)
+
+        if not signals:
+            log.info("[%s] %s $%.1f — 신호 없음", datetime.utcnow().strftime("%H:%M"), SYMBOL, price)
+            return
+
+        best = signals[0]   # Tier 오름차순, WR 내림차순으로 정렬됨
+        log.info(
+            "[%s] %s $%.1f — 신호: %s Tier%d WR=%.0f%% [%s]",
+            datetime.utcnow().strftime("%H:%M"), SYMBOL, price,
+            best.direction, best.tier, best.win_rate, best.reason,
+        )
+
+        # ③ 포지션 변경 판단
+        current_pos = self.risk_ctrl.positions.get(SYMBOL)
+        if current_pos is None:
+            self._open_position(best, price)
+        else:
+            # 반대 방향 신호 → 청산 후 재진입
+            if current_pos.direction != best.direction:
+                self._close_position(price, "reverse_signal")
+                time.sleep(1)
+                self._open_position(best, price)
+            else:
+                log.info("  ⏸  포지션 유지 (%s)", current_pos.direction)
+
+    # ── 상태 출력 ────────────────────────────────────
+    def print_status(self):
+        self.risk_ctrl.print_status()
 
 
-# ── 메인 루프 ────────────────────────────────────────────
-def run_bot(paper: bool = False, interval_min: int = 5):
-    print("=" * 56)
-    print(f"🤖 AI 트레이딩 봇 시작")
-    print(f"   심볼: {SYMBOL}  캔들: {interval_min}분봉  레버리지: {LEVERAGE}x")
-    print(f"   건당 투자: ${TRADE_AMT} USDT  모드: {'📝 페이퍼' if paper else '💰 실거래'}")
-    print("=" * 56)
+# ─────────────────────────────────────────────────────────
+# 메인 루프
+# ─────────────────────────────────────────────────────────
+def run_bot(paper: bool = False, interval_min: int = 60):
+    print("=" * 60)
+    print(f"🤖 AI 선물 트레이딩 봇")
+    print(f"   심볼: {SYMBOL}  캔들: {interval_min}분  초기자본: ${INITIAL_CAPITAL:,.0f}")
+    print(f"   모드: {'📝 페이퍼' if paper else '💰 실거래 ⚠️'}")
+    print(f"   리스크: 일손실 한도={DAILY_LOSS_LIM*100:.0f}%  낙폭 한도={MAX_DRAWDOWN*100:.0f}%")
+    print(f"   레버리지: Tier1 최대{DEFAULT_LEV}x / Tier2(VE) 최대2x / Tier3(ML) 최대3x")
+    print("=" * 60)
 
-    model, feat_cols, thr = load_model()
-    trader = BybitTrader(paper=paper)
-    prev_action = None
+    if not paper:
+        confirm = input("\n  ⚠️  실거래 모드입니다. 계속하시겠습니까? (YES): ").strip()
+        if confirm != "YES":
+            print("  취소됨")
+            return
+
+    trader      = BybitTrader(paper=paper)
+    sleep_sec   = interval_min * 60
+    tick_count  = 0
 
     while True:
         try:
-            now = datetime.utcnow()
-            sig = get_signal(model, feat_cols)
-            price = sig.get("close", trader.get_price())
+            trader.tick()
+            tick_count += 1
 
-            print(f"\n[{now.strftime('%H:%M:%S')}] {SYMBOL} ${price:,.1f}")
-            print(f"  신호: {sig['action']}  장P={sig['long_prob']:.3f}  숏P={sig['short_prob']:.3f}")
+            if tick_count % 6 == 0:   # 6봉마다 상태 출력
+                trader.print_status()
 
-            pos = trader.get_position()
-            action = sig["action"]
-
-            # 포지션 변경 필요할 때만 주문
-            if pos is None:
-                if action == "LONG":
-                    trader.open_long(price)
-                elif action == "SHORT":
-                    trader.open_short(price)
-            else:
-                cur_side = pos["side"] if not paper else trader.position
-                # 반대 신호 → 포지션 종료 후 새 방향 진입
-                if action == "LONG" and cur_side in ("SHORT", "Sell"):
-                    trader.close_position(price)
-                    time.sleep(1)
-                    trader.open_long(price)
-                elif action == "SHORT" and cur_side in ("LONG", "Buy"):
-                    trader.close_position(price)
-                    time.sleep(1)
-                    trader.open_short(price)
-                elif action == "NONE":
-                    # 신호 없으면 기존 포지션 유지 (홀드)
-                    print(f"  ⏸  포지션 유지 ({cur_side})")
-
-            # 페이퍼 트레이딩 누적 PnL 출력
-            if paper and trader.pnl_log:
-                total = sum(p["pnl_usdt"] for p in trader.pnl_log)
-                wr    = sum(1 for p in trader.pnl_log if p["pnl_pct"] > 0) / len(trader.pnl_log)
-                print(f"  📊 누적 PnL: ${total:+.2f}  승률: {wr*100:.1f}%  ({len(trader.pnl_log)}건)")
-
-            # 다음 봉 시작까지 대기
-            sleep_sec = interval_min * 60
-            print(f"  ⏰ {sleep_sec // 60}분 후 다시 확인...")
+            log.info("  ⏰ %d분 후 다음 봉...", interval_min)
             time.sleep(sleep_sec)
 
         except KeyboardInterrupt:
             print("\n\n⏹  봇 종료")
-            if paper and trader.pnl_log:
-                total = sum(p["pnl_usdt"] for p in trader.pnl_log)
-                print(f"\n📋 최종 성과: ${total:+.2f} USDT  ({len(trader.pnl_log)}건)")
+            trader.print_status()
             break
         except Exception as e:
-            print(f"  ⚠️  오류: {e}")
+            log.error("루프 오류: %s", e, exc_info=True)
             time.sleep(30)
 
 
-# ── CLI ─────────────────────────────────────────────────
+# ── CLI ──────────────────────────────────────────────────
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--paper",    action="store_true", help="페이퍼 트레이딩")
-    parser.add_argument("--interval", type=int, default=int(INTERVAL))
+    parser = argparse.ArgumentParser(description="Bybit 선물 자동매매 봇")
+    parser.add_argument("--paper",    action="store_true", help="페이퍼 트레이딩 (기본)")
+    parser.add_argument("--interval", type=int, default=int(CANDLE_INTERVAL),
+                        help="캔들 인터벌(분), 예: 5 / 60 / 240")
     args = parser.parse_args()
-
     run_bot(paper=args.paper, interval_min=args.interval)
