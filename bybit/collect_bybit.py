@@ -132,16 +132,53 @@ def collect_history(
 
 
 def fetch_latest(
-    symbol:   str = "BTCUSDT",
-    interval: str = "5",
-    n:        int = 300,       # 최신 N개 (피처 계산용)
+    symbol:      str  = "BTCUSDT",
+    interval:    str  = "5",
+    n:           int  = 800,     # 최신 N개 (피처 계산용)
+    drop_forming: bool = True,   # 진행 중인 미완성 봉 제거
 ) -> pd.DataFrame:
     """
     최신 N개 캔들 가져오기 (실시간 봇용)
+
+    ※ Bybit은 1회 최대 200개만 반환하므로 페이징으로 n개를 채운다.
+      vs_sma288 / vs_sma576 / ret_288 / ema50_vs_200 등 장기 룩백 피처가
+      NaN이 되지 않으려면 최소 600봉 이상 필요.
+
+    ※ drop_forming=True 이면 마지막(진행 중) 봉을 버린다.
+      학습은 종가 확정 봉으로 했으므로 실시간도 확정 봉만 써야
+      신호가 깜빡이지 않는다.
     """
-    session = get_session()
-    df = fetch_klines(session, symbol, interval, limit=min(n, 200))
-    return df
+    session   = get_session()
+    BATCH     = 200
+    frames    = []
+    end_ms    = None
+
+    while sum(len(f) for f in frames) < n:
+        df = fetch_klines(session, symbol, interval,
+                          end_ms=end_ms, limit=BATCH)
+        if df is None or df.empty:
+            break
+        frames.append(df)
+        oldest_ms = int(df["timestamp"].iloc[0].timestamp() * 1000)
+        if end_ms is not None and oldest_ms >= end_ms:
+            break                      # 더 이상 과거로 못 감
+        end_ms = oldest_ms - 1
+        if len(df) < BATCH:
+            break                      # 거래소에 더 이상 데이터 없음
+        time.sleep(0.1)
+
+    if not frames:
+        return pd.DataFrame()
+
+    out = (pd.concat(frames)
+             .drop_duplicates("timestamp")
+             .sort_values("timestamp")
+             .reset_index(drop=True))
+
+    if drop_forming and len(out) > 1:
+        out = out.iloc[:-1].reset_index(drop=True)
+
+    return out.tail(n).reset_index(drop=True)
 
 
 # ── CLI 진입점 ──────────────────────────────────────────

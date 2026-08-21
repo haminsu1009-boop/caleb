@@ -74,6 +74,9 @@ class LeverageManager:
     TIER2_UNVERIFIED_MAX_LEV = 2.0   # VE 신호 — 검증 완료 전 hard cap
     TIER3_ML_MAX_LEV         = 3.0   # ML 신호 — OOS WR 있으나 보수적
 
+    # 왕복 거래비용 = 수수료(0.05% × 2) + 슬리피지(0.05% × 2)
+    ROUND_TRIP_COST = 0.002
+
     def __init__(
         self,
         max_lev:     float = 12.0,
@@ -115,7 +118,34 @@ class LeverageManager:
         """
         params = self.TF_PARAMS.get(interval, self.TF_PARAMS["1h"])
         tp, sl = params["tp"], params["sl"]
-        b      = tp / sl
+
+        # ⚠️ 수수료 반영 손익비
+        #   기존에는 b = tp/sl (명목값)을 써서 켈리를 과대 계산했다.
+        #   실제로는 이익에서 비용이 빠지고 손실에는 비용이 더해진다:
+        #     실질이익 = tp - 왕복비용,  실질손실 = sl + 왕복비용
+        #   5m 기준 명목 b=1.67 → 실질 b=0.60 (178% 과대)
+        #   1h 기준 명목 b=1.67 → 실질 b=1.00 ( 67% 과대)
+        net_tp = tp - self.ROUND_TRIP_COST
+        net_sl = sl + self.ROUND_TRIP_COST
+        if net_tp <= 0:
+            # 수수료가 목표 수익을 잡아먹는 구간 → 진입 불가
+            return LeverageDecision(
+                leverage     = 0.0,
+                position_pct = 0.0,
+                kelly_pct    = 0.0,
+                reason       = f"거래비용({self.ROUND_TRIP_COST*100:.2f}%)이 TP({tp*100:.2f}%) 이상 — 진입 불가",
+            )
+        b = net_tp / net_sl
+
+        # 손익분기 승률 미달이면 진입 금지
+        breakeven_wr = net_sl / (net_tp + net_sl) * 100
+        if win_rate < breakeven_wr:
+            return LeverageDecision(
+                leverage     = 0.0,
+                position_pct = 0.0,
+                kelly_pct    = 0.0,
+                reason       = f"WR={win_rate:.1f}% < 손익분기 {breakeven_wr:.1f}% — 진입 불가",
+            )
 
         raw_kelly = self.kelly(win_rate, b)
 

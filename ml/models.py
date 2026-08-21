@@ -69,7 +69,11 @@ class XGBModel:
         return self
 
     def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
-        X_s = self.scaler.transform(X[self.feature_cols].fillna(0))
+        # ⚠️ inf 방어: 비율 피처의 0 나눗셈으로 ±inf가 들어오면
+        #   StandardScaler.transform()이 예외를 던져 실시간 봇이 죽는다.
+        #   학습 경로와 동일하게 inf → NaN → 0 으로 정리한다.
+        Xf  = X[self.feature_cols].replace([np.inf, -np.inf], np.nan).fillna(0)
+        X_s = self.scaler.transform(Xf)
         return self.model.predict_proba(X_s)
 
     def predict(self, X: pd.DataFrame) -> np.ndarray:
@@ -152,7 +156,11 @@ class LGBMModel:
         return self
 
     def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
-        X_s = self.scaler.transform(X[self.feature_cols].fillna(0))
+        # ⚠️ inf 방어: 비율 피처의 0 나눗셈으로 ±inf가 들어오면
+        #   StandardScaler.transform()이 예외를 던져 실시간 봇이 죽는다.
+        #   학습 경로와 동일하게 inf → NaN → 0 으로 정리한다.
+        Xf  = X[self.feature_cols].replace([np.inf, -np.inf], np.nan).fillna(0)
+        X_s = self.scaler.transform(Xf)
         return self.model.predict_proba(X_s)
 
     def predict(self, X: pd.DataFrame) -> np.ndarray:

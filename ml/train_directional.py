@@ -36,9 +36,37 @@ SYMBOL       = "BTCUSDT"
 INTERVAL     = "5m"           # --interval 으로 변경 가능
 FEE_RATE     = 0.0005         # 편도 0.05% (taker)
 SLIPPAGE     = 0.0005         # 슬리피지
-TP_PCT       = 0.005          # Take-Profit 0.5%
-SL_PCT       = 0.003          # Stop-Loss  0.3%
+TP_PCT       = 0.005          # Take-Profit 0.5% (5m 기본값)
+SL_PCT       = 0.003          # Stop-Loss  0.3% (5m 기본값)
 HORIZON      = 12             # 타겟 계산 봉 수 (5m × 12 = 60분)
+
+# ── 인터벌별 TP/SL ────────────────────────────────────────
+# ⚠️ 기존에는 모든 인터벌에 0.5%/0.3%를 고정 적용해, 실전 청산룰
+#   (RiskController.TF_CONFIG)과 모델이 배운 문제가 서로 달랐다.
+#   특히 1d에서 "2일 안에 +0.5% 터치"는 무작위 진입도 81% 달성 →
+#   모델 승률 83.6%가 사실상 무의미했다.
+#   여기서 bot/risk_controller.py TF_CONFIG와 동일한 값으로 통일한다.
+TP_SL_BY_INTERVAL = {
+    "1m":  (0.003, 0.002),
+    "3m":  (0.004, 0.0025),
+    "5m":  (0.005, 0.003),
+    "15m": (0.007, 0.004),
+    "30m": (0.008, 0.005),
+    "1h":  (0.010, 0.006),
+    "2h":  (0.014, 0.008),
+    "4h":  (0.020, 0.010),
+    "6h":  (0.025, 0.013),
+    "12h": (0.035, 0.018),
+    "1d":  (0.050, 0.025),
+}
+
+# 왕복 거래비용 (수수료 2회 + 슬리피지 2회)
+ROUND_TRIP_COST = 2 * FEE_RATE + 2 * SLIPPAGE   # 0.2%
+
+
+def get_tp_sl(interval: str) -> tuple:
+    """인터벌에 맞는 (TP, SL) 반환 — 학습·백테스트·실전 공통 사용"""
+    return TP_SL_BY_INTERVAL.get(interval, (TP_PCT, SL_PCT))
 SIGNAL_THR   = 0.58           # 신호 발생 확률 임계값
 TRAIN_START  = "2020-01-01"   # 학습 시작
 WF_START     = "2022-01-01"   # 워크포워드 시작
@@ -651,10 +679,15 @@ def add_features(df: pd.DataFrame) -> pd.DataFrame:
     # V. 차트 구조 (지지/저항 / 고점저점 패턴)
     # ══════════════════════════════════════════════
     # 프랙탈 고점/저점
-    df["fractal_high"] = ((h > h.shift(1)) & (h > h.shift(2)) &
-                          (h > h.shift(-1)) & (h > h.shift(-2))).astype(int)
-    df["fractal_low"]  = ((l < l.shift(1)) & (l < l.shift(2)) &
-                          (l < l.shift(-1)) & (l < l.shift(-2))).astype(int)
+    # ⚠️ 미래참조 제거: 기존 구현은 h.shift(-1), h.shift(-2)로 다음 2봉을 참조해
+    #   실시간에서는 계산 불가능했다(look-ahead bias).
+    #   → 2봉 전에 확정된 프랙탈을 현재 시점으로 지연시켜 사용한다.
+    _fh_raw = ((h.shift(2) > h.shift(1)) & (h.shift(2) > h.shift(3)) &
+               (h.shift(2) > h)          & (h.shift(2) > h.shift(4)))
+    _fl_raw = ((l.shift(2) < l.shift(1)) & (l.shift(2) < l.shift(3)) &
+               (l.shift(2) < l)          & (l.shift(2) < l.shift(4)))
+    df["fractal_high"] = _fh_raw.astype(int)
+    df["fractal_low"]  = _fl_raw.astype(int)
     # HH/HL/LH/LL 패턴 (추세 구조)
     recent_high = h.rolling(20).max()
     recent_low  = l.rolling(20).min()
@@ -704,8 +737,10 @@ def add_features(df: pd.DataFrame) -> pd.DataFrame:
         df["btcd_btc_season"] = (btcd > 60).astype(int)                         # > 60% = BTC 시즌
         df["btcd_rotation"]   = ((btcd.between(50, 60)) &
                                   (btcd < btcd.shift(14))).astype(int)           # 50~60% & 하락 = 로테이션 초입
-        df["btcd_peak"]       = ((btcd > btcd.shift(3)) &
-                                  (btcd > btcd.shift(-3))).astype(int)           # 국소 고점 = 알트 반등 임박
+        # ⚠️ 미래참조 제거: btcd.shift(-3)은 3봉 뒤 값 → 실시간 계산 불가
+        #   → 3봉 전에 확정된 국소 고점을 지연 사용
+        df["btcd_peak"]       = ((btcd.shift(3) > btcd.shift(6)) &
+                                  (btcd.shift(3) > btcd)).astype(int)            # 국소 고점(확정) = 알트 반등 임박
 
     for col in ["sp500", "nasdaq", "gold", "dxy", "vix", "us10y"]:
         if col in df.columns:
@@ -948,26 +983,27 @@ def make_targets(df: pd.DataFrame,
         tp_price_s = entry * (1 - tp)
         sl_price_s = entry * (1 + sl)
 
+        # ⚠️ 같은 봉에서 TP·SL이 모두 터치된 경우 기존 코드는 TP를 먼저
+        #   검사해 전부 '승리'로 처리했다(BTC 1h 실측 8.6% → 승률 +4.3%p 과대).
+        #   봉 내부 경로는 알 수 없으므로 SL을 먼저 검사해 보수적으로 판정한다.
         long_win = short_win = False
         for j in range(i + 1, min(i + horizon + 1, n)):
             h_j = high[j]
             l_j = low[j]
-            # LONG: high가 TP에 닿으면 이익
-            if h_j >= tp_price_l:
-                long_win = True; break
-            # LONG: low가 SL에 닿으면 손실 → 종료
+            # LONG: SL 우선 검사 (보수적)
             if l_j <= sl_price_l:
                 break
+            if h_j >= tp_price_l:
+                long_win = True; break
 
         for j in range(i + 1, min(i + horizon + 1, n)):
             h_j = high[j]
             l_j = low[j]
-            # SHORT: low가 TP에 닿으면 이익
-            if l_j <= tp_price_s:
-                short_win = True; break
-            # SHORT: high가 SL에 닿으면 손실 → 종료
+            # SHORT: SL 우선 검사 (보수적)
             if h_j >= sl_price_s:
                 break
+            if l_j <= tp_price_s:
+                short_win = True; break
 
         long_target[i]  = int(long_win)
         short_target[i] = int(short_win)
@@ -1418,8 +1454,24 @@ def main():
     df = add_futures_features(df)         # 펀딩비 / OI / LSR 파생 피처
     if not args.fast:
         df = add_multitf_features(df, sym, ivl, from_year=args.from_year)  # 멀티TF
-    df = make_targets(df, horizon=horizon, tp=TP_PCT, sl=SL_PCT)
+    # ⚠️ 인터벌별 TP/SL 적용 (기존: 전 인터벌 0.5%/0.3% 고정)
+    _tp, _sl = get_tp_sl(ivl)
+    print(f"    라벨 TP/SL: {_tp*100:.2f}% / {_sl*100:.2f}%  (horizon={horizon}봉)")
+    df = make_targets(df, horizon=horizon, tp=_tp, sl=_sl)
     feature_cols = get_feature_cols(df)
+
+    # ⚠️ inf 정리: 일부 비율 피처가 0 나눗셈으로 ±inf를 만들어
+    #   StandardScaler.fit()에서 학습이 중단됐다.
+    #   inf → NaN → 각 피처의 유한값 범위로 클리핑 후 0 대체.
+    _f = df[feature_cols]
+    _n_inf = int(np.isinf(_f.to_numpy(dtype="float64", na_value=0.0)).sum())
+    if _n_inf:
+        print(f"    ⚠️ inf 값 {_n_inf:,}개 정리")
+    df[feature_cols] = _f.replace([np.inf, -np.inf], np.nan)
+    # 극단값(상하위 0.1%)도 윈저라이즈 — 스케일러 폭주 방지
+    _lo = df[feature_cols].quantile(0.001)
+    _hi = df[feature_cols].quantile(0.999)
+    df[feature_cols] = df[feature_cols].clip(lower=_lo, upper=_hi, axis=1)
 
     # NaN 행 제거 (앞부분 지표 계산 안정화 구간)
     df = df.dropna(subset=feature_cols[:20]).reset_index(drop=True)

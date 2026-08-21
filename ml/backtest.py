@@ -24,8 +24,15 @@ sys.path.insert(0, ROOT)
 # train_directional.py에서 동일한 피처/데이터 함수 import (컬럼명 일치 보장)
 from ml.train_directional import (
     load_ohlcv, load_indicators, merge_indicators, add_features,
-    FEE_RATE, SLIPPAGE, TP_PCT, SL_PCT, HORIZON
+    FEE_RATE, SLIPPAGE, TP_PCT, SL_PCT, HORIZON,
+    get_tp_sl, ROUND_TRIP_COST
 )
+
+# ── 펀딩비 (무기한 선물) ───────────────────────────────────
+# Bybit 평균 펀딩비 ≈ 0.01% / 8시간 (연 ~11%). 보유시간에 비례해 차감.
+FUNDING_RATE_8H = 0.0001
+INTERVAL_HOURS  = {"1m":1/60, "3m":0.05, "5m":1/12, "15m":0.25, "30m":0.5,
+                   "1h":1, "2h":2, "4h":4, "6h":6, "12h":12, "1d":24}
 
 # 봉 단위별 HORIZON 자동 조정 (train_directional.py와 동일한 로직)
 HORIZON_MAP = {"1m": 30, "3m": 20, "5m": 12, "15m": 8, "30m": 6,
@@ -66,9 +73,24 @@ def load_model(symbol: str, interval: str):
 
 def simulate_trades(df: pd.DataFrame, model, feature_cols: list,
                     threshold: float = SIGNAL_THR,
-                    horizon: int = None) -> pd.DataFrame:
-    """모델 신호로 TP/SL 시뮬레이션"""
-    X = df[feature_cols].fillna(0)
+                    horizon: int = None,
+                    interval: str = "1h",
+                    max_positions: int = 3,
+                    sl_first: bool = True,
+                    apply_funding: bool = True) -> pd.DataFrame:
+    """
+    모델 신호로 TP/SL 시뮬레이션 (현실 반영판)
+
+    수정 내역:
+      1) sl_first=True  — 같은 봉에서 TP·SL이 모두 터치되면 SL로 판정.
+         기존 코드는 TP를 먼저 검사해 전부 승리 처리했다(승률 +4.3%p 과대).
+      2) max_positions  — 동시 보유 포지션 수 제한. 기존 백테스트는 제한이
+         없어 BTC 1h에서 85%의 거래가 이전 포지션 청산 전에 진입했고,
+         실전(MAX_POSITIONS=3)에서 재현 불가능한 수익률을 냈다.
+      3) apply_funding  — 무기한 선물 펀딩비를 보유 시간에 비례해 차감.
+      4) TP/SL을 인터벌별 값으로 사용 (get_tp_sl).
+    """
+    X  = df[feature_cols].fillna(0)
     lp = model.predict_proba_long(X)
     sp = model.predict_proba_short(X)
 
@@ -82,13 +104,22 @@ def simulate_trades(df: pd.DataFrame, model, feature_cols: list,
     times  = df["datetime"].values
     n      = len(df)
 
-    trades = []
-    fee = FEE_RATE; slip = SLIPPAGE; tp = TP_PCT; sl = SL_PCT
+    fee, slip = FEE_RATE, SLIPPAGE
+    tp, sl    = get_tp_sl(interval)
     if horizon is None:
         horizon = HORIZON
 
+    bar_hours = INTERVAL_HOURS.get(interval, 1)
+
+    trades = []
+    open_until = []          # 보유 중인 포지션들의 청산 예정 인덱스
+    skipped_full = 0         # 포지션 한도로 건너뛴 신호 수
+
     for i in range(n - horizon):
-        direction = None; prob = 0.0
+        # ── 이미 청산된 포지션 정리 ─────────────────────
+        open_until = [x for x in open_until if x > i]
+
+        direction, prob = None, 0.0
         if long_sig[i] and not short_sig[i]:
             direction, prob = "LONG", float(lp[i])
         elif short_sig[i] and not long_sig[i]:
@@ -102,38 +133,68 @@ def simulate_trades(df: pd.DataFrame, model, feature_cols: list,
         if direction is None:
             continue
 
+        # ── 포지션 한도 체크 (실전 RiskController와 동일) ──
+        if len(open_until) >= max_positions:
+            skipped_full += 1
+            continue
+
         entry    = closes[i] * (1 + slip if direction == "LONG" else 1 - slip)
         tp_price = entry * (1 + tp) if direction == "LONG" else entry * (1 - tp)
         sl_price = entry * (1 - sl) if direction == "LONG" else entry * (1 + sl)
 
-        exit_price = None; exit_type = "timeout"
+        exit_price, exit_type, exit_idx = None, "timeout", min(i + horizon, n - 1)
         for j in range(i + 1, min(i + horizon + 1, n)):
             hj, lj = highs[j], lows[j]
             if direction == "LONG":
-                if hj >= tp_price: exit_price = tp_price; exit_type = "tp"; break
-                if lj <= sl_price: exit_price = sl_price; exit_type = "sl"; break
+                hit_tp, hit_sl = hj >= tp_price, lj <= sl_price
             else:
-                if lj <= tp_price: exit_price = tp_price; exit_type = "tp"; break
-                if hj >= sl_price: exit_price = sl_price; exit_type = "sl"; break
+                hit_tp, hit_sl = lj <= tp_price, hj >= sl_price
+
+            if hit_tp and hit_sl:
+                # 봉 내부 경로 불명 → 보수적으로 SL 처리
+                if sl_first:
+                    exit_price, exit_type, exit_idx = sl_price, "sl", j
+                else:
+                    exit_price, exit_type, exit_idx = tp_price, "tp", j
+                break
+            if hit_sl:
+                exit_price, exit_type, exit_idx = sl_price, "sl", j
+                break
+            if hit_tp:
+                exit_price, exit_type, exit_idx = tp_price, "tp", j
+                break
 
         if exit_price is None:
-            exit_price = closes[min(i + horizon, n - 1)] * (1 - slip if direction == "LONG" else 1 + slip)
+            exit_price = closes[exit_idx] * (1 - slip if direction == "LONG" else 1 + slip)
 
-        pnl = (exit_price / entry - 1) - 2 * fee if direction == "LONG" \
-              else (entry / exit_price - 1) - 2 * fee
+        gross = (exit_price / entry - 1) if direction == "LONG" else (entry / exit_price - 1)
+        pnl   = gross - 2 * fee
+
+        # ── 펀딩비 차감 (보유 시간 비례) ─────────────────
+        hold_bars  = exit_idx - i
+        hold_hours = hold_bars * bar_hours
+        funding    = (hold_hours / 8.0) * FUNDING_RATE_8H if apply_funding else 0.0
+        pnl       -= funding
+
+        open_until.append(exit_idx)
 
         trades.append({
             "entry_time": times[i],
-            "direction": direction,
-            "entry": round(entry, 2),
-            "exit": round(exit_price, 2),
-            "exit_type": exit_type,
-            "pnl_pct": round(pnl, 6),
-            "win": int(pnl > 0),
-            "prob": round(prob, 4),
+            "direction":  direction,
+            "entry":      round(entry, 2),
+            "exit":       round(exit_price, 2),
+            "exit_type":  exit_type,
+            "hold_bars":  hold_bars,
+            "funding":    round(funding, 6),
+            "pnl_pct":    round(pnl, 6),
+            "win":        int(pnl > 0),
+            "prob":       round(prob, 4),
         })
 
-    return pd.DataFrame(trades)
+    out = pd.DataFrame(trades)
+    if skipped_full:
+        print(f"    ※ 포지션 한도({max_positions})로 건너뛴 신호: {skipped_full:,}건")
+    return out
 
 
 def calc_metrics(trades: pd.DataFrame) -> dict:
@@ -367,8 +428,23 @@ def run_backtest(symbol: str, interval: str, from_year: int) -> dict | None:
     # 봉 단위별 HORIZON 자동 적용
     horizon = HORIZON_MAP.get(interval, HORIZON)
 
+    # ⚠️ in-sample 오염 차단 ─────────────────────────────
+    #   train_final()은 데이터 앞 85%로 학습한다. 기존 백테스트는
+    #   그 구간까지 포함해 100%를 평가했고, 그 결과 BTC 1h에서
+    #   승률 98.9% / Sharpe 78 같은 실현 불가능한 수치가 나왔다.
+    #   → 학습에 쓰이지 않은 뒤쪽 15%만 평가한다.
+    TRAIN_FRAC = 0.85
+    split      = int(len(df) * TRAIN_FRAC)
+    df_oos     = df.iloc[split:].reset_index(drop=True)
+    print(f"  🔒 OOS 구간만 평가: {len(df_oos):,}행  "
+          f"{df_oos['datetime'].iloc[0]} ~ {df_oos['datetime'].iloc[-1]}")
+    print(f"     (학습 구간 {split:,}행 제외 — in-sample 오염 방지)")
+
+    if len(df_oos) < horizon + 50:
+        print("  ⚠️  OOS 데이터 부족 — 스킵"); return None
+
     # 시뮬레이션
-    trades = simulate_trades(df, model, feature_cols, horizon=horizon)
+    trades = simulate_trades(df_oos, model, feature_cols, horizon=horizon, interval=interval)
     metrics = calc_metrics(trades)
 
     # 출력

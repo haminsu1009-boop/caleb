@@ -399,6 +399,11 @@ class SignalEngine:
 
     TIER1_MIN_WR = 90.0   # 패턴룰 Tier1 최소 WR (Wilson CI 필터 통과 58개)
     TIER2_MIN_WR = 70.0   # 볼륨폭발 — 보수적 추정 (다심볼 검증 전 70% 하한)
+    # ── 비활성 타임프레임 ─────────────────────────────
+    # 거래비용 반영 시 손익분기 승률을 넘지 못하는 구간.
+    # 5m: 손익분기 62.5% vs 실측 OOS 46.9%
+    DISABLED_INTERVALS = {"1m", "3m", "5m"}
+
     TIER3_MIN_WR = 70.0   # ML Tier3 최소 WR
 
     # ── 통계 유효성 필터 (Wilson 95% 신뢰구간 하한 기준) ──────
@@ -574,6 +579,32 @@ class SignalEngine:
         return signals
 
     # ── Tier-3: ML 모델 신호 ─────────────────────────
+    # ── ML 캘리브레이션 로더 ──────────────────────────────
+    _CAL_CACHE: dict = {}
+
+    def _get_calibration(self, symbol: str, interval: str):
+        """
+        ml/saved_models/calibration_{SYM}_{IVL}.json 로드 (캐시).
+        파일이 없으면 None → 해당 심볼/인터벌 ML 신호를 내지 않는다.
+        생성: python ml/calibrate.py --symbol BTCUSDT --interval 4h
+        """
+        key = (symbol, interval)
+        if key in self._CAL_CACHE:
+            return self._CAL_CACHE[key]
+
+        import json as _json, os as _os
+        path = _os.path.join(
+            _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))),
+            "ml", "saved_models", f"calibration_{symbol}_{interval}.json")
+        cal = None
+        if _os.path.exists(path):
+            try:
+                cal = _json.load(open(path, encoding="utf-8"))
+            except Exception:
+                cal = None
+        self._CAL_CACHE[key] = cal
+        return cal
+
     def _scan_ml(self, df: pd.DataFrame, symbol: str, interval: str) -> list:
         if not self.use_ml:
             return []
@@ -586,10 +617,22 @@ class SignalEngine:
         bull  = bool(last.get("bull_trend", 1))
         signals = []
 
-        # LONG: ML 확률 높음 + RSI 과매수 아님
-        if lp >= 0.68 and rsi < 75 and bull:
-            # ML 확률 → WR 추정 (확률과 실제 WR은 약 0.85 상관)
-            wr = min(85.0, 50 + (lp - 0.5) * 120)
+        # ── 캘리브레이션 로드 ──────────────────────────────
+        # 기존에는 `lp >= 0.68` 절대 임계값 + 추정식 WR(50+(p-0.5)*120)을 썼다.
+        # 정직한 라벨로 재학습하면 확률이 0.58을 넘지 못해 신호가 0건이 되고,
+        # 추정식 WR은 실측과 무관해 레버리지를 잘못 키운다.
+        # → ml/calibrate.py가 OOS로 산출한 컷 점수 + 실측 WR(Wilson 하한)을 쓴다.
+        cal = self._get_calibration(symbol, interval)
+
+        if cal is None:
+            # 캘리브레이션 없으면 ML 신호를 내지 않는다 (검증 안 된 신호 차단)
+            return []
+
+        cl, cs = cal.get("long", {}), cal.get("short", {})
+
+        # LONG: 캘리브레이션이 활성일 때만 + RSI 과매수 아님
+        if cl.get("enabled") and lp >= cl["cut_score"] and rsi < 75 and bull:
+            wr = float(cl["wr"])          # OOS 실측 WR의 Wilson 하한
             signals.append(Signal(
                 symbol    = symbol,
                 interval  = interval,
@@ -597,12 +640,14 @@ class SignalEngine:
                 tier      = 3,
                 win_rate  = wr,
                 confidence= lp,
-                reason    = f"ML LONG 확률={lp*100:.1f}% (RSI={rsi:.0f})",
+                reason    = (f"ML LONG 점수={lp:.3f}≥{cl['cut_score']:.3f} "
+                             f"(상위{cl['pct']:.0f}%, OOS n={cl['n']}, "
+                             f"실측WR {cl['wr_raw']:.0f}%, RSI={rsi:.0f})"),
             ))
 
-        # SHORT: ML 확률 높음 + RSI 과매도 아님
-        if sp >= 0.68 and rsi > 25 and not bull:
-            wr = min(85.0, 50 + (sp - 0.5) * 120)
+        # SHORT: 캘리브레이션이 활성일 때만 + RSI 과매도 아님
+        if cs.get("enabled") and sp >= cs["cut_score"] and rsi > 25 and not bull:
+            wr = float(cs["wr"])          # OOS 실측 WR의 Wilson 하한
             signals.append(Signal(
                 symbol    = symbol,
                 interval  = interval,
@@ -610,7 +655,9 @@ class SignalEngine:
                 tier      = 3,
                 win_rate  = wr,
                 confidence= sp,
-                reason    = f"ML SHORT 확률={sp*100:.1f}% (RSI={rsi:.0f})",
+                reason    = (f"ML SHORT 점수={sp:.3f}≥{cs['cut_score']:.3f} "
+                             f"(상위{cs['pct']:.0f}%, OOS n={cs['n']}, "
+                             f"실측WR {cs['wr_raw']:.0f}%, RSI={rsi:.0f})"),
             ))
 
         return signals
@@ -651,6 +698,12 @@ class SignalEngine:
         all_signals = []
 
         for ivl, df in prepared.items():
+            # ⚠️ 거래비용상 수익 불가능한 타임프레임은 신호 생성 자체를 차단
+            #   5m: 실질이익 0.30% / 실질손실 0.50% → 손익분기 승률 62.5%
+            #        실측 OOS 승률 46.9% → 구조적 손실 구간
+            #   상위 TF의 컨텍스트(HTF 피처)로는 계속 사용된다.
+            if ivl in self.DISABLED_INTERVALS:
+                continue
             # Tier-1: 패턴룰
             sigs = self._scan_pattern_rules(df, symbol, ivl)
             all_signals.extend(sigs)
