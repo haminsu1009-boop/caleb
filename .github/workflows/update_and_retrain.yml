@@ -11,6 +11,9 @@ name: 🔄 데이터 최신화 + 재학습 + 캘리브레이션
 on:
   workflow_dispatch:
     inputs:
+      branch:
+        description: "작업 브랜치 (데이터/모델을 커밋할 대상)"
+        default: "claude/quant-trading-bot-tkjtd"
       symbols:
         description: "심볼 (공백 구분)"
         default: "BTCUSDT ETHUSDT SOLUSDT BNBUSDT XRPUSDT ADAUSDT"
@@ -31,6 +34,12 @@ concurrency:
   group: update-retrain-${{ github.ref }}
   cancel-in-progress: false
 
+# workflow_dispatch 버튼은 워크플로 파일이 기본 브랜치(gh-pages)에 있어야
+# 표시된다. 그래서 이 워크플로는 gh-pages에서 실행되지만, 데이터와 모델은
+# 항상 아래 TARGET_BRANCH(작업 브랜치)로 커밋한다.
+env:
+  TARGET_BRANCH: ${{ github.event.inputs.branch || 'claude/quant-trading-bot-tkjtd' }}
+
 jobs:
   # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   # 1단계: 데이터 수집 (심볼별 병렬)
@@ -46,6 +55,9 @@ jobs:
         symbol: [BTCUSDT, ETHUSDT, SOLUSDT, BNBUSDT, XRPUSDT, ADAUSDT]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -91,8 +103,8 @@ jobs:
           git diff --staged --quiet && { echo "변경 없음"; exit 0; }
           git commit -m "data: refresh ${{ matrix.symbol }} through $(date -u +%Y-%m-%d)"
           for i in 1 2 3 4 5; do
-            git pull --rebase origin ${{ github.ref_name }} && \
-            git push origin HEAD:${{ github.ref_name }} && break || sleep $((i*6))
+            git pull --rebase origin $TARGET_BRANCH && \
+            git push origin HEAD:$TARGET_BRANCH && break || sleep $((i*6))
           done
 
   # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -113,7 +125,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -177,6 +190,6 @@ jobs:
           git diff --staged --quiet && { echo "변경 없음"; exit 0; }
           git commit -m "model: retrain ${{ matrix.symbol }} ${{ matrix.interval }}"
           for i in 1 2 3 4 5; do
-            git pull --rebase origin ${{ github.ref_name }} && \
-            git push origin HEAD:${{ github.ref_name }} && break || sleep $((i*6))
+            git pull --rebase origin $TARGET_BRANCH && \
+            git push origin HEAD:$TARGET_BRANCH && break || sleep $((i*6))
           done
