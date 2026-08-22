@@ -1,0 +1,182 @@
+name: 🔄 데이터 최신화 + 재학습 + 캘리브레이션
+
+# 실행 방법
+#   1) Actions 탭 → 이 워크플로우 → "Run workflow" 버튼 (수동)
+#   2) 매주 월요일 03:00 UTC 자동 실행
+#
+# 데이터 소스: data.binance.vision 공개 아카이브 (API 키 불필요, 지역차단 없음)
+# GitHub 러너는 미국 IP라 api.binance.com은 451로 막히지만,
+# data.binance.vision은 정적 CDN이라 정상 동작한다.
+
+on:
+  workflow_dispatch:
+    inputs:
+      symbols:
+        description: "심볼 (공백 구분)"
+        default: "BTCUSDT ETHUSDT SOLUSDT BNBUSDT XRPUSDT ADAUSDT"
+      intervals:
+        description: "타임프레임 (공백 구분)"
+        default: "1h 4h 1d"
+      retrain:
+        description: "재학습까지 실행"
+        type: boolean
+        default: true
+  schedule:
+    - cron: "0 3 * * 1"     # 매주 월요일 03:00 UTC
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-retrain-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # 1단계: 데이터 수집 (심볼별 병렬)
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  collect:
+    name: "수집 ${{ matrix.symbol }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 2          # 푸시 충돌 완화
+      matrix:
+        symbol: [BTCUSDT, ETHUSDT, SOLUSDT, BNBUSDT, XRPUSDT, ADAUSDT]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install pandas requests
+
+      # 현재 연도 파일은 항상 불완전하므로 삭제 후 재수집한다.
+      # (collect_history.py는 파일이 존재하면 그 연도를 통째로 건너뛴다)
+      - name: 현재/직전 연도 파일 초기화
+        run: |
+          Y=$(date -u +%Y)
+          PY=$((Y-1))
+          for IV in ${{ github.event.inputs.intervals || '1h 4h 1d' }}; do
+            rm -f "data/${{ matrix.symbol }}_${IV}_${Y}.csv.gz"
+            rm -f "data/${{ matrix.symbol }}_${IV}_${PY}.csv.gz"
+          done
+
+      - name: 수집
+        run: |
+          python bybit/collect_history.py \
+            --symbol ${{ matrix.symbol }} \
+            --interval ${{ github.event.inputs.intervals || '1h 4h 1d' }}
+
+      - name: 커버리지 확인
+        run: |
+          python - <<'PY'
+          import glob, pandas as pd, os
+          for f in sorted(glob.glob("data/${{ matrix.symbol }}_*_all.csv.gz")):
+              d = pd.read_csv(f, compression="gzip")
+              d["timestamp"] = pd.to_datetime(d["timestamp"], errors="coerce")
+              d = d.dropna(subset=["timestamp"])
+              print(f"  {os.path.basename(f):32s} {len(d):>8,}행  "
+                    f"{d['timestamp'].min().date()} ~ {d['timestamp'].max().date()}")
+          PY
+
+      - name: 커밋 & 푸시
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/ || true
+          git diff --staged --quiet && { echo "변경 없음"; exit 0; }
+          git commit -m "data: refresh ${{ matrix.symbol }} through $(date -u +%Y-%m-%d)"
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin ${{ github.ref_name }} && \
+            git push origin HEAD:${{ github.ref_name }} && break || sleep $((i*6))
+          done
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # 2단계: 재학습 + 캘리브레이션 + OOS 백테스트
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  retrain:
+    name: "재학습 ${{ matrix.symbol }} ${{ matrix.interval }}"
+    needs: collect
+    if: ${{ github.event.inputs.retrain != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        symbol:   [BTCUSDT, ETHUSDT, SOLUSDT]
+        interval: ["4h", "1h"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: 학습
+        run: |
+          python ml/train_directional.py \
+            --symbol ${{ matrix.symbol }} \
+            --interval ${{ matrix.interval }} \
+            --from 2020 --fast
+
+      # 캘리브레이션이 없으면 signal_engine이 ML 신호를 내지 않는다.
+      # 절대 임계값(0.68) 대신 OOS 실측 백분위 컷을 산출하는 단계.
+      - name: 캘리브레이션
+        run: |
+          python ml/calibrate.py \
+            --symbol ${{ matrix.symbol }} \
+            --interval ${{ matrix.interval }} \
+            --from 2020
+
+      - name: OOS 백테스트
+        continue-on-error: true
+        run: |
+          python ml/backtest.py \
+            --symbol ${{ matrix.symbol }} \
+            --interval ${{ matrix.interval }} \
+            --from_year 2020
+
+      - name: 결과 요약
+        run: |
+          F="ml/saved_models/calibration_${{ matrix.symbol }}_${{ matrix.interval }}.json"
+          echo "### ${{ matrix.symbol }} ${{ matrix.interval }}" >> $GITHUB_STEP_SUMMARY
+          if [ -f "$F" ]; then
+            python - <<PY >> $GITHUB_STEP_SUMMARY
+          import json
+          c = json.load(open("$F", encoding="utf-8"))
+          print(f"- 손익분기 승률: {c['breakeven_wr']}%")
+          print(f"- OOS 구간: {c['oos_from'][:10]} ~ {c['oos_to'][:10]} ({c['oos_bars']:,}봉)")
+          for s in ("long","short"):
+              d = c[s]
+              if d.get("enabled"):
+                  print(f"- **{s.upper()} 활성** — 상위{d['pct']:.0f}%, "
+                        f"실측WR {d['wr_raw']}% (Wilson {d['wr']}%), "
+                        f"n={d['n']}, EV {d['ev_pct']:+.3f}%/거래")
+              else:
+                  print(f"- {s.upper()} 비활성 — {d.get('reason','')}")
+          PY
+          else
+            echo "- 캘리브레이션 파일 없음" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: 커밋 & 푸시
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ml/saved_models/ charts/ || true
+          git diff --staged --quiet && { echo "변경 없음"; exit 0; }
+          git commit -m "model: retrain ${{ matrix.symbol }} ${{ matrix.interval }}"
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin ${{ github.ref_name }} && \
+            git push origin HEAD:${{ github.ref_name }} && break || sleep $((i*6))
+          done

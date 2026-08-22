@@ -25,3 +25,7 @@ signals.log
 Thumbs.db
 *.pyc
 __pycache__/
+
+# 1m/3m 합산 파일은 GitHub 100MB 제한 초과 — 연도별 파일만 커밋
+data/*_1m_all.csv.gz
+data/*_3m_all.csv.gz

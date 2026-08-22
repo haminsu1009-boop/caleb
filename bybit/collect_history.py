@@ -49,6 +49,16 @@ SYMBOL_START_YEAR = {
 }
 
 
+def _ts_unit(series) -> str:
+    """
+    Binance open_time의 시간 단위를 자릿수로 판별.
+      ~1.7e12 → 밀리초 (2017~2024 아카이브)
+      ~1.7e15 → 마이크로초 (2025~ 아카이브)
+    """
+    v = float(pd.Series(series).dropna().iloc[0])
+    return "us" if v > 1e14 else "ms"
+
+
 def download_month(year:int, month:int, interval:str="5m",
                    symbol:str="BTCUSDT", retries:int=3) -> pd.DataFrame | None:
     url = (f"{BASE_URL}/{symbol}/{interval}/"
@@ -74,7 +84,11 @@ def download_month(year:int, month:int, interval:str="5m",
     except Exception as e:
         print(f" ⚠️  파싱 오류: {e}"); return None
 
-    df["timestamp"] = pd.to_datetime(df["open_time"], unit="ms")
+    # ⚠️ Binance는 2025년부터 data.binance.vision 아카이브의 open_time을
+    #   밀리초(13자리)에서 마이크로초(16자리)로 바꿨다. 이를 ms로 파싱하면
+    #   2025-01-01이 56971-10-25가 되어 이후 전 구간이 버려진다.
+    #   → 자릿수로 단위를 자동 판별한다.
+    df["timestamp"] = pd.to_datetime(df["open_time"], unit=_ts_unit(df["open_time"]))
     df = df[["timestamp","open","high","low","close","volume","quote_volume"]].copy()
     for c in ["open","high","low","close","volume","quote_volume"]:
         df[c] = df[c].astype(float)
