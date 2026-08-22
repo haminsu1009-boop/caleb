@@ -1,152 +1,167 @@
-name: "🚀 전타임프레임수집+선물데이터+재학습+패턴분석 v3"
+name: 🚀 선물데이터+재학습+패턴분석 v2
 
 on:
   workflow_dispatch:
     inputs:
       symbols:
-        description: "심볼 (공백 구분, 비워두면 전체 15개)"
+        description: "심볼 (공백 구분)"
         required: false
-        default: "BTCUSDT ETHUSDT BNBUSDT ADAUSDT SOLUSDT XRPUSDT DOGEUSDT DOTUSDT AVAXUSDT MATICUSDT LINKUSDT LTCUSDT UNIUSDT ATOMUSDT NEARUSDT"
-      timeframes:
-        description: "타임프레임 (비워두면 1m제외 전체: 3m 5m 15m 30m 1h 2h 4h 6h 12h 1d 3d 1w 1mo)"
-        required: false
-        default: ""
+        default: "BTCUSDT ETHUSDT BNBUSDT ADAUSDT SOLUSDT XRPUSDT"
       from_year:
-        description: "재학습 시작 연도"
+        description: "데이터 시작 연도"
         required: false
-        default: "2019"
-      skip_collect:
-        description: "OHLCV 수집 건너뛰기 (true/false)"
-        required: false
-        default: "false"
+        default: "2021"
       skip_retrain:
-        description: "재학습 건너뛰기 (true/false)"
+        description: "재학습 건너뛰기"
         required: false
         default: "false"
       fast:
-        description: "fast mode (true/false)"
+        description: "fast mode"
         required: false
         default: "false"
-      missing_only:
-        description: "누락 데이터만 수집 (true/false)"
-        required: false
-        default: "true"
 
 permissions:
   contents: write
 
 jobs:
-  run-all:
-    name: "📡 전TF수집 → 선물 → 🤖 재학습 → 🔍 분석"
+  fetch-futures:
+    name: "📡 선물 데이터 수집"
     runs-on: ubuntu-latest
-    timeout-minutes: 600
-
+    timeout-minutes: 60
     steps:
-      - name: 코드 체크아웃
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           ref: claude/quant-trading-bot-tkjtd
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
-
-      - name: Python 설치
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: 패키지 설치
-        run: pip install pandas numpy scikit-learn xgboost lightgbm matplotlib requests
-
-      - name: "📊 STEP0 - 전 타임프레임 OHLCV 수집 (Binance 공개 API)"
-        if: ${{ github.event.inputs.skip_collect != 'true' }}
-        run: |
-          mkdir -p data
-
-          # 타임프레임 인수 처리
-          TF_ARGS=""
-          if [ -n "${{ github.event.inputs.timeframes }}" ]; then
-            TF_ARGS="--timeframes ${{ github.event.inputs.timeframes }}"
-          fi
-
-          # missing-only 처리
-          MISSING_FLAG=""
-          if [ "${{ github.event.inputs.missing_only }}" = "true" ]; then
-            MISSING_FLAG="--missing-only"
-          fi
-
-          # 심볼별 수집
-          python ml/collect_all_timeframes.py \
-            --symbols ${{ github.event.inputs.symbols }} \
-            $TF_ARGS \
-            $MISSING_FLAG \
-            || echo "⚠️ 일부 수집 실패 (계속 진행)"
-
-          echo "=== 수집된 OHLCV 파일 (상위 30개) ==="
-          ls -lh data/*.csv.gz 2>/dev/null | head -30 || echo "파일 없음"
-          echo "=== 전체 데이터 용량 ==="
-          du -sh data/*.csv.gz 2>/dev/null | tail -1 || true
-
-      - name: "📡 STEP1 - Bybit 선물 데이터 수집 (펀딩비+OI+LSR)"
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install pandas numpy requests
+      - name: 선물 데이터 수집
         run: |
           mkdir -p data/futures
           for SYM in ${{ github.event.inputs.symbols }}; do
-            echo "▶ $SYM 선물 수집 중 (Bybit API)..."
+            echo "▶ $SYM"
             python ml/fetch_futures_data.py --symbol "$SYM" --from_year ${{ github.event.inputs.from_year }} || echo "⚠️ $SYM 실패"
           done
-          echo "수집된 선물 파일:"
-          ls -lh data/futures/ 2>/dev/null || echo "선물 파일 없음"
-
-      - name: "🤖 STEP2 - 재학습 (전 심볼 × 핵심 타임프레임)"
-        if: ${{ github.event.inputs.skip_retrain != 'true' }}
-        run: |
-          FAST_FLAG=""
-          if [ "${{ github.event.inputs.fast }}" = "true" ]; then FAST_FLAG="--fast"; fi
-
-          for SYM in ${{ github.event.inputs.symbols }}; do
-            for IV in 5m 15m 1h 4h 1d; do
-              echo "▶ $SYM $IV 재학습"
-              python ml/train_directional.py --symbol "$SYM" --interval "$IV" --from ${{ github.event.inputs.from_year }} $FAST_FLAG || echo "⚠️ $SYM $IV 실패"
-            done
-          done
-
-      - name: "🔍 STEP3 - 패턴 분석"
-        run: python ml/pattern_analysis.py
-
-      - name: "💾 결과 저장"
+      - name: 코드 푸시
         run: |
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
-          git add data/ ml/saved_models/ charts/ 2>/dev/null || true
-          git diff --staged --quiet && echo "변경 없음" && exit 0
-          git commit -m "🤖 전TF수집+재학습+패턴분석 완료"
-          for i in 1 2 3 4 5; do
-            sleep $((i * 5))
+          git add data/futures/ 2>/dev/null || true
+          git diff --staged --quiet && exit 0
+          git commit -m "📡 선물 데이터 수집"
+          for i in $(seq 1 5); do
+            sleep $((i*3))
             git fetch origin claude/quant-trading-bot-tkjtd
             git rebase origin/claude/quant-trading-bot-tkjtd || { git rebase --abort; continue; }
             git push origin claude/quant-trading-bot-tkjtd && break || true
           done
 
-      - name: "📊 결과 요약"
+  retrain:
+    name: "🤖 ${{ matrix.symbol }} 재학습"
+    needs: fetch-futures
+    if: ${{ github.event.inputs.skip_retrain != 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      matrix:
+        symbol: ${{ fromJson(needs.fetch-futures.outputs.symbol_matrix || '["BTCUSDT","ETHUSDT","BNBUSDT","ADAUSDT","SOLUSDT","XRPUSDT"]') }}
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/quant-trading-bot-tkjtd
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install pandas numpy scikit-learn xgboost lightgbm matplotlib requests
+      - name: 봉단위 결정
+        id: intervals
+        run: |
+          SYM="${{ matrix.symbol }}"
+          if [ "$SYM" = "BTCUSDT" ] || [ "$SYM" = "ETHUSDT" ]; then
+            echo "intervals=1m 5m 1h 4h 1d" >> $GITHUB_OUTPUT
+          else
+            echo "intervals=5m 1h 4h 1d" >> $GITHUB_OUTPUT
+          fi
+      - name: 재학습 (Y1-Y15 포함)
+        run: |
+          FAST_FLAG=""
+          [ "${{ github.event.inputs.fast }}" = "true" ] && FAST_FLAG="--fast"
+          SYM="${{ matrix.symbol }}"
+          BASE_FROM=${{ github.event.inputs.from_year }}
+          for IV in ${{ steps.intervals.outputs.intervals }}; do
+            FROM_YEAR=$BASE_FROM
+            [ "$IV" = "1m" ] && FROM_YEAR=2023
+            [ "$IV" = "5m" ] && [ "$BASE_FROM" -lt "2022" ] && FROM_YEAR=2022
+            echo "▶ $SYM $IV"
+            python ml/train_directional.py --symbol "$SYM" --interval "$IV" --from $FROM_YEAR $FAST_FLAG || echo "⚠️ $SYM $IV 실패"
+          done
+      - name: 모델 코드 푸시
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add ml/saved_models/ charts/ 2>/dev/null || true
+          git diff --staged --quiet && exit 0
+          git commit -m "🤖 재학습 완료 ${{ matrix.symbol }} (Y1-Y15)"
+          for i in $(seq 1 10); do
+            sleep $((RANDOM%20 + i*5))
+            git fetch origin claude/quant-trading-bot-tkjtd
+            git rebase origin/claude/quant-trading-bot-tkjtd || { git rebase --abort; continue; }
+            git push origin claude/quant-trading-bot-tkjtd && break || true
+          done
+
+  pattern-analysis:
+    name: "🔍 패턴 분석"
+    needs: [fetch-futures, retrain]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/quant-trading-bot-tkjtd
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      - run: git pull origin claude/quant-trading-bot-tkjtd
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install pandas numpy scikit-learn xgboost lightgbm matplotlib requests
+      - name: 패턴 분석
+        run: python ml/pattern_analysis.py
+      - name: 결과 코드 푸시
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add charts/pattern_report.html ml/saved_models/pattern_rules.csv 2>/dev/null || true
+          git diff --staged --quiet && exit 0
+          git commit -m "🔍 패턴 분석 완료 (294+피처)"
+          for i in $(seq 1 5); do
+            sleep $((i*3))
+            git fetch origin claude/quant-trading-bot-tkjtd
+            git rebase origin/claude/quant-trading-bot-tkjtd || { git rebase --abort; continue; }
+            git push origin claude/quant-trading-bot-tkjtd && break || true
+          done
+      - name: 요약
         if: always()
         run: |
-          echo "=== OHLCV 데이터 현황 ==="
-          python ml/collect_all_timeframes.py --coverage 2>/dev/null || true
+          # ⚠️ 인라인 python3 -c 의 본문이 1열에서 시작해 YAML 블록 스칼라가
+          #   거기서 끊겼다. 이 워크플로가 21회 연속 즉시 실패한 원인.
+          #   → 히어독으로 바꾸고 전체를 run 블록 들여쓰기 안에 둔다.
+          python3 <<'PY' || echo "요약 실패"
+          import os
+          import pandas as pd
 
-          echo ""
-          echo "=== 선물 데이터 ==="
-          ls -lh data/futures/ 2>/dev/null || echo "없음"
-
-          echo ""
-          echo "=== 패턴 룰 ==="
-          RULES_FILE="ml/saved_models/pattern_rules.csv"
-          if [ -f "$RULES_FILE" ]; then
-            TOTAL=$(awk 'END{print NR-1}' "$RULES_FILE")
-            echo "총 룰: ${TOTAL}개"
-            head -11 "$RULES_FILE"
-          else
-            echo "패턴 룰 파일 없음"
-          fi
-
-          echo ""
-          echo "=== 총 데이터 용량 ==="
-          du -sh data/ 2>/dev/null || true
+          path = "ml/saved_models/pattern_rules.csv"
+          if os.path.exists(path):
+              df = pd.read_csv(path)
+              print(f"총 룰: {len(df)}개  "
+                    f"WR100%: {(df.win_rate == 100).sum()}개  "
+                    f"WR90%+: {(df.win_rate >= 90).sum()}개")
+              print(df.sort_values("win_rate", ascending=False)
+                      .head(5).to_string(index=False))
+          else:
+              print("pattern_rules.csv 없음")
+          PY
