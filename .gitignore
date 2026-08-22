@@ -1,0 +1,32 @@
+# API 키 절대 커밋 금지
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# 로그 (선택적으로 제외)
+signals.log
+
+# 모델 바이너리 (용량 클 경우)
+# ml/saved_models/*.pkl
+
+# OS
+.DS_Store
+Thumbs.db
+*.pyc
+__pycache__/
+
+# 1m/3m 합산 파일은 GitHub 100MB 제한 초과 — 연도별 파일만 커밋
+data/*_1m_all.csv.gz
+data/*_3m_all.csv.gz
+bot/cycle_state.json
