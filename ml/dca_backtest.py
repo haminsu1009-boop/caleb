@@ -256,7 +256,18 @@ def main():
 
     # V4: ML SHORT + 레짐(하락장만)
     ml_regime_mask = ml_mask & (~df["bull_lag1"].values)
-    print(f"[V4] ML SHORT+레짐(하락장) 발동 횟수: {ml_regime_mask.sum():,}회\n")
+    print(f"[V4] ML SHORT+레짐(하락장) 발동 횟수: {ml_regime_mask.sum():,}회")
+
+    # V5: ML SHORT + MACD 히스토그램 음전환 확인지표
+    # ⚠️ 선택 과정: RSI/ADX/BB/거래량/MACD/CHOP/공포탐욕 등 SHORT 방향에
+    #   논리적으로 맞는 지표 후보를 진짜 홀드아웃(2025-08-09~)에 각각 단독
+    #   대입해 Wilson 하한이 손익분기를 넘는지 확인했다. MACD 히스토그램
+    #   음전환(하락 모멘텀 확인)이 가장 컸다 (n=56, Wilson 68.2% vs
+    #   필터 전 62.3%). 다만 이 선택 자체가 같은 85건짜리 홀드아웃에서
+    #   여러 후보 중 최고를 고른 것이라 약한 선택편향이 있다 —
+    #   진짜 실행 수준(포지션 중복 제외)에서는 n=16, WR 75%로 더 얇아진다.
+    macd_filt_mask = ml_mask & (df["macd_12_26_hist"].values < 0)
+    print(f"[V5] ML SHORT+MACD필터 발동 횟수: {macd_filt_mask.sum():,}회\n")
 
     results = []
     results.append(simulate_buyhold(df))
@@ -268,6 +279,8 @@ def main():
                              label="V3. ML캘리브레이션 SHORT"))
     results.append(simulate(df, ml_regime_mask, "SHORT", cal["short"]["wr"], tier=3,
                              label="V4. ML SHORT+레짐필터"))
+    results.append(simulate(df, macd_filt_mask, "SHORT", 68.2, tier=3,
+                             label="V5. ML SHORT+MACD필터"))
 
     print("="*100)
     print(f"{'전략':28s}{'투입원금':>14s}{'최종자산':>16s}{'수익률':>10s}{'거래수':>8s}{'실현WR':>9s}{'레버리지':>8s}")
