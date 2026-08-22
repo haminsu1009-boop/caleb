@@ -30,3 +30,4 @@ __pycache__/
 data/*_1m_all.csv.gz
 data/*_3m_all.csv.gz
 bot/cycle_state.json
+bot/ma_bot_state.json
