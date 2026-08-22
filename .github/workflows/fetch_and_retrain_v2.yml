@@ -147,11 +147,21 @@ jobs:
       - name: 요약
         if: always()
         run: |
-          python3 -c "
-import pandas as pd, os
-path='ml/saved_models/pattern_rules.csv'
-if os.path.exists(path):
-    df=pd.read_csv(path)
-    print(f'토탈 룰: {len(df)}개, 100%: {(df.win_rate==100).sum()}개, 90%+: {(df.win_rate>=90).sum()}개')
-    print(df.sort_values('win_rate',ascending=False).head(5).to_string(index=False))
-" 2>/dev/null || echo "요약 실패"
+          # ⚠️ 인라인 python3 -c 의 본문이 1열에서 시작해 YAML 블록 스칼라가
+          #   거기서 끊겼다. 이 워크플로가 21회 연속 즉시 실패한 원인.
+          #   → 히어독으로 바꾸고 전체를 run 블록 들여쓰기 안에 둔다.
+          python3 <<'PY' || echo "요약 실패"
+          import os
+          import pandas as pd
+
+          path = "ml/saved_models/pattern_rules.csv"
+          if os.path.exists(path):
+              df = pd.read_csv(path)
+              print(f"총 룰: {len(df)}개  "
+                    f"WR100%: {(df.win_rate == 100).sum()}개  "
+                    f"WR90%+: {(df.win_rate >= 90).sum()}개")
+              print(df.sort_values("win_rate", ascending=False)
+                      .head(5).to_string(index=False))
+          else:
+              print("pattern_rules.csv 없음")
+          PY
