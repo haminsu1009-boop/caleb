@@ -1869,8 +1869,12 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .page-hero-img--sea { background-image: url('assets/sea-hero.jpg'); }
 .page-hero-img--air { background-image: url('assets/air-hero.jpg'); }
 .page-hero-img--cs  { background-image: url('assets/cs-hero.jpg'); background-position: center 20%; }
+.page-hero-img--land { background-image: url('assets/land-hero.jpg'); }
+.page-hero-img--rail { background-image: url('assets/rail-aerial.jpg'); }
 @supports (background-image: image-set(url('assets/cs-hero.webp') type('image/webp'))) {
   .page-hero-img--cs { background-image: image-set(url('assets/cs-hero.webp') type('image/webp'), url('assets/cs-hero.jpg') type('image/jpeg')); }
+  .page-hero-img--land { background-image: image-set(url('assets/land-hero.webp') type('image/webp'), url('assets/land-hero.jpg') type('image/jpeg')); }
+  .page-hero-img--rail { background-image: image-set(url('assets/rail-aerial.webp') type('image/webp'), url('assets/rail-aerial.jpg') type('image/jpeg')); }
 }
 @supports (background-image: image-set(url('assets/sea-hero.webp') type('image/webp'))) {
   .page-hero-img--sea { background-image: image-set(url('assets/sea-hero.webp') type('image/webp'), url('assets/sea-hero.jpg') type('image/jpeg')); }
@@ -3504,7 +3508,10 @@ section[id], .estimate-section {
   margin: 0; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
 }
 .rail-gallery-item img { display: block; width: 100%; height: 260px; object-fit: cover; }
+.rail-gallery--single { grid-template-columns: 1fr; }
+.rail-gallery--single .rail-gallery-item img { height: 360px; }
 @media (max-width: 700px) {
   .rail-gallery { grid-template-columns: 1fr; }
   .rail-gallery-item img { height: 220px; }
+  .rail-gallery--single .rail-gallery-item img { height: 240px; }
 }

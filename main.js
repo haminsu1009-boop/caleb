@@ -972,6 +972,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'page.air.label':'AIR FREIGHT','page.air.h1':'항공운송',
         'page.cs.label':'CUSTOMER SERVICE','page.cs.h1':'견적 문의',
         'page.land.label':'LAND TRANSPORT','page.land.h1':'육상운송',
+        'page.rail.label':'RAIL FREIGHT','page.rail.h1':'철송',
         'page.customs.label':'CUSTOMS & FORWARDING','page.customs.h1':'통관 및 포워딩',
         'page.sol.label':'LOGISTICS SOLUTIONS','page.sol.h1':'물류 솔루션',
         'page.net.label':'GLOBAL NETWORK','page.net.h1':'글로벌 네트워크',
@@ -979,7 +980,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'page.faq.label':'FAQ','page.faq.h1':'자주 묻는 질문',
         'page.cs.label':'CUSTOMER SERVICE','page.cs.h1':'고객센터',
         /* ── 브레드크럼 ── */
-        'breadcrumb.home':'홈','breadcrumb.services':'사업영역','breadcrumb.sea':'해상운송','breadcrumb.air':'항공운송','breadcrumb.support':'고객센터','breadcrumb.cs':'견적 문의',
+        'breadcrumb.home':'홈','breadcrumb.services':'사업영역','breadcrumb.sea':'해상운송','breadcrumb.air':'항공운송','breadcrumb.support':'고객센터','breadcrumb.cs':'견적 문의','breadcrumb.land':'육상운송','breadcrumb.rail':'철송',
         /* ── CEO ── */
         'ceo.section.title':'대표 인사말',
         'ceo.msg.p1':'안녕하십니까.<br/>(주)태인종합물류 대표이사 <strong>하형탁</strong>입니다.',
@@ -1265,6 +1266,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'page.air.label':'AIR FREIGHT','page.air.h1':'Air Freight',
         'page.cs.label':'CUSTOMER SERVICE','page.cs.h1':'Quote Inquiry',
         'page.land.label':'LAND TRANSPORT','page.land.h1':'Land Transport',
+        'page.rail.label':'RAIL FREIGHT','page.rail.h1':'Rail Freight',
         'page.customs.label':'CUSTOMS & FORWARDING','page.customs.h1':'Customs & Forwarding',
         'page.sol.label':'LOGISTICS SOLUTIONS','page.sol.h1':'Logistics Solutions',
         'page.net.label':'GLOBAL NETWORK','page.net.h1':'Global Network',
@@ -1272,7 +1274,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'page.faq.label':'FAQ','page.faq.h1':'Frequently Asked Questions',
         'page.cs.label':'CUSTOMER SERVICE','page.cs.h1':'Customer Service',
         /* ── Breadcrumb ── */
-        'breadcrumb.home':'Home','breadcrumb.services':'Services','breadcrumb.sea':'Ocean Freight','breadcrumb.air':'Air Freight','breadcrumb.support':'Customer Service','breadcrumb.cs':'Quote Inquiry',
+        'breadcrumb.home':'Home','breadcrumb.services':'Services','breadcrumb.sea':'Ocean Freight','breadcrumb.air':'Air Freight','breadcrumb.support':'Customer Service','breadcrumb.cs':'Quote Inquiry','breadcrumb.land':'Land Transport','breadcrumb.rail':'Rail Freight',
         /* ── CEO ── */
         'ceo.section.title':"CEO's Message",
         'ceo.msg.p1':'Hello.<br/>I am <strong>Ha Hyeong-tak</strong>, CEO of Taein General Logistics Co., Ltd.',
