@@ -1868,6 +1868,10 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 /* 서브페이지 히어로 배경 (jpg 기본, webp 지원 시 교체) */
 .page-hero-img--sea { background-image: url('assets/sea-hero.jpg'); }
 .page-hero-img--air { background-image: url('assets/air-hero.jpg'); }
+.page-hero-img--cs  { background-image: url('assets/cs-hero.jpg'); background-position: center 20%; }
+@supports (background-image: image-set(url('assets/cs-hero.webp') type('image/webp'))) {
+  .page-hero-img--cs { background-image: image-set(url('assets/cs-hero.webp') type('image/webp'), url('assets/cs-hero.jpg') type('image/jpeg')); }
+}
 @supports (background-image: image-set(url('assets/sea-hero.webp') type('image/webp'))) {
   .page-hero-img--sea { background-image: image-set(url('assets/sea-hero.webp') type('image/webp'), url('assets/sea-hero.jpg') type('image/jpeg')); }
   .page-hero-img--air { background-image: image-set(url('assets/air-hero.webp') type('image/webp'), url('assets/air-hero.jpg') type('image/jpeg')); }
@@ -2923,15 +2927,15 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .biz-card:hover .biz-card-arrow { background: rgba(255,255,255,0.35); }
 .biz-card-sea     { background: url('assets/svc-sea.jpg') center/cover, linear-gradient(135deg,#0a3878,#2080c0); }
 .biz-card-air     { background: url('assets/svc-air.jpg') center/cover, linear-gradient(135deg,#1a4a8a,#4090d0); }
+.biz-card-land    { background: url('assets/svc-land.jpg') center/cover, linear-gradient(135deg,#14532d,#15803d); }
+.biz-card-customs { background: url('assets/svc-customs.jpg') center/cover, linear-gradient(135deg,#1e1b4b,#4338ca); }
 /* WebP 지원 브라우저에는 더 가벼운 webp 제공 (미지원 시 위 jpg 유지) */
 @supports (background-image: image-set(url('assets/svc-sea.webp') type('image/webp'))) {
   .biz-card-sea { background: image-set(url('assets/svc-sea.webp') type('image/webp'), url('assets/svc-sea.jpg') type('image/jpeg')) center/cover, linear-gradient(135deg,#0a3878,#2080c0); }
   .biz-card-air { background: image-set(url('assets/svc-air.webp') type('image/webp'), url('assets/svc-air.jpg') type('image/jpeg')) center/cover, linear-gradient(135deg,#1a4a8a,#4090d0); }
+  .biz-card-land { background: image-set(url('assets/svc-land.webp') type('image/webp'), url('assets/svc-land.jpg') type('image/jpeg')) center/cover, linear-gradient(135deg,#14532d,#15803d); }
+  .biz-card-customs { background: image-set(url('assets/svc-customs.webp') type('image/webp'), url('assets/svc-customs.jpg') type('image/jpeg')) center/cover, linear-gradient(135deg,#1e1b4b,#4338ca); }
 }
-/* svc-land.jpg / svc-customs.jpg 는 존재하지 않아 404 발생 → 그라데이션만 사용
-   (이미지 준비 시 위 sea/air 카드와 동일한 형식으로 추가하면 됩니다) */
-.biz-card-land    { background: linear-gradient(135deg,#14532d,#15803d); }
-.biz-card-customs { background: linear-gradient(135deg,#1e1b4b,#4338ca); }
 .biz-progress { height: 3px; background: #e8ecf4; margin: 20px 24px 0; border-radius: 2px; overflow: hidden; }
 .biz-progress-bar { height: 100%; background: var(--primary); width: 25%; border-radius: 2px; transition: width 0.12s linear; }
 @media (min-width: 768px) {
@@ -3490,4 +3494,15 @@ section[id], .estimate-section {
   .org-chart { min-width: 640px; }
   .org-box { padding: 10px 14px; min-width: 92px; }
   .org-box .org-name { font-size: 0.85rem; }
+}
+
+/* ── 철송 페이지 현장 사진 갤러리 ── */
+.rail-gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.rail-gallery-item {
+  margin: 0; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
+}
+.rail-gallery-item img { display: block; width: 100%; height: 260px; object-fit: cover; }
+@media (max-width: 700px) {
+  .rail-gallery { grid-template-columns: 1fr; }
+  .rail-gallery-item img { height: 220px; }
 }
