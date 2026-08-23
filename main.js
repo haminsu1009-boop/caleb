@@ -909,7 +909,7 @@ document.addEventListener('DOMContentLoaded', () => {
     slider.addEventListener('scroll', () => {
       const max = slider.scrollWidth - slider.clientWidth;
       if (max <= 0) return;
-      bar.style.width = (25 + (slider.scrollLeft / max) * 75) + '%';
+      bar.style.width = (20 + (slider.scrollLeft / max) * 80) + '%';
     }, { passive: true });
     let isDown = false, startX, scrollLeft;
     slider.addEventListener('mousedown', e => {
