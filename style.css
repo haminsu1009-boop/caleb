@@ -3442,3 +3442,52 @@ section[id], .estimate-section {
 @media (max-width: 600px) {
   .legal-content .legal-toc { padding: 16px 16px 16px 32px; }
 }
+
+/* ── 조직도 (순수 CSS 트리 구조 — 검증된 org-chart 패턴) ── */
+.org-intro { text-align: center; max-width: 640px; margin: 0 auto 48px; color: var(--text-light); font-size: 1rem; line-height: 1.7; }
+.org-chart-wrap { overflow-x: auto; padding-bottom: 24px; }
+.org-chart { display: flex; justify-content: center; min-width: 760px; }
+.org-chart ul {
+  display: flex; justify-content: center;
+  padding-top: 28px; position: relative;
+}
+.org-chart li {
+  list-style: none; text-align: center; position: relative;
+  padding: 28px 12px 0;
+}
+.org-chart li::before, .org-chart li::after {
+  content: ''; position: absolute; top: 0; right: 50%;
+  border-top: 2px solid var(--border); width: 50%; height: 28px;
+}
+.org-chart li::after { right: auto; left: 50%; border-left: 2px solid var(--border); }
+.org-chart li:only-child { padding-top: 0; }
+.org-chart li:only-child::before, .org-chart li:only-child::after { display: none; }
+.org-chart li:first-child::before, .org-chart li:last-child::after { border: 0 none; }
+.org-chart li:last-child::before { border-right: 2px solid var(--border); border-radius: 0 6px 0 0; }
+.org-chart li:first-child::after { border-radius: 6px 0 0 0; }
+.org-chart ul ul::before {
+  content: ''; position: absolute; top: 0; left: 50%;
+  border-left: 2px solid var(--border); width: 0; height: 28px;
+}
+.org-box {
+  display: inline-flex; flex-direction: column; align-items: center; gap: 2px;
+  border: 1.5px solid var(--border); border-radius: 8px;
+  padding: 12px 18px; background: #fff; box-shadow: var(--shadow);
+  white-space: nowrap; min-width: 108px;
+}
+.org-box .org-role { font-size: 0.72rem; color: var(--text-light); font-weight: 600; letter-spacing: 0.02em; }
+.org-box .org-name { font-size: 0.92rem; color: var(--dark); font-weight: 700; }
+.org-box.org-ceo { border-color: var(--primary); background: linear-gradient(135deg, var(--primary), var(--dark)); box-shadow: 0 6px 22px rgba(53,104,212,0.28); }
+.org-box.org-ceo .org-role { color: rgba(255,255,255,0.78); }
+.org-box.org-ceo .org-name { color: #fff; font-size: 1.02rem; }
+.org-box.org-branch { border-style: dashed; border-color: var(--accent2); }
+.org-team-list { margin: 14px 0 0; display: flex; flex-direction: column; gap: 6px; }
+.org-team-list .org-team {
+  font-size: 0.8rem; color: var(--text); background: var(--bg);
+  border-radius: 999px; padding: 5px 14px; white-space: nowrap;
+}
+@media (max-width: 600px) {
+  .org-chart { min-width: 640px; }
+  .org-box { padding: 10px 14px; min-width: 92px; }
+  .org-box .org-name { font-size: 0.85rem; }
+}
