@@ -1,0 +1,146 @@
+name: 🪙 코인 확장 수집 (40종 + 펀딩비)
+
+# 목적
+#   1) MA롱온리 전략을 처음 보는 40개 심볼에서 재검증하기 위한 OHLCV
+#   2) 지금 백테스트가 무시하고 있는 펀딩비 (추세추종은 몇 주씩 보유)
+#
+# 데이터 출처는 data.binance.vision 정적 아카이브 — API 키 불필요,
+# 지역 차단 없음. api.binance.com은 미국 러너에서 451을 반환하므로 안 쓴다.
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "데이터를 커밋할 브랜치"
+        default: "claude/quant-trading-bot-tkjtd"
+      what:
+        description: "수집 대상 (both / ohlcv / funding)"
+        default: "both"
+      intervals:
+        description: "OHLCV 타임프레임"
+        default: "1d 4h"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: collect-coin-ext-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  TARGET_BRANCH: ${{ github.event.inputs.branch || 'claude/quant-trading-bot-tkjtd' }}
+
+jobs:
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # 확장 40종 OHLCV — 5개 그룹으로 나눠 병렬
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ohlcv:
+    name: "OHLCV 그룹${{ matrix.group }}"
+    if: ${{ github.event.inputs.what != 'funding' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        group: [0, 1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install pandas requests
+
+      - name: 수집
+        run: |
+          python - <<'PY'
+          import subprocess, sys
+          sys.path.insert(0, ".")
+          from bybit.collect_history import EXTENDED_SYMBOLS
+
+          group = int("${{ matrix.group }}")
+          mine = EXTENDED_SYMBOLS[group::5]
+          intervals = "${{ github.event.inputs.intervals || '1d 4h' }}".split()
+          print(f"그룹 {group}: {len(mine)}종 x {intervals}")
+          for s in mine:
+              cmd = [sys.executable, "bybit/collect_history.py",
+                     "--symbol", s, "--interval", *intervals]
+              print("::group::" + s)
+              subprocess.run(cmd, check=False)
+              print("::endgroup::")
+          PY
+
+      - name: 커밋 & 푸시
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/ || true
+          git diff --staged --quiet && { echo "변경 없음"; exit 0; }
+          git commit -m "data: extended coin OHLCV group ${{ matrix.group }}"
+          for i in 1 2 3 4 5 6; do
+            git pull --rebase origin $TARGET_BRANCH && \
+            git push origin HEAD:$TARGET_BRANCH && break || sleep $((i*8))
+          done
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # 펀딩비
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  funding:
+    name: "펀딩비"
+    if: ${{ github.event.inputs.what != 'ohlcv' }}
+    needs: ohlcv
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install pandas requests
+
+      - name: 수집
+        run: python bybit/collect_funding.py --all
+
+      - name: 요약
+        run: |
+          python - <<'PY' >> $GITHUB_STEP_SUMMARY
+          import glob, os
+          import pandas as pd
+
+          print("### 펀딩비 수집 결과")
+          print()
+          print("| 심볼 | 건수 | 기간 | 평균/8h | 롱 연간비용 |")
+          print("|---|---|---|---|---|")
+          for f in sorted(glob.glob("data/funding/*_funding.csv.gz")):
+              d = pd.read_csv(f, compression="gzip")
+              if d.empty:
+                  continue
+              sym = os.path.basename(f).replace("_funding.csv.gz", "")
+              m = d["funding_rate"].mean()
+              print(f"| {sym} | {len(d):,} | {d['datetime'].iloc[0][:10]} ~ "
+                    f"{d['datetime'].iloc[-1][:10]} | {m*100:.4f}% | {m*3*365*100:.1f}% |")
+          PY
+
+      - name: 커밋 & 푸시
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/funding/ || true
+          git diff --staged --quiet && { echo "변경 없음"; exit 0; }
+          git commit -m "data: perpetual funding rates"
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin $TARGET_BRANCH && \
+            git push origin HEAD:$TARGET_BRANCH && break || sleep $((i*6))
+          done

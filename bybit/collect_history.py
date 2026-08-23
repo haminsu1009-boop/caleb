@@ -36,17 +36,30 @@ ALT_INTERVALS = ["1d","4h","1h","5m"]          # BNB/SOL/XRP/ADA 등
 
 # 심볼별 수집 시작 연도 (Binance 상장 기준)
 SYMBOL_START_YEAR = {
-    "BTCUSDT": 2017,
-    "ETHUSDT": 2017,
-    "BNBUSDT": 2017,
-    "SOLUSDT": 2020,
-    "XRPUSDT": 2018,
-    "ADAUSDT": 2018,
-    "DOGEUSDT":2019,
-    "AVAXUSDT":2020,
-    "DOTUSDT": 2020,
-    "MATICUSDT":2019,
+    # 기존 6종 (지금까지 모든 검증에 쓴 표본)
+    "BTCUSDT": 2017, "ETHUSDT": 2017, "BNBUSDT": 2017,
+    "SOLUSDT": 2020, "XRPUSDT": 2018, "ADAUSDT": 2018,
+    # ── 확장 ────────────────────────────────────────────
+    # MA롱온리 전략을 처음 보는 심볼에서 재검증하기 위한 추가 종목.
+    # 6종 중 6종이 이긴 것은 우연 확률 1.56%로 유의하긴 하나 표본이 작다.
+    # 40종 중 35종이면 p≈7e-07 로 증거가 훨씬 강해진다.
+    # 종목 수가 늘면 횡단면 전략(같은 날 상위 N종 보유)도 비로소 가능해진다.
+    "DOGEUSDT": 2019, "AVAXUSDT": 2020, "DOTUSDT": 2020, "MATICUSDT": 2019,
+    "LINKUSDT": 2019, "LTCUSDT":  2017, "UNIUSDT": 2020, "ATOMUSDT": 2019,
+    "NEARUSDT": 2020, "FILUSDT":  2020, "ETCUSDT": 2018, "TRXUSDT":  2018,
+    "APTUSDT":  2022, "ARBUSDT":  2023, "OPUSDT":  2022, "INJUSDT":  2020,
+    "SUIUSDT":  2023, "SEIUSDT":  2023, "TIAUSDT": 2023, "ALGOUSDT": 2019,
+    "VETUSDT":  2018, "ICPUSDT":  2021, "HBARUSDT":2019, "AAVEUSDT": 2020,
+    "MKRUSDT":  2020, "GRTUSDT":  2020, "SANDUSDT":2020, "MANAUSDT": 2020,
+    "AXSUSDT":  2020, "THETAUSDT":2019, "EOSUSDT": 2018, "XLMUSDT":  2018,
+    "IOTAUSDT": 2018, "NEOUSDT":  2017, "QNTUSDT": 2021, "RUNEUSDT": 2020,
+    "FTMUSDT":  2019, "EGLDUSDT": 2020, "FLOWUSDT":2021, "CHZUSDT":  2019,
 }
+
+# 확장 검증용 심볼 목록 (기존 6종 제외)
+EXTENDED_SYMBOLS = [s for s in SYMBOL_START_YEAR
+                    if s not in ("BTCUSDT","ETHUSDT","BNBUSDT",
+                                 "SOLUSDT","XRPUSDT","ADAUSDT")]
 
 
 def _ts_unit(series) -> str:
