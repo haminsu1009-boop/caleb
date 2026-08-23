@@ -2928,14 +2928,14 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .biz-card-sea     { background: url('assets/svc-sea.jpg') center/cover, linear-gradient(135deg,#0a3878,#2080c0); }
 .biz-card-air     { background: url('assets/svc-air.jpg') center/cover, linear-gradient(135deg,#1a4a8a,#4090d0); }
 .biz-card-land    { background: url('assets/svc-land.jpg') center/cover, linear-gradient(135deg,#14532d,#15803d); }
-.biz-card-customs { background: url('assets/svc-customs.jpg') center/cover, linear-gradient(135deg,#1e1b4b,#4338ca); }
+.biz-card-customs { background: url('assets/svc-customs.jpg?v=2') center/cover, linear-gradient(135deg,#1e1b4b,#4338ca); }
 .biz-card-rail    { background: url('assets/rail-yard.jpg') center/cover, linear-gradient(135deg,#374151,#6b7280); }
 /* WebP 지원 브라우저에는 더 가벼운 webp 제공 (미지원 시 위 jpg 유지) */
 @supports (background-image: image-set(url('assets/svc-sea.webp') type('image/webp'))) {
   .biz-card-sea { background: image-set(url('assets/svc-sea.webp') type('image/webp'), url('assets/svc-sea.jpg') type('image/jpeg')) center/cover, linear-gradient(135deg,#0a3878,#2080c0); }
   .biz-card-air { background: image-set(url('assets/svc-air.webp') type('image/webp'), url('assets/svc-air.jpg') type('image/jpeg')) center/cover, linear-gradient(135deg,#1a4a8a,#4090d0); }
   .biz-card-land { background: image-set(url('assets/svc-land.webp') type('image/webp'), url('assets/svc-land.jpg') type('image/jpeg')) center/cover, linear-gradient(135deg,#14532d,#15803d); }
-  .biz-card-customs { background: image-set(url('assets/svc-customs.webp') type('image/webp'), url('assets/svc-customs.jpg') type('image/jpeg')) center/cover, linear-gradient(135deg,#1e1b4b,#4338ca); }
+  .biz-card-customs { background: image-set(url('assets/svc-customs.webp?v=2') type('image/webp'), url('assets/svc-customs.jpg?v=2') type('image/jpeg')) center/cover, linear-gradient(135deg,#1e1b4b,#4338ca); }
   .biz-card-rail { background: image-set(url('assets/rail-yard.webp') type('image/webp'), url('assets/rail-yard.jpg') type('image/jpeg')) center/cover, linear-gradient(135deg,#374151,#6b7280); }
 }
 .biz-progress { height: 3px; background: #e8ecf4; margin: 20px 24px 0; border-radius: 2px; overflow: hidden; }
