@@ -1080,7 +1080,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'svc.addon6.title':'CFS 서비스','svc.addon6.desc':'컨테이너 화물 집배 및 분류 창고 서비스',
         'svc.addon7.title':'ISF 신고 서비스','svc.addon7.desc':'미국 수출 화물 ISF(10+2) 신고 대행',
         'svc.addon8.title':'화물 보험','svc.addon8.desc':'10억원 화물배상 책임보험 — 만일의 사고에도 안심',
-        'svc.link.detail':'자세히 보기 →','svc.link.more':'자세히 →','svc.link.inquire':'문의하기 →','svc.desc2':'해상·항공·육상·통관·물류솔루션까지 원스톱으로 제공합니다',
+        'svc.link.detail':'자세히 보기 →','svc.link.more':'자세히 →','svc.link.inquire':'문의하기 →','svc.desc2':'해상·항공·육상·철송·통관·물류솔루션까지 원스톱으로 제공합니다',
         'svc.cta.title':'최적의 물류 솔루션을 찾고 계신가요?','svc.cta.desc':'전담 상담원이 귀사의 화물 특성에 맞는 최적 운송 방법과 운임을 빠르게 안내해드립니다.','svc.cta.btn1':'온라인 견적 문의',
         /* ── 해상운송 ── */
         'sea.overview.title':'해상운송 서비스 소개','sea.overview.desc':'태인종합물류는 FCL(Full Container Load)과 LCL(Less than Container Load) 서비스를 모두 제공합니다.',
@@ -1400,7 +1400,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'svc.addon6.title':'CFS Service','svc.addon6.desc':'Container cargo collection/distribution warehouse service',
         'svc.addon7.title':'ISF Filing Service','svc.addon7.desc':'ISF (10+2) filing service for US-bound export cargo',
         'svc.addon8.title':'Cargo Insurance','svc.addon8.desc':'KRW 1 billion cargo liability insurance — peace of mind for any incident',
-        'svc.link.detail':'Learn More →','svc.link.more':'Details →','svc.link.inquire':'Inquire →','svc.desc2':'One-stop: sea, air, land, customs and logistics solutions',
+        'svc.link.detail':'Learn More →','svc.link.more':'Details →','svc.link.inquire':'Inquire →','svc.desc2':'One-stop: sea, air, land, rail, customs and logistics solutions',
         'svc.cta.title':'Looking for the Best Logistics Solution?','svc.cta.desc':'Our dedicated consultants will quickly guide you on the best shipping method and rates for your cargo.','svc.cta.btn1':'Online Quote Inquiry',
         /* ── Ocean Freight ── */
         'sea.overview.title':'Ocean Freight Service Overview','sea.overview.desc':'Taein General Logistics provides both FCL and LCL services connecting major ports in Asia, Europe, the Americas, the Middle East, and Africa.',
@@ -1594,7 +1594,7 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ── 견적 인라인 연락처 전환 ── */
   window.openQuoteModal = function(type) {
     var labelMap = { fcl:'해운 FCL', lcl:'해운 LCL', air:'항공운송', land:'육상운송' };
-    var from = '', to = '', detail = '', qty = '', goods = '', incoterms = '';
+    var from = '', to = '', detail = '', qty = '', goods = '', incoterms = '', weight = '';
 
     if (type === 'fcl') {
       from      = (document.getElementById('fcl-from')||{}).value||'';
@@ -1620,8 +1620,7 @@ document.addEventListener('DOMContentLoaded', () => {
       from      = (document.getElementById('land-from')||{}).value||'';
       to        = (document.getElementById('land-to')||{}).value||'';
       detail    = (document.getElementById('land-cargo')||{}).value||'';
-      goods     = (document.getElementById('land-goods')||{}).value||'';
-      incoterms = (document.getElementById('land-incoterms')||{}).value||'';
+      weight    = (document.getElementById('land-weight')||{}).value||'';
     }
 
     // 이메일에 표시될 견적 정보 (줄바꿈 포맷)
@@ -1634,6 +1633,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (goods)     detailLines.push('물품명/HS Code: ' + goods);
     if (incoterms) detailLines.push('인코텀즈: ' + incoterms);
+    if (weight)    detailLines.push('화물 중량: ' + weight);
     var formattedDetail = detailLines.join('\n');
 
     // 요약 (화면 표시용 한 줄)
@@ -1643,6 +1643,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (detail) parts.push(detail);
     if (goods) parts.push(goods);
     if (incoterms) parts.push(incoterms);
+    if (weight) parts.push(weight);
     var summary = parts.join(' | ');
 
     var summaryEl = document.getElementById('inline-contact-summary');

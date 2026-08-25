@@ -90,7 +90,7 @@
   }
   </script>
 
-  <link rel="stylesheet" href="style.css?v=88" />
+  <link rel="stylesheet" href="style.css?v=89" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
@@ -225,7 +225,6 @@
         <video id="seaVid4" class="slide-video sea-vid" muted playsinline preload="none"></video>
       </div>
       <div class="slide slide-2"></div>
-      <div class="slide slide-3"></div>
     </div>
     <div class="hero-overlay"></div>
     <div class="hero-content container">
@@ -247,22 +246,12 @@
           <a href="customer-service.html" class="btn-outline" data-i18n="hero.consult">상담 문의</a>
         </div>
       </div>
-      <div class="slide-text">
-        <p class="slide-tag">WCA MEMBER · ONE-STOP SERVICE</p>
-        <h1 data-i18n-html="hero3.h1">고객 맞춤<br/>원스톱 물류 서비스</h1>
-        <p class="slide-desc" data-i18n-html="hero3.desc">WCA(World Cargo Association) 회원사로서<br/>40여 개국 120여 해외 파트너와 함께합니다</p>
-        <div class="hero-btns">
-          <a href="#services" class="btn-primary" data-i18n="hero3.btn">더 알아보기</a>
-          <a href="customer-service.html" class="btn-outline" data-i18n="hero.consult">상담 문의</a>
-        </div>
-      </div>
     </div>
     <button class="slide-prev" id="slidePrev">&#8249;</button>
     <button class="slide-next" id="slideNext">&#8250;</button>
     <div class="slide-dots">
       <span class="dot active" data-idx="0"></span>
       <span class="dot" data-idx="1"></span>
-      <span class="dot" data-idx="2"></span>
     </div>
   </section>
 
@@ -459,20 +448,8 @@
                   <option>특수화물</option><option>기타</option>
                 </select>
               </div>
-              <div class="q-field"><label>물품명 / HS CODE <span class="q-optional">(선택사항)</span></label>
-                <input type="text" id="land-goods" placeholder="예: 기계부품 / 8479.89" />
-              </div>
-              <div class="q-field"><label>인코텀즈</label>
-                <select id="land-incoterms">
-                  <option value="">선택 (선택사항)</option>
-                  <option value="EXW">EXW</option>
-                  <option value="FCA">FCA</option>
-                  <option value="CPT">CPT</option>
-                  <option value="CIP">CIP</option>
-                  <option value="DAP">DAP</option>
-                  <option value="DPU">DPU</option>
-                  <option value="DDP">DDP</option>
-                </select>
+              <div class="q-field"><label>화물 중량</label>
+                <input type="text" id="land-weight" placeholder="예: 500 kg" />
               </div>
             </div>
             <button type="button" class="q-submit" onclick="event.preventDefault();openQuoteModal('land')">견적 문의하기 →</button>
@@ -582,7 +559,7 @@
       <div class="section-header">
         <p class="section-label">OUR SERVICES</p>
         <h2 class="section-title" data-i18n-html="svc.title">수출입 기업을 위한<br/>올인원 물류 솔루션</h2>
-        <p class="section-desc" data-i18n="svc.desc2">해상·항공·육상·통관·물류솔루션까지 원스톱으로 제공합니다</p>
+        <p class="section-desc" data-i18n="svc.desc2">해상·항공·육상·철송·통관·물류솔루션까지 원스톱으로 제공합니다</p>
       </div>
     </div>
     <div class="biz-slider-wrap">
@@ -844,7 +821,7 @@
 
   <button class="scroll-top" id="scrollTop" aria-label="맨 위로">▲</button>
 
-  <script src="main.js?v=71"></script>
+  <script src="main.js?v=72"></script>
   <script>
     // Quote tab switcher
     document.querySelectorAll('.q-tab').forEach(function(btn) {
