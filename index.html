@@ -90,7 +90,7 @@
   }
   </script>
 
-  <link rel="stylesheet" href="style.css?v=90" />
+  <link rel="stylesheet" href="style.css?v=91" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
@@ -133,12 +133,12 @@
                 <div class="mega-col">
                   <span class="mega-col-title">항공 / 육상</span>
                   <a href="rail-transport.html">철송</a>
-                  <a href="land-transport.html" style="margin-top:10px;">육상운송</a>
-                  <a href="land-transport.html" class="mega-sub">전국 배송</a>
-                  <a href="land-transport.html" class="mega-sub">컨테이너 내륙</a>
                   <a href="air-transport.html" style="margin-top:10px;">항공운송</a>
                   <a href="air-transport.html" class="mega-sub">일반 항공화물</a>
                   <a href="air-transport.html" class="mega-sub">긴급·특수화물</a>
+                  <a href="land-transport.html" style="margin-top:10px;">육상운송</a>
+                  <a href="land-transport.html" class="mega-sub">전국 배송</a>
+                  <a href="land-transport.html" class="mega-sub">컨테이너 내륙</a>
                 </div>
                 <div class="mega-col">
                   <span class="mega-col-title">통관</span>
@@ -187,8 +187,8 @@
           <button class="mobile-acc-title" type="button">사업영역 <span class="acc-arrow">›</span></button>
           <ul class="mobile-acc-body">
             <li><a href="sea-transport.html">해상운송</a></li>
-            <li><a href="land-transport.html">육상운송</a></li>
             <li><a href="air-transport.html">항공운송</a></li>
+            <li><a href="land-transport.html">육상운송</a></li>
             <li><a href="rail-transport.html">철송</a></li>
             <li><a href="customs.html">통관</a></li>
             <li><a href="network.html">글로벌 네트워크</a></li>
@@ -213,7 +213,7 @@
   <section id="home" class="hero">
     <div class="hero-slides">
       <div class="slide slide-1 active">
-        <video id="seaVid1" class="slide-video sea-vid sea-vid--active" autoplay muted playsinline preload="auto" src="assets/sea-video-1.mp4"></video>
+        <video id="seaVid1" class="slide-video sea-vid sea-vid--active" autoplay muted playsinline preload="auto" src="assets/sea-video-1.mp4?v=2"></video>
         <video id="seaVid2" class="slide-video sea-vid" muted playsinline preload="none"></video>
         <video id="seaVid3" class="slide-video sea-vid" muted playsinline preload="none"></video>
         <video id="seaVid4" class="slide-video sea-vid" muted playsinline preload="none"></video>
@@ -225,9 +225,6 @@
         <p class="slide-tag">TRUST &amp; INNOVATION</p>
         <h1 data-i18n-html="hero1.h1">신뢰와 열정으로<br/>세계를 연결합니다</h1>
         <p class="slide-desc" data-i18n-html="hero1.desc">TAEIN TOTAL TRANSPORTATION CO.,LTD<br/>해상·항공 수출입, 통관, 운송의 글로벌 종합물류 기업</p>
-        <div class="hero-btns">
-          <a href="customer-service.html" class="btn-outline" data-i18n="hero.consult">상담 문의</a>
-        </div>
       </div>
     </div>
   </section>
@@ -344,6 +341,9 @@
                 </div>
                 <div class="q-field q-field--grow"><label>화물 중량</label><input type="text" id="lcl-weight" placeholder="예: 500 kg / 2 CBM" /></div>
               </div>
+              <div class="q-field"><label>사이즈</label>
+                <input type="text" id="lcl-size" placeholder="예: 120×100×100 cm" />
+              </div>
               <div class="q-field"><label>물품명 / HS CODE <span class="q-optional">(선택사항)</span></label>
                 <input type="text" id="lcl-goods" placeholder="예: 기계부품 / 8479.89" />
               </div>
@@ -383,7 +383,7 @@
                 </div>
               </div>
               <div class="q-field"><label>화물 중량</label><input type="text" id="air-weight" placeholder="예: 100 kg" /></div>
-              <div class="q-field"><label>사이즈 <span class="q-optional">(선택사항)</span></label>
+              <div class="q-field"><label>사이즈</label>
                 <input type="text" id="air-size" placeholder="예: 60×40×40 cm" />
               </div>
               <div class="q-field"><label>물품명 / HS CODE <span class="q-optional">(선택사항)</span></label>
@@ -431,7 +431,7 @@
               <div class="q-field"><label>화물 중량</label>
                 <input type="text" id="land-weight" placeholder="예: 500 kg" />
               </div>
-              <div class="q-field"><label>사이즈 <span class="q-optional">(선택사항)</span></label>
+              <div class="q-field"><label>사이즈</label>
                 <input type="text" id="land-size" placeholder="예: 200×150×120 cm" />
               </div>
               <div class="q-field"><label>용적 <span class="q-optional">(선택사항)</span></label>
@@ -764,8 +764,8 @@
             <h4>사업영역</h4>
             <ul>
               <li><a href="sea-transport.html">해상운송</a></li>
-              <li><a href="land-transport.html">육상운송</a></li>
               <li><a href="air-transport.html">항공운송</a></li>
+              <li><a href="land-transport.html">육상운송</a></li>
               <li><a href="rail-transport.html">철송</a></li>
               <li><a href="customs.html">통관</a></li>
             </ul>
@@ -805,7 +805,7 @@
 
   <button class="scroll-top" id="scrollTop" aria-label="맨 위로">▲</button>
 
-  <script src="main.js?v=74"></script>
+  <script src="main.js?v=75"></script>
   <script>
     // Quote tab switcher
     document.querySelectorAll('.q-tab').forEach(function(btn) {

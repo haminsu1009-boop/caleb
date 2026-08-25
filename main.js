@@ -1616,6 +1616,7 @@ document.addEventListener('DOMContentLoaded', () => {
       to        = (document.getElementById('lcl-to')||{}).value||'';
       detail    = (document.getElementById('lcl-weight')||{}).value||'';
       qty       = (document.getElementById('lcl-qty')||{}).value||'1';
+      size      = (document.getElementById('lcl-size')||{}).value||'';
       goods     = (document.getElementById('lcl-goods')||{}).value||'';
       incoterms = (document.getElementById('lcl-incoterms')||{}).value||'';
     } else if (type === 'air') {
@@ -1724,10 +1725,10 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ── 선박 영상 4개 끊김없이 순차 재생 ── */
   (function initSeaVideos() {
     var SRCS = [
-      'assets/sea-video-1.mp4',
-      'assets/sea-video-2.mp4',
-      'assets/sea-video-3.mp4',
-      'assets/sea-video-4.mp4'
+      'assets/sea-video-1.mp4?v=2',
+      'assets/sea-video-2.mp4?v=2',
+      'assets/sea-video-3.mp4?v=2',
+      'assets/sea-video-4.mp4?v=2'
     ];
     var ids  = ['seaVid1','seaVid2','seaVid3','seaVid4'];
     var vids = ids.map(function(id){ return document.getElementById(id); }).filter(Boolean);
@@ -1767,9 +1768,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    /* 1번 영상이 재생 가능해진 뒤에 2번 준비 시작 (한 개 앞서 로드) */
-    if (vids[0].readyState >= 3) ensureLoaded(1);
-    else vids[0].addEventListener('canplay', function(){ ensureLoaded(1); }, { once: true });
+    /* 1번 영상이 재생 가능해진 뒤에 2·3번을 동시에 미리 로드 시작
+       (한 개 앞이 아닌 두 개 앞까지 버퍼링해 느린 네트워크에서도 전환 시점에 끊기지 않도록 함) */
+    function prefetchAhead() { ensureLoaded(1); ensureLoaded(2); }
+    if (vids[0].readyState >= 3) prefetchAhead();
+    else vids[0].addEventListener('canplay', prefetchAhead, { once: true });
 
     function doSwitch(nextIdx) {
       var prev = vids[cur], nxt = vids[nextIdx];
@@ -1782,8 +1785,9 @@ document.addEventListener('DOMContentLoaded', () => {
         prev.currentTime = SKIP[cur] || 0;
         cur = nextIdx; switching = false;
       }, 250);
-      /* 다음 순서 영상을 미리 준비 */
+      /* 다음·다다음 순서 영상을 두 개 앞서 미리 준비 (버퍼링 여유 확보) */
       ensureLoaded(nextIdx + 1);
+      ensureLoaded(nextIdx + 2);
     }
 
     function switchTo(nextIdx) {
@@ -1804,7 +1808,14 @@ document.addEventListener('DOMContentLoaded', () => {
           switchTo((i+1) % vids.length);
       });
       v.addEventListener('ended', function(){
-        if (cur===i && !switching) switchTo((i+1) % vids.length);
+        if (cur===i && !switching) {
+          switchTo((i+1) % vids.length);
+        } else if (cur===i && switching) {
+          /* 다음 영상이 아직 로딩 중이면 정지 화면 대신 현재 영상을 다시 재생해
+             전환 시점까지 자연스럽게 이어감 (canplay 시 doSwitch가 즉시 넘겨받음) */
+          v.currentTime = SKIP[i] || 0;
+          v.play().catch(function(){});
+        }
       });
     });
   })();
