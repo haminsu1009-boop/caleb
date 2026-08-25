@@ -1725,10 +1725,10 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ── 선박 영상 4개 끊김없이 순차 재생 ── */
   (function initSeaVideos() {
     var SRCS = [
-      'assets/sea-video-1.mp4?v=2',
-      'assets/sea-video-2.mp4?v=2',
-      'assets/sea-video-3.mp4?v=2',
-      'assets/sea-video-4.mp4?v=2'
+      'assets/sea-video-1.mp4?v=3',
+      'assets/sea-video-2.mp4?v=3',
+      'assets/sea-video-3.mp4?v=3',
+      'assets/sea-video-4.mp4?v=3'
     ];
     var ids  = ['seaVid1','seaVid2','seaVid3','seaVid4'];
     var vids = ids.map(function(id){ return document.getElementById(id); }).filter(Boolean);
