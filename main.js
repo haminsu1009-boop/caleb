@@ -214,8 +214,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (dots.length) dots[current].classList.add('active');
   };
 
-  document.getElementById('slideNext').addEventListener('click', () => goTo(current + 1));
-  document.getElementById('slidePrev').addEventListener('click', () => goTo(current - 1));
+  const slideNextBtn = document.getElementById('slideNext');
+  const slidePrevBtn = document.getElementById('slidePrev');
+  if (slideNextBtn) slideNextBtn.addEventListener('click', () => goTo(current + 1));
+  if (slidePrevBtn) slidePrevBtn.addEventListener('click', () => goTo(current - 1));
   dots.forEach(dot => {
     dot.addEventListener('click', () => goTo(Number(dot.dataset.idx)));
   });
