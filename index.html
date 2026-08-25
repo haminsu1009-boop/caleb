@@ -90,7 +90,7 @@
   }
   </script>
 
-  <link rel="stylesheet" href="style.css?v=89" />
+  <link rel="stylesheet" href="style.css?v=90" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
@@ -116,7 +116,6 @@
             <a href="ceo.html" data-i18n="nav.company">회사소개</a>
             <div class="gnb-drop gnb-drop-sm">
               <a href="ceo.html">대표 인사말</a>
-              <a href="philosophy.html">경영이념</a>
               <a href="history.html">연혁</a>
               <a href="directions.html">오시는길</a>
             </div>
@@ -133,22 +132,19 @@
                 </div>
                 <div class="mega-col">
                   <span class="mega-col-title">항공 / 육상</span>
-                  <a href="air-transport.html">항공운송</a>
-                  <a href="air-transport.html" class="mega-sub">일반 항공화물</a>
-                  <a href="air-transport.html" class="mega-sub">긴급·특수화물</a>
+                  <a href="rail-transport.html">철송</a>
                   <a href="land-transport.html" style="margin-top:10px;">육상운송</a>
                   <a href="land-transport.html" class="mega-sub">전국 배송</a>
                   <a href="land-transport.html" class="mega-sub">컨테이너 내륙</a>
-                  <a href="rail-transport.html" style="margin-top:10px;">철송</a>
+                  <a href="air-transport.html" style="margin-top:10px;">항공운송</a>
+                  <a href="air-transport.html" class="mega-sub">일반 항공화물</a>
+                  <a href="air-transport.html" class="mega-sub">긴급·특수화물</a>
                 </div>
                 <div class="mega-col">
-                  <span class="mega-col-title">통관 / 솔루션</span>
+                  <span class="mega-col-title">통관</span>
                   <a href="customs.html">통관</a>
                   <a href="customs.html" class="mega-sub">수출통관</a>
                   <a href="customs.html" class="mega-sub">수입통관</a>
-                  <a href="logistics-solutions.html" style="margin-top:10px;">물류 솔루션</a>
-                  <a href="logistics-solutions.html" class="mega-sub">3PL / 4PL</a>
-                  <a href="logistics-solutions.html" class="mega-sub">창고관리</a>
                 </div>
               </div>
             </div>
@@ -183,7 +179,6 @@
           <button class="mobile-acc-title" type="button">회사소개 <span class="acc-arrow">›</span></button>
           <ul class="mobile-acc-body">
             <li><a href="ceo.html">대표 인사말</a></li>
-            <li><a href="philosophy.html">경영이념</a></li>
             <li><a href="history.html">연혁</a></li>
             <li><a href="directions.html">오시는길</a></li>
           </ul>
@@ -193,10 +188,9 @@
           <ul class="mobile-acc-body">
             <li><a href="sea-transport.html">해상운송</a></li>
             <li><a href="land-transport.html">육상운송</a></li>
-            <li><a href="rail-transport.html">철송</a></li>
             <li><a href="air-transport.html">항공운송</a></li>
+            <li><a href="rail-transport.html">철송</a></li>
             <li><a href="customs.html">통관</a></li>
-            <li><a href="logistics-solutions.html">물류 솔루션</a></li>
             <li><a href="network.html">글로벌 네트워크</a></li>
           </ul>
         </li>
@@ -232,7 +226,6 @@
         <h1 data-i18n-html="hero1.h1">신뢰와 열정으로<br/>세계를 연결합니다</h1>
         <p class="slide-desc" data-i18n-html="hero1.desc">TAEIN TOTAL TRANSPORTATION CO.,LTD<br/>해상·항공 수출입, 통관, 운송의 글로벌 종합물류 기업</p>
         <div class="hero-btns">
-          <a href="#services" class="btn-primary" data-i18n="hero1.btn">서비스 알아보기</a>
           <a href="customer-service.html" class="btn-outline" data-i18n="hero.consult">상담 문의</a>
         </div>
       </div>
@@ -390,6 +383,9 @@
                 </div>
               </div>
               <div class="q-field"><label>화물 중량</label><input type="text" id="air-weight" placeholder="예: 100 kg" /></div>
+              <div class="q-field"><label>사이즈 <span class="q-optional">(선택사항)</span></label>
+                <input type="text" id="air-size" placeholder="예: 60×40×40 cm" />
+              </div>
               <div class="q-field"><label>물품명 / HS CODE <span class="q-optional">(선택사항)</span></label>
                 <input type="text" id="air-goods" placeholder="예: 기계부품 / 8479.89" />
               </div>
@@ -434,6 +430,12 @@
               </div>
               <div class="q-field"><label>화물 중량</label>
                 <input type="text" id="land-weight" placeholder="예: 500 kg" />
+              </div>
+              <div class="q-field"><label>사이즈 <span class="q-optional">(선택사항)</span></label>
+                <input type="text" id="land-size" placeholder="예: 200×150×120 cm" />
+              </div>
+              <div class="q-field"><label>용적 <span class="q-optional">(선택사항)</span></label>
+                <input type="text" id="land-volume" placeholder="예: 3.6 CBM" />
               </div>
             </div>
             <button type="button" class="q-submit" onclick="event.preventDefault();openQuoteModal('land')">견적 문의하기 →</button>
@@ -754,7 +756,6 @@
             <h4>회사소개</h4>
             <ul>
                           <li><a href="ceo.html">대표 인사말</a></li>
-            <li><a href="philosophy.html">경영이념</a></li>
               <li><a href="history.html">연혁</a></li>
               <li><a href="directions.html">오시는길</a></li>
             </ul>
@@ -764,10 +765,9 @@
             <ul>
               <li><a href="sea-transport.html">해상운송</a></li>
               <li><a href="land-transport.html">육상운송</a></li>
-              <li><a href="rail-transport.html">철송</a></li>
               <li><a href="air-transport.html">항공운송</a></li>
+              <li><a href="rail-transport.html">철송</a></li>
               <li><a href="customs.html">통관</a></li>
-              <li><a href="logistics-solutions.html">물류 솔루션</a></li>
             </ul>
           </div>
           <div class="footer-links">
@@ -805,7 +805,7 @@
 
   <button class="scroll-top" id="scrollTop" aria-label="맨 위로">▲</button>
 
-  <script src="main.js?v=73"></script>
+  <script src="main.js?v=74"></script>
   <script>
     // Quote tab switcher
     document.querySelectorAll('.q-tab').forEach(function(btn) {

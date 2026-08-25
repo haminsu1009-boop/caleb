@@ -1544,6 +1544,11 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 }
 .fab-btn:hover { transform: translateY(-2px) scale(1.03); }
 .fab-btn-label { pointer-events: none; }
+.fab-quote {
+  background: linear-gradient(135deg, #3568d4 0%, #1f4bb0 100%);
+  box-shadow: 0 4px 20px rgba(53,104,212,0.4);
+}
+.fab-quote:hover { box-shadow: 0 6px 28px rgba(53,104,212,0.55); }
 .fab-phone {
   background: linear-gradient(135deg, #059669 0%, #047857 100%);
   box-shadow: 0 4px 20px rgba(5,150,105,0.38);

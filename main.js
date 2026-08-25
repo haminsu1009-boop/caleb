@@ -592,6 +592,12 @@ document.addEventListener('DOMContentLoaded', () => {
         <p class="phone-popup-hours">영업시간: 평일 09:00 ~ 18:00</p>
       </div>
       <div class="fab-group" id="fabGroup">
+        <a href="${isHomePage ? '#estimate' : 'customer-service.html'}" class="fab-btn fab-quote" id="fabQuote" aria-label="빠른 견적 문의">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+            <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+          </svg>
+          <span class="fab-btn-label">빠른 견적</span>
+        </a>
         <button class="fab-btn fab-phone" id="fabPhone" aria-label="전화 문의">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.49 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.4 1.27h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9a16 16 0 0 0 6.29 6.29l1.09-1.76a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 15.92z"/>
@@ -1596,7 +1602,7 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ── 견적 인라인 연락처 전환 ── */
   window.openQuoteModal = function(type) {
     var labelMap = { fcl:'해운 FCL', lcl:'해운 LCL', air:'항공운송', land:'육상운송' };
-    var from = '', to = '', detail = '', qty = '', goods = '', incoterms = '', weight = '';
+    var from = '', to = '', detail = '', qty = '', goods = '', incoterms = '', weight = '', size = '', volume = '';
 
     if (type === 'fcl') {
       from      = (document.getElementById('fcl-from')||{}).value||'';
@@ -1616,6 +1622,7 @@ document.addEventListener('DOMContentLoaded', () => {
       from      = (document.getElementById('air-from')||{}).value||'';
       to        = (document.getElementById('air-to')||{}).value||'';
       detail    = (document.getElementById('air-weight')||{}).value||'';
+      size      = (document.getElementById('air-size')||{}).value||'';
       goods     = (document.getElementById('air-goods')||{}).value||'';
       incoterms = (document.getElementById('air-incoterms')||{}).value||'';
     } else if (type === 'land') {
@@ -1623,6 +1630,8 @@ document.addEventListener('DOMContentLoaded', () => {
       to        = (document.getElementById('land-to')||{}).value||'';
       detail    = (document.getElementById('land-cargo')||{}).value||'';
       weight    = (document.getElementById('land-weight')||{}).value||'';
+      size      = (document.getElementById('land-size')||{}).value||'';
+      volume    = (document.getElementById('land-volume')||{}).value||'';
     }
 
     // 이메일에 표시될 견적 정보 (줄바꿈 포맷)
@@ -1636,6 +1645,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (goods)     detailLines.push('물품명/HS Code: ' + goods);
     if (incoterms) detailLines.push('인코텀즈: ' + incoterms);
     if (weight)    detailLines.push('화물 중량: ' + weight);
+    if (size)      detailLines.push('사이즈: ' + size);
+    if (volume)    detailLines.push('용적: ' + volume);
     var formattedDetail = detailLines.join('\n');
 
     // 요약 (화면 표시용 한 줄)
@@ -1646,6 +1657,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (goods) parts.push(goods);
     if (incoterms) parts.push(incoterms);
     if (weight) parts.push(weight);
+    if (size) parts.push(size);
+    if (volume) parts.push(volume);
     var summary = parts.join(' | ');
 
     var summaryEl = document.getElementById('inline-contact-summary');
