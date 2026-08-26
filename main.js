@@ -1725,10 +1725,10 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ── 선박 영상 4개 끊김없이 순차 재생 ── */
   (function initSeaVideos() {
     var SRCS = [
-      'assets/sea-video-1.mp4?v=6',
-      'assets/sea-video-2.mp4?v=6',
-      'assets/sea-video-3.mp4?v=6',
-      'assets/sea-video-4.mp4?v=6'
+      'assets/sea-video-1.mp4?v=7',
+      'assets/sea-video-2.mp4?v=7',
+      'assets/sea-video-3.mp4?v=7',
+      'assets/sea-video-4.mp4?v=7'
     ];
     var ids  = ['seaVid1','seaVid2','seaVid3','seaVid4'];
     var vids = ids.map(function(id){ return document.getElementById(id); }).filter(Boolean);
@@ -1768,11 +1768,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    /* 1번 영상이 재생 가능해진 뒤에 2·3번을 동시에 미리 로드 시작
-       (한 개 앞이 아닌 두 개 앞까지 버퍼링해 느린 네트워크에서도 전환 시점에 끊기지 않도록 함) */
-    function prefetchAhead() { ensureLoaded(1); ensureLoaded(2); }
-    if (vids[0].readyState >= 3) prefetchAhead();
-    else vids[0].addEventListener('canplay', prefetchAhead, { once: true });
+    /* 2·3·4번 영상을 1번 영상 재생 가능 여부와 무관하게 페이지 로드 즉시 동시 로드 시작
+       (전환 시점까지 기다리지 않고 가능한 최대 시간을 확보해 느린 네트워크에서도 끊기지 않도록 함) */
+    ensureLoaded(1); ensureLoaded(2); ensureLoaded(3);
 
     function doSwitch(nextIdx) {
       var prev = vids[cur], nxt = vids[nextIdx];
