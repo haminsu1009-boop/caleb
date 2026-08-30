@@ -4,6 +4,21 @@
 
 document.addEventListener('DOMContentLoaded', () => {
 
+  /* ── 모바일 뷰포트 높이 보정 (네이버 앱 등 인앱 브라우저는 100vh/100dvh를
+     정확히 지원하지 않아 스크롤 중 히어로와 다음 섹션 사이에 빈 틈이 생길 수 있음.
+     실제 window.innerHeight 값을 --vh 로 저장해 CSS에서 우선 사용하도록 함) ── */
+  (function initViewportHeightFix() {
+    function setVH() {
+      document.documentElement.style.setProperty('--vh', (window.innerHeight * 0.01) + 'px');
+    }
+    setVH();
+    window.addEventListener('resize', setVH);
+    window.addEventListener('orientationchange', setVH);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', setVH);
+    }
+  })();
+
   /* ── HERO CANVAS: Global Logistics Network Animation ── */
   (function initHeroCanvas() {
     const canvas = document.getElementById('heroCanvas');

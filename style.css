@@ -1518,7 +1518,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 }
 
 .scroll-top {
-  position: fixed; bottom: 168px; right: 24px; z-index: 999;
+  position: fixed; bottom: 226px; right: 24px; z-index: 999;
   width: 40px; height: 40px; border-radius: 50%;
   background: var(--accent); color: var(--white); font-size: 0.85rem;
   display: flex; align-items: center; justify-content: center;
@@ -1740,7 +1740,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   .chat-widget { width: calc(100vw - 24px); right: 12px; bottom: 100px; }
   /* 풀스크린 모드: left:0 right:0 은 JS inline으로 설정 */
   .chat-widget.kb-open { border-radius: 0; }
-  .scroll-top  { right: 16px; bottom: 172px; }
+  .scroll-top  { right: 16px; bottom: 230px; }
 }
 /* iOS Safari auto-zoom 방지 — 입력 요소 font-size 16px 미만이면 확대됨 */
 @media (max-width: 768px) {
@@ -2456,6 +2456,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   width: 100%;
   height: 100vh;
   height: 100dvh;
+  height: calc(var(--vh, 1vh) * 100);
   min-height: 520px;
   overflow: hidden;
   display: flex;
@@ -2669,7 +2670,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   .hero-content { padding: 80px 32px 40px; }
 }
 @media (max-width: 768px) {
-  .hero { padding: 0; height: 100vh; height: 100dvh; min-height: 0; }
+  .hero { padding: 0; height: 100vh; height: 100dvh; height: calc(var(--vh, 1vh) * 100); min-height: 0; }
   .slide-prev, .slide-next { display: none; }
   .hero-content { padding: 80px 24px 56px; max-width: 100%; }
   .hero-content h1 { font-size: clamp(1.8rem, 6.5vw, 2.6rem); }
@@ -3415,9 +3416,9 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   transform: translateY(0);
 }
 
-/* 섹션 앵커가 헤더에 가려지지 않도록 */
+/* 섹션 앵커가 헤더에 가려지지 않도록 (헤더 실제 높이 72px과 정확히 일치시켜 여백이 생기지 않도록 함) */
 section[id], .estimate-section {
-  scroll-margin-top: 80px;
+  scroll-margin-top: 72px;
 }
 
 /* ── 이용약관 / 개인정보처리방침 등 법적 문서 ── */
