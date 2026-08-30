@@ -1737,9 +1737,92 @@ document.addEventListener('DOMContentLoaded', () => {
        있었습니다 — agree 체크박스 "on" 값이 그대로 노출되던 원인도 이 중복 핸들러였습니다. */
   })();
 
-  /* 선박/육상/항공 영상 4개를 하나의 파일(sea-hero.mp4)로 합쳐 놓았기 때문에
-     별도의 JS 전환 로직 없이 <video autoplay loop> 만으로 끊김없이 순환 재생됩니다.
-     (기존에는 4개 파일을 fetch+blob으로 개별 로드하며 매번 전환 시점마다 JS로
-     seek·재생을 제어했는데, 이 과정에서 재생이 끊기는 현상이 있어 구조를 단순화했습니다.) */
+  /* ── 선박 영상 4개 끊김없이 순차 재생 ── */
+  (function initSeaVideos() {
+    var SRCS = [
+      'assets/sea-video-1.mp4?v=8',
+      'assets/sea-video-2.mp4?v=8',
+      'assets/sea-video-3.mp4?v=8',
+      'assets/sea-video-4.mp4?v=8'
+    ];
+    var ids  = ['seaVid1','seaVid2','seaVid3','seaVid4'];
+    var vids = ids.map(function(id){ return document.getElementById(id); }).filter(Boolean);
+    if (!vids.length) return;
+
+    var cur = 0, switching = false;
+
+    /* 영상별 시작 오프셋 (초) — 2·3·4번 영상 1초 스킵 */
+    var SKIP = [0, 1.0, 1.0, 1.0];
+
+    /* 로드 시작 여부 — 1번은 HTML src 로 이미 로드됨 */
+    var loadStarted = [true, false, false, false];
+
+    /* 필요한 시점에만 fetch → 초기 로딩량을 1번 영상 하나로 한정
+       (fetch + Blob URL 은 모바일 preload 한계 우회용, 기존 방식 유지) */
+    function ensureLoaded(idx) {
+      idx = idx % vids.length;
+      if (loadStarted[idx]) return;
+      loadStarted[idx] = true;
+      fetch(SRCS[idx])
+        .then(function(r){ return r.blob(); })
+        .then(function(blob){
+          var url = URL.createObjectURL(blob);
+          vids[idx].src = url;
+          vids[idx].load();
+          /* canplaythrough 후 seek + play→pause 로 디코더 완전 워밍업 */
+          vids[idx].addEventListener('canplaythrough', function(){
+            vids[idx].currentTime = SKIP[idx];
+            vids[idx].play().then(function(){
+              vids[idx].pause();
+            }).catch(function(){});
+          }, { once: true });
+        })
+        .catch(function(){
+          vids[idx].src = SRCS[idx];
+          vids[idx].load();
+        });
+    }
+
+    /* 1번 영상이 재생 가능해진 뒤에 2번 준비 시작 (한 개 앞서 로드) */
+    if (vids[0].readyState >= 3) ensureLoaded(1);
+    else vids[0].addEventListener('canplay', function(){ ensureLoaded(1); }, { once: true });
+
+    function doSwitch(nextIdx) {
+      var prev = vids[cur], nxt = vids[nextIdx];
+      nxt.currentTime = SKIP[nextIdx];
+      nxt.play().catch(function(){});
+      nxt.classList.add('sea-vid--active');
+      setTimeout(function(){
+        prev.classList.remove('sea-vid--active');
+        prev.pause();
+        prev.currentTime = SKIP[cur] || 0;
+        cur = nextIdx; switching = false;
+      }, 250);
+      /* 다음 순서 영상을 미리 준비 */
+      ensureLoaded(nextIdx + 1);
+    }
+
+    function switchTo(nextIdx) {
+      if (switching) return;
+      switching = true;
+      var nxt = vids[nextIdx];
+      if (nxt.readyState >= 3) {
+        doSwitch(nextIdx);
+      } else {
+        nxt.addEventListener('canplay', function(){ doSwitch(nextIdx); }, { once: true });
+        ensureLoaded(nextIdx);
+      }
+    }
+
+    vids.forEach(function(v, i) {
+      v.addEventListener('timeupdate', function(){
+        if (cur===i && !switching && v.duration && (v.duration - v.currentTime) < 1.0)
+          switchTo((i+1) % vids.length);
+      });
+      v.addEventListener('ended', function(){
+        if (cur===i && !switching) switchTo((i+1) % vids.length);
+      });
+    });
+  })();
 
 });
