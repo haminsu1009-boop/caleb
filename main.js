@@ -947,6 +947,19 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       slider.scrollLeft = scrollLeft - (e.pageX - slider.offsetLeft - startX);
     });
+
+    /* PC 마우스 휠로도 옆으로 스크롤 가능하게: 슬라이더가 더 넘길 수 있는 동안만
+       휠 스크롤을 가로 이동으로 전환하고, 끝에 도달하면 페이지 스크롤을 그대로 둠 */
+    slider.addEventListener('wheel', e => {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+      const max = slider.scrollWidth - slider.clientWidth;
+      if (max <= 0) return;
+      const atStart = slider.scrollLeft <= 0;
+      const atEnd = slider.scrollLeft >= max - 1;
+      if ((e.deltaY < 0 && atStart) || (e.deltaY > 0 && atEnd)) return;
+      e.preventDefault();
+      slider.scrollLeft += e.deltaY;
+    }, { passive: false });
   })();
 
   /* ── LANGUAGE TOGGLE ── */
