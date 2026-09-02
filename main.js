@@ -960,6 +960,25 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       slider.scrollLeft += e.deltaY;
     }, { passive: false });
+
+    /* 좌우 화살표 버튼: 휠·드래그와 무관하게 클릭만으로 확실히 넘어가도록 */
+    const prevBtn = document.getElementById('bizPrev');
+    const nextBtn = document.getElementById('bizNext');
+    function scrollByCard(dir) {
+      const card = slider.querySelector('.biz-card');
+      const step = card ? card.getBoundingClientRect().width + 16 : slider.clientWidth * 0.8;
+      slider.scrollBy({ left: dir * step, behavior: 'smooth' });
+    }
+    if (prevBtn) prevBtn.addEventListener('click', () => scrollByCard(-1));
+    if (nextBtn) nextBtn.addEventListener('click', () => scrollByCard(1));
+    function updateArrows() {
+      const max = slider.scrollWidth - slider.clientWidth;
+      if (prevBtn) prevBtn.classList.toggle('is-hidden', slider.scrollLeft <= 2);
+      if (nextBtn) nextBtn.classList.toggle('is-hidden', max <= 0 || slider.scrollLeft >= max - 2);
+    }
+    slider.addEventListener('scroll', updateArrows, { passive: true });
+    window.addEventListener('resize', updateArrows);
+    updateArrows();
   })();
 
   /* ── LANGUAGE TOGGLE ── */

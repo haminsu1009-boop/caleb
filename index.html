@@ -90,7 +90,7 @@
   }
   </script>
 
-  <link rel="stylesheet" href="style.css?v=94" />
+  <link rel="stylesheet" href="style.css?v=95" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
@@ -549,36 +549,37 @@
       </div>
     </div>
     <div class="biz-slider-wrap">
+      <button type="button" class="biz-slide-arrow biz-slide-prev is-hidden" id="bizPrev" aria-label="이전 서비스">‹</button>
       <div class="biz-slider" id="bizSlider">
-        <a href="sea-transport.html" class="biz-card biz-card-sea">
+        <a href="sea-transport.html" class="biz-card biz-card-sea" draggable="false">
           <div class="biz-card-overlay"></div>
           <div class="biz-card-content">
             <span class="biz-card-name">해상운송</span>
             <span class="biz-card-arrow">→</span>
           </div>
         </a>
-        <a href="air-transport.html" class="biz-card biz-card-air">
+        <a href="air-transport.html" class="biz-card biz-card-air" draggable="false">
           <div class="biz-card-overlay"></div>
           <div class="biz-card-content">
             <span class="biz-card-name">항공운송</span>
             <span class="biz-card-arrow">→</span>
           </div>
         </a>
-        <a href="land-transport.html" class="biz-card biz-card-land">
+        <a href="land-transport.html" class="biz-card biz-card-land" draggable="false">
           <div class="biz-card-overlay"></div>
           <div class="biz-card-content">
             <span class="biz-card-name">육상운송</span>
             <span class="biz-card-arrow">→</span>
           </div>
         </a>
-        <a href="rail-transport.html" class="biz-card biz-card-rail">
+        <a href="rail-transport.html" class="biz-card biz-card-rail" draggable="false">
           <div class="biz-card-overlay"></div>
           <div class="biz-card-content">
             <span class="biz-card-name">철송</span>
             <span class="biz-card-arrow">→</span>
           </div>
         </a>
-        <a href="customs.html" class="biz-card biz-card-customs">
+        <a href="customs.html" class="biz-card biz-card-customs" draggable="false">
           <div class="biz-card-overlay"></div>
           <div class="biz-card-content">
             <span class="biz-card-name">통관</span>
@@ -586,6 +587,7 @@
           </div>
         </a>
       </div>
+      <button type="button" class="biz-slide-arrow biz-slide-next" id="bizNext" aria-label="다음 서비스">›</button>
       <div class="biz-progress">
         <div class="biz-progress-bar" id="bizProgressBar"></div>
       </div>
@@ -805,7 +807,7 @@
 
   <button class="scroll-top" id="scrollTop" aria-label="맨 위로">▲</button>
 
-  <script src="main.js?v=78"></script>
+  <script src="main.js?v=79"></script>
   <script>
     // Quote tab switcher
     document.querySelectorAll('.q-tab').forEach(function(btn) {
