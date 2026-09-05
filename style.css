@@ -1547,6 +1547,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .fab-quote {
   background: linear-gradient(135deg, #3568d4 0%, #1f4bb0 100%);
   box-shadow: 0 4px 20px rgba(53,104,212,0.4);
+  padding: 0 20px; /* 아이콘 없이 텍스트만 있어 좌우 여백을 동일하게 맞춤 */
 }
 .fab-quote:hover { box-shadow: 0 6px 28px rgba(53,104,212,0.55); }
 .fab-phone {
@@ -1571,7 +1572,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   /* 빠른견적 버튼만 모바일에서도 라벨을 보여줘 아이콘만으로는 알기 어려운
      '빠른견적' 기능을 바로 알아볼 수 있게 함 */
   .fab-quote {
-    width: auto; height: 44px; padding: 0 16px 0 12px; border-radius: 999px;
+    width: auto; height: 44px; padding: 0 18px; border-radius: 999px;
   }
   .fab-quote .fab-btn-label { display: inline; font-size: 0.76rem; }
 }
