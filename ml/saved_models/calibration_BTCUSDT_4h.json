@@ -1,0 +1,20 @@
+{
+  "symbol": "BTCUSDT",
+  "interval": "4h",
+  "breakeven_wr": 40.0,
+  "tp": 0.02,
+  "sl": 0.01,
+  "net_tp": 0.018,
+  "net_sl": 0.012,
+  "oos_from": "2025-08-19 16:00:00",
+  "oos_to": "2026-07-31 20:00:00",
+  "oos_bars": 2078,
+  "long": {
+    "enabled": false,
+    "reason": "손익분기 대비 우위 미검증"
+  },
+  "short": {
+    "enabled": false,
+    "reason": "손익분기 대비 우위 미검증"
+  }
+}

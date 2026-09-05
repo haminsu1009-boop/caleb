@@ -1,0 +1,20 @@
+{
+  "symbol": "SOLUSDT",
+  "interval": "1h",
+  "breakeven_wr": 50.0,
+  "tp": 0.01,
+  "sl": 0.006,
+  "net_tp": 0.008,
+  "net_sl": 0.008,
+  "oos_from": "2025-09-11 14:00:00",
+  "oos_to": "2026-07-31 23:00:00",
+  "oos_bars": 7762,
+  "long": {
+    "enabled": false,
+    "reason": "손익분기 대비 우위 미검증"
+  },
+  "short": {
+    "enabled": false,
+    "reason": "손익분기 대비 우위 미검증"
+  }
+}

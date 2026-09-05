@@ -1,0 +1,62 @@
+name: 📡 바이빗 실거래소 데이터 수집
+
+# 이 저장소의 모든 백테스트는 지금까지 data.binance.vision(바이낸스)
+# 데이터를 썼다. 실거래는 바이빗에서 돌 예정이라, 실제 거래소 가격으로
+# 재검증하기 위한 워크플로. api.bybit.com은 이 세션 프록시에서 막히지만
+# GitHub 러너에서는 정상 동작한다.
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "데이터를 커밋할 브랜치"
+        default: "claude/quant-trading-bot-tkjtd"
+      intervals:
+        description: "수집 인터벌 (공백 구분). 주력 규칙이 4시간봉이라 240을 먼저 받는다"
+        default: "240 D"
+
+permissions:
+  contents: write
+
+jobs:
+  collect:
+    name: "바이빗 실데이터 수집"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TARGET_BRANCH: ${{ github.event.inputs.branch || 'claude/quant-trading-bot-tkjtd' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || 'claude/quant-trading-bot-tkjtd' }}
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install pybit pandas
+
+      - name: 수집
+        run: |
+          for iv in ${{ github.event.inputs.intervals || '240 D' }}; do
+            echo "::group::interval=$iv"
+            python bybit/collect_bybit_history.py --all --interval "$iv"
+            echo "::endgroup::"
+          done
+
+      - name: 수집 결과 요약
+        run: python bybit/summarize.py
+
+      - name: 커밋 & 푸시
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/bybit/ || true
+          git diff --staged --quiet && { echo "변경 없음"; exit 0; }
+          git commit -m "data: real Bybit exchange candles"
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin $TARGET_BRANCH && \
+            git push origin HEAD:$TARGET_BRANCH && break || sleep $((i*6))
+          done
