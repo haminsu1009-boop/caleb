@@ -47,18 +47,7 @@ jobs:
           done
 
       - name: 수집 결과 요약
-        run: |
-          ls -la data/bybit/ || true
-          python - <<'PY'
-          import glob, os, pandas as pd
-          rows = []
-          for f in sorted(glob.glob("data/bybit/*.csv.gz")):
-              d = pd.read_csv(f, compression="gzip")
-              rows.append((os.path.basename(f), len(d), d["datetime"].min(), d["datetime"].max()))
-          print(f"{'파일':30s}{'건수':>8s}  시작 ~ 끝")
-          for n, c, a, b in rows:
-              print(f"{n:30s}{c:>8,}  {a} ~ {b}")
-          PY
+        run: python bybit/summarize.py
 
       - name: 커밋 & 푸시
         run: |

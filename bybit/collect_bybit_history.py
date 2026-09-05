@@ -67,7 +67,7 @@ def collect(symbol: str, interval: str = "D", max_batches: int = 200) -> pd.Data
         if not batch:
             break
         rows.extend(batch)
-        oldest_ms = int(batch[-1][0])
+        oldest_ms = int(batch[-1][0])   # V5는 최신순 정렬이라 마지막이 가장 오래된 봉
         if end == oldest_ms:
             break
         end = oldest_ms - 1
@@ -104,8 +104,9 @@ def main():
     print(f"  바이빗 실거래소 캔들 수집 — {len(targets)}종목, {iv_label}")
     print("=" * 60)
 
-    for s in targets:
+    for i, s in enumerate(targets, 1):
         try:
+            print(f"  [{i}/{len(targets)}] {s} ...", flush=True)
             df = collect(s, a.interval)
         except Exception as e:
             print(f"  {s}: 실패 — {e}")
