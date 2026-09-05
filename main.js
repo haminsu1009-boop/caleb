@@ -611,7 +611,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
             <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
           </svg>
-          <span class="fab-btn-label">빠른 견적</span>
+          <span class="fab-btn-label">빠른견적</span>
         </a>
         <button class="fab-btn fab-phone" id="fabPhone" aria-label="전화 문의">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
@@ -1135,7 +1135,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'svc.addon6.title':'CFS 서비스','svc.addon6.desc':'컨테이너 화물 집배 및 분류 창고 서비스',
         'svc.addon7.title':'ISF 신고 서비스','svc.addon7.desc':'미국 수출 화물 ISF(10+2) 신고 대행',
         'svc.addon8.title':'화물 보험','svc.addon8.desc':'10억원 화물배상 책임보험 — 만일의 사고에도 안심',
-        'svc.link.detail':'자세히 보기 →','svc.link.more':'자세히 →','svc.link.inquire':'문의하기 →','svc.desc2':'해상·항공·육상·철송·통관·물류솔루션까지 원스톱으로 제공합니다',
+        'svc.link.detail':'자세히 보기 →','svc.link.more':'자세히 →','svc.link.inquire':'문의하기 →','svc.desc2':'해상·항공·육상·철송·통관까지 원스톱으로 제공합니다',
         'svc.cta.title':'최적의 물류 솔루션을 찾고 계신가요?','svc.cta.desc':'전담 상담원이 귀사의 화물 특성에 맞는 최적 운송 방법과 운임을 빠르게 안내해드립니다.','svc.cta.btn1':'온라인 견적 문의',
         /* ── 해상운송 ── */
         'sea.overview.title':'해상운송 서비스 소개','sea.overview.desc':'태인종합물류는 FCL(Full Container Load)과 LCL(Less than Container Load) 서비스를 모두 제공합니다.',
@@ -1455,7 +1455,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'svc.addon6.title':'CFS Service','svc.addon6.desc':'Container cargo collection/distribution warehouse service',
         'svc.addon7.title':'ISF Filing Service','svc.addon7.desc':'ISF (10+2) filing service for US-bound export cargo',
         'svc.addon8.title':'Cargo Insurance','svc.addon8.desc':'KRW 1 billion cargo liability insurance — peace of mind for any incident',
-        'svc.link.detail':'Learn More →','svc.link.more':'Details →','svc.link.inquire':'Inquire →','svc.desc2':'One-stop: sea, air, land, rail, customs and logistics solutions',
+        'svc.link.detail':'Learn More →','svc.link.more':'Details →','svc.link.inquire':'Inquire →','svc.desc2':'One-stop: sea, air, land, rail and customs',
         'svc.cta.title':'Looking for the Best Logistics Solution?','svc.cta.desc':'Our dedicated consultants will quickly guide you on the best shipping method and rates for your cargo.','svc.cta.btn1':'Online Quote Inquiry',
         /* ── Ocean Freight ── */
         'sea.overview.title':'Ocean Freight Service Overview','sea.overview.desc':'Taein General Logistics provides both FCL and LCL services connecting major ports in Asia, Europe, the Americas, the Middle East, and Africa.',

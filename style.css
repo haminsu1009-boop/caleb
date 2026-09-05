@@ -1568,6 +1568,12 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   .fab-group { bottom: 20px; right: 16px; }
   .fab-btn { width: 50px; height: 50px; padding: 0; border-radius: 50%; justify-content: center; }
   .fab-btn-label { display: none; }
+  /* 빠른견적 버튼만 모바일에서도 라벨을 보여줘 아이콘만으로는 알기 어려운
+     '빠른견적' 기능을 바로 알아볼 수 있게 함 */
+  .fab-quote {
+    width: auto; height: 44px; padding: 0 16px 0 12px; border-radius: 999px;
+  }
+  .fab-quote .fab-btn-label { display: inline; font-size: 0.76rem; }
 }
 
 /* ── Phone Popup ── */
@@ -2887,6 +2893,14 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   .svc-cards-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
   .svc-card { padding: 28px 14px 20px; }
   .svc-card-icon { width: 56px; height: 56px; margin-bottom: 14px; }
+}
+@media (max-width: 600px) {
+  /* 모바일에서 부제 문구가 줄바꿈되지 않고 한 줄로 깔끔하게 보이도록
+     화면 너비에 비례해 글자 크기를 줄임 */
+  .services-overview .section-desc {
+    font-size: clamp(0.7rem, 3.6vw, 0.95rem);
+    white-space: nowrap;
+  }
 }
 
 /* ── Business Slider (사업영역 가로 슬라이드) ── */
