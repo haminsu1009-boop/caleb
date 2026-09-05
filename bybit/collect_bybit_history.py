@@ -33,8 +33,13 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SAVE_DIR = os.path.join(ROOT, "data", "bybit")
 os.makedirs(SAVE_DIR, exist_ok=True)
 
-SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "ADAUSDT",
-           "DOGEUSDT", "AVAXUSDT", "DOTUSDT", "LINKUSDT"]
+SYMBOLS = ["AAVEUSDT", "ADAUSDT", "ALGOUSDT", "APTUSDT", "ARBUSDT", "ATOMUSDT", "AVAXUSDT",
+           "AXSUSDT", "BNBUSDT", "BTCUSDT", "CHZUSDT", "DOGEUSDT", "DOTUSDT", "EGLDUSDT",
+           "EOSUSDT", "ETCUSDT", "ETHUSDT", "FILUSDT", "FLOWUSDT", "FTMUSDT", "GRTUSDT",
+           "HBARUSDT", "ICPUSDT", "INJUSDT", "IOTAUSDT", "LINKUSDT", "LTCUSDT", "MANAUSDT",
+           "MATICUSDT", "MKRUSDT", "NEARUSDT", "NEOUSDT", "OPUSDT", "QNTUSDT", "RUNEUSDT",
+           "SANDUSDT", "SEIUSDT", "SOLUSDT", "SUIUSDT", "THETAUSDT", "TIAUSDT", "TRXUSDT",
+           "UNIUSDT", "VETUSDT", "XLMUSDT", "XRPUSDT"]
 
 # Bybit V5 kline interval 표기: 분 단위 숫자 또는 D/W/M
 INTERVAL_MAP = {"1d": "D", "D": "D", "4h": "240", "1h": "60"}
@@ -45,7 +50,7 @@ def get_session():
     return HTTP(testnet=False)   # 공개 kline 조회는 키 불필요
 
 
-def collect(symbol: str, interval: str = "D", max_batches: int = 60) -> pd.DataFrame:
+def collect(symbol: str, interval: str = "D", max_batches: int = 200) -> pd.DataFrame:
     session = get_session()
     biv = INTERVAL_MAP.get(interval, interval)
     rows = []
