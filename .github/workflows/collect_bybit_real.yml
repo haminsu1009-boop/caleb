@@ -1,0 +1,70 @@
+name: 📡 바이빗 실거래소 데이터 수집
+
+# ⚠️ 이 워크플로는 동작하지 않는다 — 남겨두는 것은 기록용이다.
+#
+# 실행 결과(run #1): 46종목 전부, 두 인터벌 모두 첫 요청부터 403.
+#     "You have breached the ip rate limit or your ip is from the usa."
+#
+# 레이트리밋이 아니라 지역 차단이다. 46개 요청이 0.06초 간격으로 전부
+# 즉시 실패했고 첫 종목부터 막혔다. GitHub 호스티드 러너는 전부 미국
+# (Azure) IP이고 바이빗은 미국 IP를 차단한다. 요청 간격을 늘리거나
+# 재시도를 넣어도 해결되지 않는다.
+#
+# 해결: 한국 회선에서 bybit/fetch_local.py 를 직접 실행한다.
+# 셀프호스티드 러너를 한국에 두면 이 워크플로를 되살릴 수 있다.
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "데이터를 커밋할 브랜치"
+        default: "claude/quant-trading-bot-tkjtd"
+      intervals:
+        description: "수집 인터벌 (공백 구분). 주력 규칙이 4시간봉이라 240을 먼저 받는다"
+        default: "240 D"
+
+permissions:
+  contents: write
+
+jobs:
+  collect:
+    name: "바이빗 실데이터 수집"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TARGET_BRANCH: ${{ github.event.inputs.branch || 'claude/quant-trading-bot-tkjtd' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || 'claude/quant-trading-bot-tkjtd' }}
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install pybit pandas
+
+      - name: 수집
+        run: |
+          for iv in ${{ github.event.inputs.intervals || '240 D' }}; do
+            echo "::group::interval=$iv"
+            python bybit/collect_bybit_history.py --all --interval "$iv"
+            echo "::endgroup::"
+          done
+
+      - name: 수집 결과 요약
+        run: python bybit/summarize.py
+
+      - name: 커밋 & 푸시
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/bybit/ || true
+          git diff --staged --quiet && { echo "변경 없음"; exit 0; }
+          git commit -m "data: real Bybit exchange candles"
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin $TARGET_BRANCH && \
+            git push origin HEAD:$TARGET_BRANCH && break || sleep $((i*6))
+          done
