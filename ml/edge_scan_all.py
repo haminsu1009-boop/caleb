@@ -112,7 +112,11 @@ def build(d: pd.DataFrame, horizons) -> pd.DataFrame:
         # 미래 수익 (다음봉 시가 진입 → N봉 뒤 시가 청산, 비용 차감)
         entry = o.shift(-1)
         for H in horizons:
-            g[f"ret{H}"] = (o.shift(-1-H) / entry - 1) * 100 - ROUND_TRIP * 100
+            # 가격 수익률만 담는다. 비용은 방향별로 따로 뺀다 — 여기서
+            # 미리 빼면 숏 계산에서 부호가 뒤집혀 비용이 이익이 된다.
+            g[f"px{H}"] = (o.shift(-1-H) / entry - 1) * 100
+            g[f"ret{H}"] = g[f"px{H}"] - ROUND_TRIP * 100
+            g[f"sht{H}"] = -g[f"px{H}"] - ROUND_TRIP * 100
         out.append(g)
     return pd.concat(out, ignore_index=True)
 
@@ -135,11 +139,13 @@ PCTS = [2, 5, 10, 15, 20, 80, 85, 90, 95, 98]
 
 def scan(df: pd.DataFrame, H: int, min_n: int, z: float):
     """단일 조건 전수 스캔 — 롱/숏 양방향"""
-    ret = f"ret{H}"
+    ret, sht = f"ret{H}", f"sht{H}"
     tr = df[df["datetime"] < TRAIN_END]
     ho = df[df["datetime"] >= TRAIN_END]
     base_tr_l = (tr[ret] > 0).mean() * 100
     base_ho_l = (ho[ret] > 0).mean() * 100
+    base_tr_s = (tr[sht] > 0).mean() * 100
+    base_ho_s = (ho[sht] > 0).mean() * 100
 
     rows = []
     for feat in FEATURES:
@@ -151,19 +157,18 @@ def scan(df: pd.DataFrame, H: int, min_n: int, z: float):
             for op in ("<=", ">="):
                 m_tr = (tr[feat] <= thr) if op == "<=" else (tr[feat] >= thr)
                 m_ho = (ho[feat] <= thr) if op == "<=" else (ho[feat] >= thr)
-                t_tr = tr.loc[m_tr, ret].dropna()
-                t_ho = ho.loc[m_ho, ret].dropna()
-                if len(t_tr) < min_n or len(t_ho) < min_n:
+                if m_tr.sum() < min_n or m_ho.sum() < min_n:
                     continue
                 for side in ("LONG", "SHORT"):
-                    if side == "LONG":
-                        w_tr = int((t_tr > 0).sum()); w_ho = int((t_ho > 0).sum())
-                        mean_ho = t_ho.mean()
-                        base_tr, base_ho = base_tr_l, base_ho_l
-                    else:
-                        w_tr = int((t_tr < 0).sum()); w_ho = int((t_ho < 0).sum())
-                        mean_ho = -t_ho.mean()
-                        base_tr, base_ho = 100 - base_tr_l, 100 - base_ho_l
+                    col = ret if side == "LONG" else sht
+                    t_tr = tr.loc[m_tr, col].dropna()
+                    t_ho = ho.loc[m_ho, col].dropna()
+                    if len(t_tr) < min_n or len(t_ho) < min_n:
+                        continue
+                    w_tr = int((t_tr > 0).sum()); w_ho = int((t_ho > 0).sum())
+                    mean_ho = t_ho.mean()
+                    base_tr, base_ho = ((base_tr_l, base_ho_l) if side == "LONG"
+                                        else (base_tr_s, base_ho_s))
                     wr_tr = w_tr / len(t_tr) * 100
                     wr_ho = w_ho / len(t_ho) * 100
                     rows.append({
@@ -171,6 +176,7 @@ def scan(df: pd.DataFrame, H: int, min_n: int, z: float):
                         "feat": feat, "op": op, "thr": thr,
                         "n_tr": len(t_tr), "wr_tr": wr_tr, "edge_tr": wr_tr - base_tr,
                         "n_ho": len(t_ho), "wr_ho": wr_ho, "edge_ho": wr_ho - base_ho,
+                        "base_ho": base_ho,
                         "wl_ho": wilson_lo(w_ho, len(t_ho), z),
                         "mean_ho": mean_ho,
                     })
@@ -204,10 +210,9 @@ def main():
 
     allr = []
     for H in a.horizons:
-        r, base = scan(df, H, a.min_n, z_bonf)
+        r, _ = scan(df, H, a.min_n, z_bonf)
         if r.empty: continue
         r["H"] = H
-        r["base_ho"] = base
         allr.append(r)
     if not allr:
         print("\n  결과 없음"); return
@@ -215,8 +220,7 @@ def main():
 
     # 필터: 학습·홀드아웃 방향 일치 + 보정 Wilson 하한이 기준선 초과 + 비용 넘는 수익
     ok = (res["edge_tr"] > 0) & (res["edge_ho"] > 0)
-    base_map = res.apply(lambda r: r["base_ho"] if r["side"] == "LONG" else 100 - r["base_ho"], axis=1)
-    ok &= res["wl_ho"] > base_map
+    ok &= res["wl_ho"] > res["base_ho"]
     ok &= res["mean_ho"] > ROUND_TRIP * 100
     surv = res[ok].copy()
 
@@ -234,7 +238,7 @@ def main():
           f"{'보정하한':>9s}{'기준선':>8s}{'초과':>8s}{'평균수익':>9s}")
     print("  " + "-" * 100)
     for _, r in surv.head(a.top).iterrows():
-        base = r["base_ho"] if r["side"] == "LONG" else 100 - r["base_ho"]
+        base = r["base_ho"]
         print(f"  {r['side']:6s}{r['H']:>3d}봉 {r['cond']:30s}{r['n_ho']:>7,}"
               f"{r['wr_ho']:>6.1f}%{r['wl_ho']:>8.1f}%{base:>7.1f}%"
               f"{r['edge_ho']:>+7.1f}%{r['mean_ho']:>+8.2f}%")

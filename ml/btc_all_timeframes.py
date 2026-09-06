@@ -175,7 +175,9 @@ def scan_tf(tf, z, min_n):
     res = {}
     for H in HORIZONS:
         ex = o.shift(-1 - H)
-        res[f"ret{H}"] = ((ex / entry - 1) * 100 - ROUND_TRIP).astype("float32")
+        # 가격 수익률만 담는다. 비용은 방향별로 각각 차감한다 —
+        # 여기서 미리 빼면 숏에서 부호가 뒤집혀 비용이 이익으로 둔갑한다.
+        res[f"px{H}"] = ((ex / entry - 1) * 100).astype("float32")
         # 보유 중 최대 순행/역행 — "몇 퍼센트까지 먹을 수 있었나"
         fwd_hi = h.shift(-1).rolling(H, min_periods=1).max().shift(-(H-1)) if H > 1 else h.shift(-1)
         fwd_lo = l.shift(-1).rolling(H, min_periods=1).min().shift(-(H-1)) if H > 1 else l.shift(-1)
@@ -188,12 +190,20 @@ def scan_tf(tf, z, min_n):
 
     # 기준선(무조건 진입 승률)은 조건과 무관하므로 한 번만 구한다.
     # 루프 안에서 매번 계산하면 6,800번 전체 배열을 훑게 된다.
+    # 롱/숏 손익을 따로 만든다. 둘 다 비용을 차감한다.
+    for H in HORIZONS:
+        px = r[f"px{H}"]
+        r[f"L{H}"] = px - ROUND_TRIP
+        r[f"S{H}"] = -px - ROUND_TRIP
+
     base = {}
     for H in HORIZONS:
-        ret = r[f"ret{H}"].values
-        fin = np.isfinite(ret)
-        base[H] = ((ret[is_tr & fin] > 0).mean() * 100,
-                   (ret[~is_tr & fin] > 0).mean() * 100)
+        fin = np.isfinite(r[f"px{H}"].values)
+        base[H] = {}
+        for sd in ("L", "S"):
+            v = r[f"{sd}{H}"].values
+            base[H][sd] = ((v[is_tr & fin] > 0).mean() * 100,
+                           (v[~is_tr & fin] > 0).mean() * 100)
 
     rows = []
     cols = [c for c in f.columns]
@@ -208,23 +218,20 @@ def scan_tf(tf, z, min_n):
                 m = (s <= thr) if op == "<=" else (s >= thr)
                 m = m.values
                 for H in HORIZONS:
-                    ret = r[f"ret{H}"].values
-                    ok = m & np.isfinite(ret)
+                    ok = m & np.isfinite(r[f"px{H}"].values)
                     a, b = ok & is_tr, ok & ~is_tr
                     n_tr, n_ho = a.sum(), b.sum()
                     if n_tr < min_n or n_ho < min_n:
                         continue
-                    rt, rh = ret[a], ret[b]
-                    base_tr, base_ho = base[H]
                     for side in ("LONG", "SHORT"):
-                        if side == "LONG":
-                            wt, wh = (rt > 0).sum(), (rh > 0).sum()
-                            mu = rh.mean(); bt, bh = base_tr, base_ho
-                            mfe = r[f"mfe{H}"].values[b]
-                        else:
-                            wt, wh = (rt < 0).sum(), (rh < 0).sum()
-                            mu = -rh.mean(); bt, bh = 100-base_tr, 100-base_ho
-                            mfe = -r[f"mae{H}"].values[b]
+                        sd = "L" if side == "LONG" else "S"
+                        pnl = r[f"{sd}{H}"].values
+                        rt, rh = pnl[a], pnl[b]
+                        bt, bh = base[H][sd]
+                        wt, wh = (rt > 0).sum(), (rh > 0).sum()
+                        mu = rh.mean()
+                        mfe = (r[f"mfe{H}"].values[b] if side == "LONG"
+                               else -r[f"mae{H}"].values[b])
                         wr_t, wr_h = wt/n_tr*100, wh/n_ho*100
                         if wr_t <= bt or wr_h <= bh or mu <= 0:
                             continue
