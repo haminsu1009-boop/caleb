@@ -67,13 +67,16 @@ def main():
           f"vs_ma20={s_deep.vs_ma20:.2f}%" if s_deep else "신호 없음")
     check("경계보다 얕은 하락은 신호 없음", s_shallow is None)
 
-    # ── 4. 실제 데이터로 백테스트와 대조
+    # ── 4. 실제 데이터로 백테스트와 대조 (실거래 목록 42종 전부)
     files = sorted(glob.glob("data/*_4h_all.csv.gz"))
-    files = [f for f in files if os.path.basename(f).split("_")[0] in S.MAJORS]
+    files = [f for f in files if os.path.basename(f).split("_")[0] in S.SYMBOLS]
     if not files:
         check("과거 데이터 존재", False, "data/*_4h_all.csv.gz 없음")
+    check(f"실거래 목록 {len(S.SYMBOLS)}종 중 데이터 존재",
+          len(files) >= len(S.SYMBOLS) - 2,   # 신규 상장 등으로 파일이 아직 없는 종목 소수는 허용
+          f"{len(files)}/{len(S.SYMBOLS)}종")
     total_bt = total_live = total_match = 0
-    for f in files[:12]:
+    for f in files:
         sym = os.path.basename(f).split("_")[0]
         d = pd.read_csv(f, compression="gzip")
         tc = "timestamp" if "timestamp" in d.columns else "datetime"
@@ -105,10 +108,27 @@ def main():
 
     # ── 5. 손절가·청산 조건
     expect = 100.0 * (1 + S.STOP_PCT / 100)
-    check(f"손절가가 진입가의 {S.STOP_PCT}%",
+    check(f"손절가가 진입가(평단)의 {S.STOP_PCT}%",
           abs(S.stop_price(100.0) - expect) < 1e-9, f"{S.stop_price(100.0):.2f}")
-    check("10봉 미만은 보유 유지", not S.should_exit(9))
-    check("10봉 도달 시 청산", S.should_exit(10))
+    check(f"{S.HOLD_BARS - 1}봉 미만은 보유 유지", not S.should_exit(S.HOLD_BARS - 1))
+    check(f"{S.HOLD_BARS}봉 도달 시 청산", S.should_exit(S.HOLD_BARS))
+
+    # ── 6. 분할매수 헬퍼 — ml/scale_in.py의 chase_split과 같은 계산인가
+    trig = S.scale_in_trigger_price(100.0)
+    expect_trig = 100.0 * (1 + S.SCALE_IN_TRIGGER_PCT / 100)
+    check(f"2차 트리거가 1차 진입가의 {S.SCALE_IN_TRIGGER_PCT}%",
+          abs(trig - expect_trig) < 1e-9, f"{trig:.4f}")
+
+    # 1차 30개를 100원에, 2차 70개를 90원에 샀다면 평단은 수량가중평균
+    avg = S.blended_entry(100.0, 30.0, 90.0, 70.0)
+    expect_avg = (100.0 * 30.0 + 90.0 * 70.0) / 100.0
+    check("분할매수 평단이 수량가중평균과 일치",
+          abs(avg - expect_avg) < 1e-9, f"{avg:.4f} (기대 {expect_avg:.4f})")
+
+    # 2차가 아예 안 걸렸으면(qty2=0) 평단은 1차 그대로여야 한다
+    avg_no_fill = S.blended_entry(100.0, 30.0, 90.0, 0.0)
+    check("2차 미체결 시 평단은 1차 진입가 그대로",
+          abs(avg_no_fill - 100.0) < 1e-9, f"{avg_no_fill:.4f}")
 
     print("=" * 84)
     print(f"  {'✅ 전부 통과' if FAILED == 0 else f'❌ {FAILED}건 실패'}")

@@ -1,10 +1,33 @@
 """
 bot/oversold/executor.py
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-자동매매 실행기 — 바이빗 USDT 무기한, 메이저 12종, 4시간봉
+자동매매 실행기 — 바이빗 USDT 무기한, 42종(실거래), 4시간봉
 
 기본값이 모의(dry-run)다. 실거래는 --live 를 명시해야만 켜진다.
 실수로 실거래가 도는 일은 없어야 한다.
+
+분할매수(scale-in):
+    신호가 뜨면 자본의 30%만 즉시 매수한다. 1차 체결가 대비 -5% 더
+    빠지면 나머지 70%를 추가한다(strategy.SCALE_IN_*). 실제 주문은
+    시장가라서, "저가가 트리거를 스쳤다"만으로 쏘면 안 된다 —
+    확인하는 시점에 가격이 이미 되돌아와 있으면 1차보다 비싸게
+    사게 되고, 그건 분할매수의 목적(평단을 낮춘다)을 정확히
+    거스른다(ml/scale_in.py에서 시간분할이 전부 손해였던 것과
+    같은 실패 모양). 그래서 트리거는 "지금 가격이 트리거 이하"
+    일 때만 발동한다(_try_scale_in). 폴링 사이에 스쳤다가 돌아온
+    저가는 놓친다 — 놓치는 쪽이 평단을 나쁘게 만드는 쪽보다 항상
+    안전하다.
+
+    노출 계산(총노출 상한)은 "실제 체결액"이 아니라 "예약액"(1차+2차
+    전체 물량)으로 한다. 1차만 체결된 포지션을 실제 체결분(30%)만
+    잡으면, 2차가 아직 안 걸린 포지션이 여러 개 쌓여 있다가 한꺼번에
+    2차가 걸리는 순간 의도한 동시보유 한도(1/per_trade)를 몇 배
+    넘길 수 있다(재생 테스트 test_replay.py에서 실제로 잡아냈다 —
+    6종목 한도인데 9종목까지 열렸다). 예약액 기준이면 1차만 있어도
+    이미 풀사이즈 자리를 잡으므로 이 문제가 없다. 대신 2차가 끝내
+    안 걸리는 신호는 실제로는 30%만 썼는데도 자리는 100%만큼
+    비워둔 것이 되어, 그만큼 다른 신호를 못 받는 손해를 본다 —
+    안전 방향으로 보수적인 트레이드오프다.
 
 API 키:
     .env 파일에서만 읽는다 (.gitignore에 이미 등록됨).
@@ -65,17 +88,28 @@ log = logging.getLogger("oversold")
 class Config:
     def __init__(self):
         self.leverage      = float(os.getenv("OS_LEVERAGE",       "2"))
-        self.per_trade     = float(os.getenv("OS_PER_TRADE",      "0.15"))
+        # per_trade는 한 거래의 "전체" 의도 물량 비율이다(1차+2차 합산).
+        # 1차는 이 중 SCALE_IN_FIRST_FRAC(30%)만 즉시 나간다. 0.05 =
+        # 최대 20종목 동시 보유, ml/scale_in_portfolio.py --all46의
+        # 검증값과 동일하다.
+        self.per_trade     = float(os.getenv("OS_PER_TRADE",      "0.05"))
         self.max_gross     = float(os.getenv("OS_MAX_GROSS",      "1.0"))
         self.daily_loss    = float(os.getenv("OS_DAILY_LOSS",     "0.05"))
         self.max_drawdown  = float(os.getenv("OS_MAX_DRAWDOWN",   "0.25"))
+        # 백테스트(ml/sim_correct.py, ml/path_to_100x.py)가 검증한 차단기는
+        # 영구 정지가 아니라 "30일간 신규진입만 중단, 그 뒤 자동 재개"다.
+        # 이걸 영구 정지로 바꾸면 낙폭은 그대로 낮아지지만 100배 도달
+        # 기간이 백테스트보다 길어진다 — 재개가 없으면 한 번 걸리고
+        # 영영 안 도는 봇이 된다.
+        self.halt_cooldown_days = float(os.getenv("OS_HALT_COOLDOWN_DAYS", "30"))
         self.min_equity    = float(os.getenv("OS_MIN_EQUITY",     "50"))
         self.poll_seconds  = int(os.getenv("OS_POLL_SECONDS",     "300"))
 
     def describe(self) -> str:
-        return (f"배율 {self.leverage:g}x · 진입당 자본 {self.per_trade*100:.0f}% · "
+        return (f"배율 {self.leverage:g}x · 거래당 전체물량 {self.per_trade*100:.0f}% · "
                 f"총노출 상한 {self.max_gross*100:.0f}%×배율 · "
-                f"일일손실 {self.daily_loss*100:.0f}% · 낙폭차단 {self.max_drawdown*100:.0f}%")
+                f"일일손실 {self.daily_loss*100:.0f}% · "
+                f"낙폭차단 {self.max_drawdown*100:.0f}%({self.halt_cooldown_days:.0f}일 재개)")
 
 
 def load_env():
@@ -98,7 +132,7 @@ def load_state() -> dict:
         except Exception:
             log.warning("상태 파일 손상 — 새로 시작한다")
     return {"positions": {}, "peak_equity": 0.0, "day": "", "day_start_equity": 0.0,
-            "halted": False, "halt_reason": ""}
+            "halted_until": None, "halt_count": 0}
 
 
 def save_state(st: dict):
@@ -233,33 +267,49 @@ class Trader:
                             "(손절 체결로 이미 닫혔을 수 있다)", sym)
                 tracked.pop(sym)
         for sym, p in actual.items():
-            if sym not in tracked and sym in S.MAJORS:
+            if sym not in tracked and sym in S.SYMBOLS:
                 log.warning("거래소에만 있는 포지션 발견: %s — 이 봇이 연 것이 아니므로 "
                             "건드리지 않는다", sym)
         save_state(self.st)
 
     def _guard(self, equity: float) -> bool:
-        """차단기. False면 신규 진입 금지."""
+        """차단기. False면 신규 진입 금지 — 보유 중인 포지션은 건드리지
+        않는다(시간 청산으로 자연스럽게 정리된다). 백테스트와 같은
+        모양을 유지하려면 여기서 강제청산을 하면 안 된다: 검증한 차단기
+        (ml/sim_correct.py, ml/path_to_100x.py)는 트리거 시점에 열려
+        있던 포지션을 그대로 두고 신규 진입만 막는다."""
         st = self.st
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        now = datetime.now(timezone.utc)
+        today = now.strftime("%Y-%m-%d")
         if st.get("day") != today:
             st["day"] = today
             st["day_start_equity"] = equity
         st["peak_equity"] = max(st.get("peak_equity", 0.0), equity)
 
-        if st.get("halted"):
-            log.error("정지 상태: %s — 해제하려면 state.json의 halted를 false로", st["halt_reason"])
-            return False
+        halted_until = st.get("halted_until")
+        if halted_until:
+            until = datetime.fromisoformat(halted_until)
+            if now < until:
+                remain = (until - now).total_seconds() / 86400
+                log.warning("차단기 재개까지 %.1f일 남음 — 신규 진입 중단, 보유분은 정상 청산", remain)
+                return False
+            log.info("차단기 %d일 경과 — 신규 진입 재개", self.cfg.halt_cooldown_days)
+            st["halted_until"] = None
+            save_state(st)
+
         if equity < self.cfg.min_equity:
             log.error("자본 %.2f USDT 가 최소치 미만 — 진입 중단", equity)
             return False
         peak = st["peak_equity"]
         if peak > 0 and (1 - equity / peak) >= self.cfg.max_drawdown:
-            st["halted"] = True
-            st["halt_reason"] = f"최대낙폭 {(1-equity/peak)*100:.1f}% 도달"
+            until = now + timedelta(days=self.cfg.halt_cooldown_days)
+            st["halted_until"] = until.isoformat()
+            st["halt_count"] = st.get("halt_count", 0) + 1
+            st["peak_equity"] = equity   # 여기서부터 새로 고점을 잡는다(백테스트와 동일)
             save_state(st)
-            log.error("🛑 %s — 전량 청산하고 정지한다", st["halt_reason"])
-            self.close_all("낙폭 차단기")
+            log.error("🛑 최대낙폭 %.1f%% 도달 — %d일간 신규 진입 중단(%d번째). "
+                      "보유분은 강제청산하지 않고 시간청산으로 정리한다.",
+                      (1 - equity / peak) * 100, self.cfg.halt_cooldown_days, st["halt_count"])
             return False
         d0 = st.get("day_start_equity", equity)
         if d0 > 0 and (1 - equity / d0) >= self.cfg.daily_loss:
@@ -275,17 +325,53 @@ class Trader:
                 self.st["positions"].pop(sym, None)
         save_state(self.st)
 
+    def _try_scale_in(self, sym: str, p: dict, price: float) -> None:
+        """1차만 체결된 포지션의 2차 매수 트리거를 확인하고, 걸렸으면 채운다.
+
+        시장가 주문이라 "저가가 트리거를 스쳤다"만으로 쏘면 안 된다 —
+        확인하는 시점에 이미 되돌아와 있으면 1차보다 비싸게 사게 되고,
+        그건 분할매수의 목적(평단을 낮춘다)을 정확히 거스른다. 이게
+        ml/scale_in.py에서 시간분할이 전부 손해였던 것과 같은 실패
+        모양이다. 그래서 "지금 가격"이 트리거 이하일 때만 쏜다.
+        폴링 사이에 스쳤다가 돌아온 저가는 놓친다 — 놓치는 쪽이
+        평단을 더 나쁘게 만드는 쪽보다 항상 안전하다.
+        """
+        if price > p["trigger"]:
+            return
+        notional2 = p["full_notional"] * (1 - S.SCALE_IN_FIRST_FRAC)
+        spec = self.ex.spec(sym)
+        qty2 = round_qty(notional2 / price, spec)
+        if qty2 <= 0:
+            return
+        new_entry = S.blended_entry(p["entry"], p["qty"], price, qty2)
+        new_stop = S.stop_price(new_entry)
+        log.info("🔔 2차 매수 %s  트리거 %.6g 이하 확인(현재 %.6g)  →  +%.6g USDT (%.4g개)",
+                 sym, p["trigger"], price, notional2, qty2)
+        if self.ex.open_long(sym, qty2, new_stop):
+            p["qty"] = p["qty"] + qty2
+            p["entry"] = new_entry
+            p["stop"] = new_stop
+            p["notional"] = p["notional"] + notional2
+            p["tranche"] = 2
+            save_state(self.st)
+
     def tick(self):
         equity = self.ex.equity()
         can_enter = self._guard(equity)
         positions = self.st["positions"]
         now_ms = int(time.time() * 1000)
 
-        gross = 0.0
+        # 총노출은 "지금까지 순회하며 본 것"이 아니라 "현재 열려 있는
+        # 전부"로 시작해야 한다. S.SYMBOLS는 고정된 순서(알파벳)라서,
+        # 0.0에서 시작해 순회하며 누적하면 이미 열려 있는 포지션이
+        # 이번 순회 뒤쪽 심볼일 경우 앞쪽 심볼의 신규 진입 판정 시점에는
+        # 아직 그 노출이 안 잡힌다 — cap을 넘겨서 진입을 허용하게 된다
+        # (test_replay.py가 실제로 잡아냈다: cap 2990인데 예약합 4036).
+        gross = sum(p["reserved"] for p in positions.values())
         log.info("자본 %.2f USDT · 보유 %d종목 · %s",
                  equity, len(positions), "진입 가능" if can_enter else "진입 중단")
 
-        for sym in S.MAJORS:
+        for sym in S.SYMBOLS:
             try:
                 rows = self.ex.klines(sym)
             except Exception as e:
@@ -303,20 +389,25 @@ class Trader:
             bar_time = int(confirmed[-1][0])
             price = float(rows[-1][4])
 
-            # ① 보유분 청산 판정 (시간 경과)
+            # ① 보유분 처리 — 시간 청산 또는 2차 분할매수 트리거
+            # (노출은 "예약액" reserved = 1차+2차 전체 물량 기준이고,
+            # 이미 tick() 맨 앞에서 현재 열린 전 종목분을 gross에 합쳐
+            # 뒀다. 여기서 또 더하면 중복 계산이다 — 청산될 때만 뺀다.)
             if sym in positions:
                 p = positions[sym]
                 held = (bar_time - p["entry_bar"]) // BAR_MS
-                gross += p["qty"] * price
                 if S.should_exit(held):
                     spec = self.ex.spec(sym)
                     q = round_qty(p["qty"], spec)
                     if q and self.ex.close_long(sym, q, f"{held}봉 경과"):
                         positions.pop(sym)
+                        gross -= p["reserved"]
                         save_state(self.st)
                 else:
-                    log.info("  보유 %s %d/%d봉  진입가 %.6g  현재 %.6g (%.1f%%)",
-                             sym, held, S.HOLD_BARS, p["entry"], price,
+                    if p["tranche"] == 1:
+                        self._try_scale_in(sym, p, price)
+                    log.info("  보유 %s %d/%d봉 · %d/2차  평단 %.6g  현재 %.6g (%.1f%%)",
+                             sym, held, S.HOLD_BARS, p["tranche"], p["entry"], price,
                              (price / p["entry"] - 1) * 100)
                 continue
 
@@ -326,25 +417,32 @@ class Trader:
             sig = S.evaluate(sym, closes, bar_time)
             if sig is None:
                 continue
-            notional = equity * self.cfg.per_trade * self.cfg.leverage
+            full_notional = equity * self.cfg.per_trade * self.cfg.leverage
             cap = equity * self.cfg.max_gross * self.cfg.leverage
-            if gross + notional > cap:
+            if gross + full_notional > cap:
                 log.info("  신호 %s (%.1f%%) — 총노출 상한 초과로 건너뜀", sym, sig.vs_ma20)
                 continue
+            notional1 = full_notional * S.SCALE_IN_FIRST_FRAC
             spec = self.ex.spec(sym)
-            qty = round_qty(notional / price, spec)
-            if qty <= 0:
-                log.info("  신호 %s — 수량이 최소주문량 미만", sym)
+            qty1 = round_qty(notional1 / price, spec)
+            if qty1 <= 0:
+                log.info("  신호 %s — 1차 수량이 최소주문량 미만", sym)
                 continue
-            stop = S.stop_price(price)
-            log.info("🔔 신호 %s  종가 %.6g  20MA대비 %.1f%%  →  진입 %.6g USDT (%.4g개)",
-                     sym, sig.close, sig.vs_ma20, notional, qty)
+            stop1 = S.stop_price(price)
+            trigger = S.scale_in_trigger_price(price)
+            log.info("🔔 신호 %s  종가 %.6g  20MA대비 %.1f%%  →  1차 진입 %.6g USDT (%.4g개)"
+                     "  · 2차 트리거 %.6g", sym, sig.close, sig.vs_ma20, notional1, qty1, trigger)
             self.ex.set_leverage(sym, self.cfg.leverage)
-            if self.ex.open_long(sym, qty, stop):
-                positions[sym] = {"qty": qty, "entry": price, "stop": stop,
-                                  "entry_bar": bar_time,
+            if self.ex.open_long(sym, qty1, stop1):
+                positions[sym] = {"qty": qty1, "entry": price, "stop": stop1,
+                                  "entry_bar": bar_time, "tranche": 1,
+                                  "notional": notional1, "reserved": full_notional,
+                                  "full_notional": full_notional, "trigger": trigger,
                                   "opened_at": datetime.now(timezone.utc).isoformat()}
-                gross += notional
+                # 이번 폴링에서 아직 안 본 다른 종목들의 노출 계산도 예약액
+                # (전체 물량) 기준으로 더한다 — 1차만 체결됐어도 2차가 걸릴
+                # 자리를 이미 잡아둔 것으로 본다.
+                gross += full_notional
                 save_state(self.st)
 
 
@@ -363,15 +461,21 @@ def main():
 
     mode = "🔴 실거래" if a.live else "🟢 모의(dry-run)"
     print("=" * 84)
-    print(f"  과매도 자동매매 — 바이빗 무기한, 메이저 {len(S.MAJORS)}종, 4시간봉")
+    print(f"  과매도 자동매매 — 바이빗 무기한, {len(S.SYMBOLS)}종(백테스트 {len(S.ALL_SYMBOLS)}종 중 "
+          f"상장폐지 4종 제외), 4시간봉")
     print(f"  {mode}   {cfg.describe()}")
-    print(f"  규칙: 20기간선 대비 {S.ENTRY_THRESH}% 이하 진입 → {S.HOLD_BARS}봉 후 청산 · 손절 {S.STOP_PCT}%")
+    print(f"  규칙: 20기간선 대비 {S.ENTRY_THRESH}% 이하 → 1차 {S.SCALE_IN_FIRST_FRAC*100:.0f}% 진입, "
+          f"거기서 {S.SCALE_IN_TRIGGER_PCT}% 더 빠지면 2차 {(1-S.SCALE_IN_FIRST_FRAC)*100:.0f}% 추가")
+    print(f"        → {S.HOLD_BARS}봉 후 청산 · 손절(평단 대비) {S.STOP_PCT}%")
     print("=" * 84)
 
     if a.live:
         print("\n  ⚠️  실제 자금으로 주문을 냅니다.")
-        print(f"     배율 {cfg.leverage:g}x, 최대 {int(1/cfg.per_trade)}종목 동시 보유 가능.")
-        print(f"     백테스트 최대낙폭은 3배 기준 38%였고, 실제 체결은 이보다 나쁠 수 있습니다.")
+        print(f"     배율 {cfg.leverage:g}x, 거래 1건의 전체 물량은 자본의 "
+              f"{cfg.per_trade*100:.1f}%(최대 {int(1/cfg.per_trade)}건 동시), "
+              f"그중 1차는 {cfg.per_trade*S.SCALE_IN_FIRST_FRAC*100:.1f}%만 즉시 나갑니다.")
+        print(f"     백테스트(1배, 20종동시, 분할매수) 최대낙폭은 계좌기준 29.7% / 장중기준 48.4%였고,")
+        print(f"     배율을 올리면 이보다 커집니다. 실제 체결은 백테스트보다 나쁠 수 있습니다.")
         if input("\n  계속하려면 START 입력: ").strip() != "START":
             print("  중단했습니다."); return
 
