@@ -19,6 +19,13 @@ on:
       intervals:
         description: "OHLCV 타임프레임"
         default: "1d 4h"
+  schedule:
+    # 매일 03:00 UTC. 이전엔 이 워크플로가 수동 실행뿐이라 46종 중
+    # 42종이 5주 넘게 갱신 안 된 채 방치됐었다(collect_history.py의
+    # "올해 파일 있으면 건너뜀" 버그와 겹쳐서 더 오래 멈춰 있었다 —
+    # 그 버그는 별도 커밋에서 고쳤다). 스케줄 실행은 workflow_dispatch의
+    # inputs가 없으므로 아래 스텝들의 `|| 기본값` 폴백이 그대로 쓰인다.
+    - cron: "0 3 * * *"
 
 permissions:
   contents: write

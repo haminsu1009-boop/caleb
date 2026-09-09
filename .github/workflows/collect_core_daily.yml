@@ -1,0 +1,65 @@
+name: 🕐 코인 핵심 6종 일일 갱신 (4h+1d)
+
+# collect_data.yml은 BTC/ETH의 1m~1mo 전 구간과 외부지표까지 한 번에
+# 돌리는 무거운 워크플로다(BTC 1m만 최대 3시간). 전략과 백테스트가
+# 실제로 쓰는 건 4시간봉·일봉뿐이라, 이 둘만 매일 가볍게 갱신하는
+# 별도 워크플로를 둔다.
+#
+# 이게 필요했던 이유:
+#   46종 중 42종이 2026-07-31에서 5주 넘게 멈춰 있었다. 원인은
+#   collect_history.py가 "올해 파일이 이미 있으면 건너뜀"으로 짜여
+#   있어서, 8월 아카이브가 아직 안 올라온 시점에 한 번 돌리면 그 뒤로
+#   영원히 다시 확인을 안 했던 것이다(별도 커밋에서 수정). 게다가 이
+#   6종(BTC/ETH/BNB/SOL/XRP/ADA)을 담당하는 collect_data.yml에는
+#   자동 스케줄이 아예 없어서, 사람이 Actions 탭에서 눌러줘야만
+#   갱신됐다. 나머지 40종은 collect_coin_extended.yml이 매일
+#   자동으로 담당한다 — 이 워크플로가 core 6종의 짝이다.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "20 3 * * *"    # 매일 03:20 UTC — 업비트(00:05)·확장수집(03:00)과 겹치지 않게
+
+permissions:
+  contents: write
+
+concurrency:
+  group: collect-core-daily-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  core:
+    name: "${{ matrix.symbol }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        symbol: [BTCUSDT, ETHUSDT, BNBUSDT, SOLUSDT, XRPUSDT, ADAUSDT]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/quant-trading-bot-tkjtd
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install pandas requests
+
+      - name: 수집
+        run: python bybit/collect_history.py --symbol ${{ matrix.symbol }} --interval 1d 4h
+
+      - name: 커밋 & 푸시
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "data/${{ matrix.symbol }}_1d_"*.csv.gz "data/${{ matrix.symbol }}_4h_"*.csv.gz 2>/dev/null || true
+          git diff --staged --quiet && { echo "변경 없음"; exit 0; }
+          git commit -m "data: ${{ matrix.symbol }} 1d/4h daily refresh"
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin claude/quant-trading-bot-tkjtd && \
+            git push origin HEAD:claude/quant-trading-bot-tkjtd && break || sleep $((i*6))
+          done

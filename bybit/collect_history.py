@@ -124,27 +124,59 @@ def collect_interval(interval:str="5m", start_year:int=2017,
     year_files = []
     for year in range(start_year, end_year + 1):
         year_out = f"{SAVE_DIR}/{symbol}_{interval}_{year}.csv.gz"
-        if os.path.exists(year_out):
+        # ⚠️ end_year(올해)는 아직 안 끝난 해다. 8월 아카이브가 아직 안
+        # 올라온 시점에 한 번 돌리면 7월까지만 담긴 파일이 생기고, 그
+        # 다음부터는 "이미 존재"로 걸려 영원히 다시 안 받는다. 이게
+        # 46종 중 42종이 2026-07-31에서 5주 넘게 멈춰 있던 원인이다.
+        # 지난 해(완결된 연도)만 캐시를 믿고, 올해는 매번 다시 확인한다.
+        if year < end_year and os.path.exists(year_out):
             print(f"  {year}: 이미 존재, 건너뜀")
             year_files.append(year_out); continue
 
+        # 올해는 매번 다시 확인하지만, 이미 받아둔 달을 매번 재요청할
+        # 필요는 없다. 기존 파일에 있는 마지막 달까지는 건너뛰고 그
+        # 다음 달부터만 새로 받는다 — 요청 수를 줄이면서도 새로 올라온
+        # 달은 놓치지 않는다.
         frames = []
+        have_through = 0
+        if os.path.exists(year_out):
+            try:
+                # parse_dates 없이 읽으면 timestamp가 문자열로 남아, 새로
+                # 받은 달의 실제 Timestamp와 뒤섞여 sort_values에서 죽는다.
+                prev = pd.read_csv(year_out, compression="gzip",
+                                   parse_dates=["timestamp"])
+                frames.append(prev)
+                have_through = pd.to_datetime(prev["timestamp"]).dt.month.max()
+                print(f"  {year}: 기존 파일에 {have_through}월까지 있음, 그 이후만 확인")
+            except Exception as e:
+                print(f"  {year}: 기존 파일 읽기 실패({e}), 처음부터 다시 받음")
+
+        got_new = False
         for month in range(1, 13):
             if year == end_year and month > end_month: break
+            if month <= have_through: continue
             print(f"  {year}-{month:02d} ... ", end="", flush=True)
             df = download_month(year, month, interval, symbol)
             if df is None or df.empty:
                 print("없음"); continue
             frames.append(df)
+            got_new = True
             print(f"{len(df):,}개 ✓")
             time.sleep(0.05)
 
         if not frames:
             print(f"  → {year}년 데이터 없음"); continue
+        if not got_new and have_through:
+            # 새로 받은 달이 없다 — 파일을 그대로 다시 쓰면 내용은 같은데
+            # git diff만 생겨 매 실행마다 빈 커밋이 쌓인다.
+            print(f"  {year}: 새로 올라온 달 없음, 파일 그대로 둠")
+            year_files.append(year_out); continue
 
         ydf = (pd.concat(frames).drop_duplicates("timestamp")
                  .sort_values("timestamp").reset_index(drop=True))
-        ydf.to_csv(year_out, index=False, compression="gzip")
+        ydf.to_csv(year_out, index=False,
+                    compression={"method": "gzip", "mtime": 0})  # mtime 고정 — 내용이 같으면
+                                                                 # 바이트도 같아야 git이 "변경 없음"으로 본다
         kb = os.path.getsize(year_out) // 1024
         print(f"  ✅ {year} → {year_out} ({len(ydf):,}개, {kb}KB)")
         year_files.append(year_out)
@@ -162,7 +194,7 @@ def collect_interval(interval:str="5m", start_year:int=2017,
     all_dfs = [pd.read_csv(f, compression="gzip") for f in sorted(year_files)]
     total = (pd.concat(all_dfs).drop_duplicates("timestamp")
                .sort_values("timestamp").reset_index(drop=True))
-    total.to_csv(all_out, index=False, compression="gzip")
+    total.to_csv(all_out, index=False, compression={"method": "gzip", "mtime": 0})
     mb = os.path.getsize(all_out) / 1024 / 1024
 
     if mb > MAX_ALL_FILE_MB:
