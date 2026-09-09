@@ -443,15 +443,29 @@ def fetch_binance_liquidations(symbol: str = "BTCUSDT", days: int = 365):
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # ⑭ Binance 선물 메트릭 (월별 아카이브 — OI/펀딩비/거래량)
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-def fetch_binance_futures_metrics(symbol: str = "BTCUSDT",
+def fetch_binance_futures_metrics(*args, **kwargs):
+    """⛔ 폐기됨 — bybit/collect_metrics.py 를 쓸 것.
+
+    이 함수는 존재하지 않는 경로를 가리키고 있었다:
+        data/futures/um/monthly/metrics/{sym}/{interval}/...
+    data.binance.vision에 metrics는 **일별(daily)로만** 있고
+    interval 하위 폴더도 없다. 실제 경로는
+        data/futures/um/daily/metrics/{sym}/{sym}-metrics-{YYYY-MM-DD}.zip
+    이고 5분 간격 원본이며 컬럼도 OHLCV가 아니라
+    sum_open_interest / *_long_short_ratio 계열이다.
+
+    404를 조용히 건너뛰도록 짜여 있어서(status_code == 404 → continue)
+    실패가 "데이터 없음"으로만 보였고, 그래서 아무도 눈치채지 못한 채
+    남아 있었다. 올바른 수집기는 bybit/collect_metrics.py 에 있다.
+    """
+    print("  ⚠️ 폐기됨 — python bybit/collect_metrics.py --all 을 쓸 것")
+    return pd.DataFrame()
+
+
+def _dead_fetch_binance_futures_metrics(symbol: str = "BTCUSDT",
                                    interval: str = "1h",
                                    start_year: int = 2021):
-    """
-    Binance 선물 메트릭 아카이브
-    컬럼: open_time, open, high, low, close, volume, close_time,
-          quote_asset_volume, n_trades, taker_buy_base, taker_buy_quote,
-          open_interest  ← 시간별 OI 포함!
-    """
+    """(원본 보존용 — 호출되지 않는다)"""
     print(f"\n📥 Binance 선물 메트릭 ({symbol} {interval})...")
     BASE = "https://data.binance.vision/data/futures/um/monthly/metrics"
     rows = []
@@ -511,7 +525,7 @@ def collect_all_indicators():
         ("⑪ 거시경제(Yahoo Finance)",    fetch_yahoo_finance,             {"days":3650}),
         ("⑫ BTC 청산 데이터",           fetch_binance_liquidations,      {"symbol":"BTCUSDT","days":365}),
         ("⑬ ETH 청산 데이터",           fetch_binance_liquidations,      {"symbol":"ETHUSDT","days":365}),
-        ("⑭ BTC 선물메트릭(1h)",        fetch_binance_futures_metrics,   {"symbol":"BTCUSDT","interval":"1h","start_year":2021}),
+        # ⑭ 선물메트릭은 bybit/collect_metrics.py 로 분리했다 (경로가 틀려 있었다).
     ]
 
     success, fail = 0, 0
