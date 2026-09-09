@@ -175,15 +175,24 @@ class Pos:
         return self.margin * self.lev * r / 100
 
 
-def pnl_pct(entry_avg, exit_px, leverage, liq_line):
+def pnl_pct(entry_avg, exit_px, leverage, liq_line, mae=None):
     """가격 수익률과, 배율상 강제청산선을 이미 지났는지.
 
     reason(전략 손절 -40% vs 시간청산)과 무관하게 leverage가 높으면
     거래소 강제청산선(liq_line)이 전략 손절보다 먼저 걸릴 수 있다 —
     resolve_trade는 배율을 모르고 계산하므로 여기서 다시 잘라야 한다.
+
+    ⚠️ 청산 판정은 반드시 보유 중 최저가(mae)로 해야 한다. 청산가는
+    가는 길에 스치기만 해도 즉시 집행되고, 그 뒤에 값이 되돌아와도
+    포지션은 이미 없다. 종가 수익률(px_ret)로 판정하면 "저가가 청산선을
+    뚫었지만 마지막엔 회복한" 거래가 전부 승리로 둔갑한다. 저배율에선
+    -40% 전략손절이 먼저 걸려 차이가 거의 없지만(2배 0.5%p), 배율이
+    올라가면 격차가 폭발한다 — 20배에서 종가기준 13.6% vs 저가기준
+    68.7%. 이 한 줄 때문에 "1년 50배" 같은 결과가 만들어졌었다.
     """
     px_ret = (exit_px / entry_avg - 1) * 100
-    was_liq = px_ret <= liq_line
+    worst = px_ret if mae is None else min(px_ret, mae)
+    was_liq = worst <= liq_line
     if was_liq:
         px_ret = liq_line
     return px_ret, was_liq
@@ -243,7 +252,8 @@ def simulate(trades, leverage, per_trade, max_gross, cb, cool_days, min_equity):
         if gross + full_notional > max_gross * leverage:
             continue
 
-        px_ret, was_liq = pnl_pct(t["entry_avg"], t["exit_px"], leverage, liq_line)
+        px_ret, was_liq = pnl_pct(t["entry_avg"], t["exit_px"], leverage,
+                                  liq_line, t["mae"])
         held_h = (t["exit_bar"] - t["entry_bar"]) * BAR_HOURS
         fee = ROUND_TRIP + FUNDING_PER_8H * (held_h / 8.0)
         net = px_ret - fee
