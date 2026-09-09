@@ -70,22 +70,32 @@ def load(sym: str):
     return d.rename(columns={tc: "datetime"})
 
 
-def resolve_trade(sym, o, h, l, c, dt, i, n):
+def resolve_trade(sym, o, h, l, c, dt, i, n, *, hold_bars=None,
+                  trigger_pct=None, first_frac=None):
     """신호 바로 i에서 시작하는 거래 하나를 끝까지 판정한다.
     (판단은 종가, 체결은 다음봉 시가 — 진입·2차·시간청산 전부 동일 규칙)
     보유 구간의 시가·저가 경로도 같이 담아 mtm 평가에 쓴다.
+
+    키워드 인자를 안 주면 strategy.py의 실거래 값 그대로 쓴다 —
+    build_all()의 기본 호출은 이 봇이 실제로 하는 것과 정확히
+    같아야 한다. 인자는 ml/backtest_grid.py의 민감도 분석에서만
+    다른 값으로 재실험할 때 쓴다.
     """
-    if i + 1 + S.HOLD_BARS >= n:
+    hold = S.HOLD_BARS if hold_bars is None else hold_bars
+    trig_pct = S.SCALE_IN_TRIGGER_PCT if trigger_pct is None else trigger_pct
+    frac = S.SCALE_IN_FIRST_FRAC if first_frac is None else first_frac
+
+    if i + 1 + hold >= n:
         return None
     e1 = o[i + 1]
-    trigger = S.scale_in_trigger_price(e1)
+    trigger = e1 * (1 + trig_pct / 100)
     stop_active = S.stop_price(e1)
     entry_avg = e1
     tranche = 1
     fill2_dt = fill2_px = fill2_bar = None
 
     exit_bar = exit_px = reason = None
-    for bar in range(i + 1, i + 1 + S.HOLD_BARS):
+    for bar in range(i + 1, i + 1 + hold):
         if l[bar] <= stop_active:
             exit_bar, exit_px, reason = bar, stop_active, "stop"
             break
@@ -93,13 +103,12 @@ def resolve_trade(sym, o, h, l, c, dt, i, n):
             fill2_px = o[bar + 1]
             fill2_dt = dt[bar + 1]
             fill2_bar = bar + 1
-            entry_avg = S.blended_entry(e1, S.SCALE_IN_FIRST_FRAC,
-                                        fill2_px, 1 - S.SCALE_IN_FIRST_FRAC)
+            entry_avg = S.blended_entry(e1, frac, fill2_px, 1 - frac)
             stop_active = S.stop_price(entry_avg)
             tranche = 2
 
     if exit_bar is None:
-        exit_bar = i + 1 + S.HOLD_BARS
+        exit_bar = i + 1 + hold
         exit_px = o[exit_bar]
         reason = "time"
 
@@ -112,12 +121,15 @@ def resolve_trade(sym, o, h, l, c, dt, i, n):
             "mae": (l[i + 1: exit_bar + 1].min() / entry_avg - 1) * 100}
 
 
-def build_all():
+def build_all(*, hold_bars=None, trigger_pct=None, first_frac=None, entry_thresh=None):
+    """기본 호출(인자 없음)은 실거래 봇과 정확히 같은 신호 집합을 낸다."""
+    thresh = S.ENTRY_THRESH if entry_thresh is None else entry_thresh
+    hold = S.HOLD_BARS if hold_bars is None else hold_bars
     trades = []
     have, missing = [], []
     for sym in S.SYMBOLS:
         g = load(sym)
-        if g is None or len(g) < S.MA_PERIOD + S.HOLD_BARS + 5:
+        if g is None or len(g) < S.MA_PERIOD + hold + 5:
             missing.append(sym); continue
         have.append(sym)
         o = g["open"].astype(float).values
@@ -129,13 +141,14 @@ def build_all():
         ma = pd.Series(c).rolling(S.MA_PERIOD).mean().values
         vs = (c / ma - 1) * 100
         lock = -10**9
-        for i in np.where(vs <= S.ENTRY_THRESH)[0]:
+        for i in np.where(vs <= thresh)[0]:
             if i <= lock:
                 continue
-            tr = resolve_trade(sym, o, h, l, c, dt, i, n)
+            tr = resolve_trade(sym, o, h, l, c, dt, i, n, hold_bars=hold,
+                               trigger_pct=trigger_pct, first_frac=first_frac)
             if tr is None:
                 continue
-            lock = i + S.HOLD_BARS
+            lock = i + hold
             trades.append(tr)
     return sorted(trades, key=lambda t: t["dt"]), have, missing
 
