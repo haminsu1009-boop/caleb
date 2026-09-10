@@ -290,7 +290,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--leverage", type=float, default=float(os.getenv("OS_LEVERAGE", "2")))
     ap.add_argument("--per-trade", type=float, default=float(os.getenv("OS_PER_TRADE", "0.05")))
-    ap.add_argument("--max-gross", type=float, default=float(os.getenv("OS_MAX_GROSS", "1.0")))
+    ap.add_argument("--max-gross", type=float, default=float(os.getenv("OS_MAX_GROSS", "0.8")))
     ap.add_argument("--cb", type=float, default=float(os.getenv("OS_MAX_DRAWDOWN", "0.25")))
     ap.add_argument("--cool-days", type=float, default=float(os.getenv("OS_HALT_COOLDOWN_DAYS", "30")))
     # 실거래 봇은 executor.py:420에서

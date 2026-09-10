@@ -93,7 +93,22 @@ class Config:
         # 최대 20종목 동시 보유, ml/scale_in_portfolio.py --all46의
         # 검증값과 동일하다.
         self.per_trade     = float(os.getenv("OS_PER_TRADE",      "0.05"))
-        self.max_gross     = float(os.getenv("OS_MAX_GROSS",      "1.0"))
+        # 1.0 → 0.8. ml/breaker_designs.py 참고.
+        # 총노출 100%에서는 1년 창 189개 중 13%에서 장중 낙폭이
+        # -90%를 넘는다. -25% 차단기가 그걸 못 막는 이유는 발동할 때
+        # 고점을 현재 자본으로 리셋해서 -25%가 겹쳐 쌓이기 때문이다
+        # (0.75^6 ≈ -82%). 차단기 문턱을 손대는 건 답이 아니다 —
+        # 5~40%를 훑어보면 단조롭지 않고(20%→498배, 25%→148배,
+        # 30%→196배) 홀드아웃에서는 15/20/25% 전부 발동 0회라
+        # 교차검증 자체가 불가능하다.
+        #
+        # 총노출은 매끄럽고 단조롭다. 차단기 문턱과 무관하게
+        # (15/20/25% 전부) 100%→80%면 장중 -90% 확률이 13% → 0%다.
+        #   총노출 100%  전체 147.6배  홀드 13.68배  중앙낙폭 45%  -90% 13%
+        #   총노출  80%  전체 179.2배  홀드  9.94배  중앙낙폭 37%  -90%  0%
+        # 전체 수익과 1년 중앙값(1.53→1.62배)은 오히려 올라간다.
+        # 대가는 홀드아웃 13.68 → 9.94배다.
+        self.max_gross     = float(os.getenv("OS_MAX_GROSS",      "0.8"))
         self.daily_loss    = float(os.getenv("OS_DAILY_LOSS",     "0.05"))
         self.max_drawdown  = float(os.getenv("OS_MAX_DRAWDOWN",   "0.25"))
         # 백테스트(ml/sim_correct.py, ml/path_to_100x.py)가 검증한 차단기는
