@@ -5,54 +5,75 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>유니패스 통관 알림</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #222; }
-  .container { max-width: 480px; margin: 0 auto; padding: 16px; }
-  h1 { font-size: 1.3rem; font-weight: 700; color: #1a5f8a; margin-bottom: 4px; }
-  .subtitle { font-size: 0.82rem; color: #888; margin-bottom: 20px; }
-  .card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-  .card-title { font-size: 0.9rem; font-weight: 600; color: #444; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
-  label { font-size: 0.82rem; color: #666; display: block; margin-bottom: 4px; }
-  input[type="text"], textarea {
-    width: 100%; border: 1px solid #ddd; border-radius: 8px; padding: 9px 12px;
-    font-size: 0.9rem; outline: none; transition: border 0.2s;
-  }
-  input[type="text"]:focus, textarea:focus { border-color: #1a5f8a; }
-  textarea { resize: vertical; min-height: 80px; }
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-    border: none; border-radius: 8px; padding: 9px 16px; font-size: 0.88rem; font-weight: 600;
-    cursor: pointer; transition: opacity 0.15s; }
-  .btn:active { opacity: 0.7; }
-  .btn-primary { background: #1a5f8a; color: #fff; width: 100%; margin-top: 8px; }
-  .btn-danger { background: #e74c3c; color: #fff; }
-  .btn-gray { background: #eee; color: #555; }
-  .btn-green { background: #27ae60; color: #fff; }
-  .btn-kakao { background: #FEE500; color: #3A1D1D; }
-  .trigger-btns { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px; margin-top: 8px; }
-  .trigger-btns .btn { padding: 8px 4px; font-size: 0.8rem; }
-  .trigger-btn { background: #e8f4fd; color: #1a5f8a; border: 2px solid transparent; }
-  .trigger-btn.active { border-color: #1a5f8a; background: #1a5f8a; color: #fff; }
-  .bl-list { list-style: none; margin-top: 8px; }
-  .bl-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: 0.9rem; }
-  .bl-item:last-child { border-bottom: none; }
-  .bl-no { font-family: monospace; font-weight: 600; color: #1a5f8a; }
-  .status-badge { font-size: 0.75rem; background: #e8f4fd; color: #1a5f8a; border-radius: 6px; padding: 2px 8px; }
-  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-    background: #333; color: #fff; border-radius: 10px; padding: 10px 20px; font-size: 0.85rem;
-    opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999; white-space: pre-line; text-align: center; }
-  .toast.show { opacity: 1; }
-  .setup-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
-  .setup-card { background: #fff; border-radius: 16px; padding: 28px; max-width: 400px; width: 100%; box-shadow: 0 2px 16px rgba(0,0,0,0.1); }
-  .setup-card h2 { font-size: 1.2rem; margin-bottom: 6px; color: #1a5f8a; }
-  .setup-card p { font-size: 0.85rem; color: #777; margin-bottom: 20px; line-height: 1.5; }
-  .setup-card a { color: #1a5f8a; }
-  .hint { font-size: 0.78rem; color: #aaa; margin-top: 6px; }
-  .section-divider { height: 1px; background: #f0f0f0; margin: 10px 0; }
-  .link-row { display: flex; align-items: center; gap: 8px; font-size: 0.83rem; color: #555; }
-  .linked-badge { background: #e8fdf0; color: #27ae60; border-radius: 6px; padding: 2px 8px; font-size: 0.78rem; font-weight: 600; }
-  .unlinked-badge { background: #fdf0e8; color: #e67e22; border-radius: 6px; padding: 2px 8px; font-size: 0.78rem; font-weight: 600; }
-  .kakao-step { background: #fffde8; border-radius: 8px; padding: 10px 14px; font-size: 0.82rem; color: #555; margin-top: 8px; line-height: 1.6; }
-  .kakao-step code { background: #f5f5f5; padding: 1px 5px; border-radius: 4px; font-size: 0.78rem; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f4f8; color: #222; }
+.container { max-width: 480px; margin: 0 auto; padding: 16px 16px 32px; }
+h1 { font-size: 1.25rem; font-weight: 700; color: #1a5f8a; margin-bottom: 2px; }
+.subtitle { font-size: 0.8rem; color: #999; margin-bottom: 18px; }
+.card { background: #fff; border-radius: 14px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 6px rgba(0,0,0,0.07); }
+.card-title { font-size: 0.88rem; font-weight: 700; color: #333; margin-bottom: 12px; }
+label { font-size: 0.8rem; color: #777; display: block; margin-bottom: 4px; }
+input[type="text"], textarea, select {
+  width: 100%; border: 1px solid #ddd; border-radius: 8px; padding: 9px 12px;
+  font-size: 0.88rem; outline: none; transition: border 0.2s; background: #fff;
+}
+input:focus, textarea:focus, select:focus { border-color: #1a5f8a; }
+textarea { resize: vertical; min-height: 72px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  border: none; border-radius: 8px; padding: 9px 14px; font-size: 0.85rem; font-weight: 600;
+  cursor: pointer; transition: opacity 0.15s; }
+.btn:active { opacity: 0.7; }
+.btn-primary { background: #1a5f8a; color: #fff; width: 100%; margin-top: 8px; }
+.btn-danger { background: #e74c3c; color: #fff; }
+.btn-gray { background: #eee; color: #666; }
+.btn-green { background: #27ae60; color: #fff; }
+.btn-kakao { background: #FEE500; color: #3A1D1D; }
+.btn-sm { padding: 5px 10px; font-size: 0.78rem; border-radius: 6px; }
+
+/* BL 목록 */
+.bl-list { list-style: none; margin-top: 4px; }
+.bl-item { display: flex; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid #f2f2f2; }
+.bl-item:last-child { border-bottom: none; }
+.bl-check { width: 18px; height: 18px; cursor: pointer; accent-color: #1a5f8a; flex-shrink: 0; }
+.bl-no { font-family: monospace; font-weight: 700; color: #1a5f8a; font-size: 0.9rem; flex: 1; }
+.interval-select { width: auto; padding: 4px 6px; font-size: 0.78rem; border-radius: 6px; }
+.bl-del { padding: 4px 9px; font-size: 0.75rem; border-radius: 6px; }
+
+/* 일괄 삭제 툴바 */
+.bulk-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.bulk-bar label { margin: 0; font-size: 0.8rem; color: #666; flex: 1; }
+.select-all { width: 18px; height: 18px; cursor: pointer; accent-color: #1a5f8a; }
+
+/* 상태 뱃지 */
+.badge { font-size: 0.73rem; border-radius: 6px; padding: 2px 7px; font-weight: 600; }
+.badge-green { background: #e8fdf0; color: #27ae60; }
+.badge-orange { background: #fdf0e8; color: #e67e22; }
+
+/* 카카오 */
+.kakao-hint { background: #fffde8; border-radius: 8px; padding: 10px 14px; font-size: 0.8rem; color: #666; line-height: 1.65; margin-top: 8px; }
+.kakao-hint code { background: #f0f0f0; padding: 1px 4px; border-radius: 4px; }
+.link-row { display: flex; align-items: center; gap: 8px; font-size: 0.83rem; }
+
+/* 봇 힌트 */
+.cmd-list { font-size: 0.8rem; color: #666; line-height: 2.1; }
+.cmd-list code { background: #f4f4f4; padding: 1px 5px; border-radius: 4px; }
+
+/* 설정 화면 */
+.setup-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.setup-card { background: #fff; border-radius: 16px; padding: 28px; max-width: 400px; width: 100%; box-shadow: 0 2px 16px rgba(0,0,0,0.1); }
+.setup-card h2 { font-size: 1.2rem; margin-bottom: 6px; color: #1a5f8a; }
+.setup-card p { font-size: 0.83rem; color: #888; margin-bottom: 20px; line-height: 1.6; }
+.setup-card a { color: #1a5f8a; }
+.hint { font-size: 0.76rem; color: #bbb; margin-top: 5px; }
+
+/* 토스트 */
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,0.82); color: #fff; border-radius: 10px; padding: 10px 22px;
+  font-size: 0.84rem; opacity: 0; transition: opacity 0.3s; pointer-events: none;
+  z-index: 999; white-space: pre-line; text-align: center; max-width: 90vw; }
+.toast.show { opacity: 1; }
+
+.divider { height: 1px; background: #f0f0f0; margin: 12px 0; }
 </style>
 </head>
 <body>
@@ -61,11 +82,11 @@
 <div id="setupScreen" class="setup-screen" style="display:none;">
   <div class="setup-card">
     <h2>📦 유니패스 통관 알림</h2>
-    <p>텔레그램 봇으로 통관 상태가 변경될 때 알림을 받으세요.<br>
-    먼저 텔레그램에서 <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a>에 /start 를 보내 Chat ID를 확인하세요.</p>
+    <p>텔레그램으로 통관 상태 변경 알림을 받으세요.<br>
+      <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a>에 /start 보내서<br>Chat ID를 확인하세요.</p>
     <label>텔레그램 Chat ID</label>
-    <input type="text" id="setupChatId" placeholder="예: 123456789" inputmode="numeric">
-    <div class="hint">숫자로 된 ID입니다. 이 기기에 저장됩니다.</div>
+    <input type="text" id="setupChatId" placeholder="예: 8624472047" inputmode="numeric">
+    <div class="hint">숫자 ID. 이 기기에 저장됩니다.</div>
     <button class="btn btn-primary" onclick="setupComplete()">✅ 시작하기</button>
   </div>
 </div>
@@ -76,68 +97,76 @@
     <h1>📦 유니패스 통관 알림</h1>
     <p class="subtitle" id="chatIdDisplay"></p>
 
-    <!-- BL 관리 -->
+    <!-- BL 추가 -->
     <div class="card">
-      <div class="card-title">🚢 BL 번호 관리</div>
-      <label>BL 번호 추가 (여러 개: 쉼표 또는 줄바꿈으로 구분)</label>
-      <textarea id="blInput" placeholder="예: PSHAINC1AV757&#10;ABCD1234&#10;또는 BL1, BL2, BL3"></textarea>
-      <button class="btn btn-primary" onclick="addBLs()">➕ 추가</button>
+      <div class="card-title">➕ BL 추가</div>
+      <label>BL 번호 (여러 개: 쉼표 또는 줄바꿈)</label>
+      <textarea id="blInput" placeholder="예: PSHAINC1AV757&#10;ABCD1234, XYZ5678"></textarea>
+      <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+        <div style="flex:1;">
+          <label style="margin:0;">기본 알림 주기</label>
+          <select id="defaultInterval">
+            <option value="1">1분마다</option>
+            <option value="5" selected>5분마다</option>
+            <option value="10">10분마다</option>
+            <option value="30">30분마다</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" style="margin:0; width:auto; padding: 9px 20px; align-self:flex-end;" onclick="addBLs()">추가</button>
+      </div>
+    </div>
 
-      <div class="section-divider" style="margin-top:14px;"></div>
-      <div class="card-title" style="margin-top:8px;">📋 등록된 BL 목록</div>
+    <!-- BL 목록 -->
+    <div class="card">
+      <div class="card-title">📋 등록된 BL 목록</div>
+      <div class="bulk-bar">
+        <input type="checkbox" class="select-all" id="selectAll" onchange="toggleSelectAll()">
+        <label for="selectAll">전체 선택</label>
+        <button class="btn btn-danger btn-sm" onclick="deleteSelected()">선택 삭제</button>
+        <button class="btn btn-gray btn-sm" onclick="deleteAll()">전체 삭제</button>
+      </div>
       <ul class="bl-list" id="blList">
-        <li style="color:#aaa; font-size:0.85rem;">등록된 BL이 없습니다.</li>
+        <li style="color:#bbb; font-size:0.85rem; padding:8px 0;">등록된 BL이 없습니다.</li>
       </ul>
     </div>
 
-    <!-- 자동 체크 트리거 -->
-    <div class="card">
-      <div class="card-title">⏱ 자동 체크 주기</div>
-      <div id="triggerStatus" style="font-size:0.83rem; color:#888; margin-bottom:6px;">상태 확인 중...</div>
-      <div class="trigger-btns">
-        <button class="btn trigger-btn" id="btn1" onclick="setTrigger(1)">1분</button>
-        <button class="btn trigger-btn" id="btn5" onclick="setTrigger(5)">5분</button>
-        <button class="btn trigger-btn" id="btn10" onclick="setTrigger(10)">10분</button>
-        <button class="btn trigger-btn" id="btn30" onclick="setTrigger(30)">30분</button>
-      </div>
-      <button class="btn btn-danger" style="width:100%;margin-top:8px;" onclick="stopTrigger()">⏹ 자동 체크 중지</button>
-    </div>
-
-    <!-- 카카오 나에게 보내기 -->
+    <!-- 카카오 -->
     <div class="card">
       <div class="card-title">💬 카카오 나에게 보내기</div>
       <div class="link-row">
-        <span>카카오 연동 상태:</span>
-        <span id="kakaoStatus" class="unlinked-badge">미연동</span>
+        <span style="font-size:0.83rem;">연동 상태:</span>
+        <span id="kakaoStatus" class="badge badge-orange">미연동</span>
+        <button id="kakaoUnlinkBtn" class="btn btn-gray btn-sm" style="display:none;" onclick="unlinkKakao()">연동 해제</button>
       </div>
-      <div id="kakaoSection" class="kakao-step" style="margin-top:10px;">
-        <b>연동 방법:</b><br>
-        1. 아래 버튼으로 카카오 로그인 진행<br>
-        2. 로그인 후 리다이렉트된 URL에서 <code>?code=</code> 뒤 값 복사<br>
-        3. 복사한 코드를 아래에 붙여넣기
-      </div>
-      <button class="btn btn-kakao" style="width:100%;margin-top:10px;" onclick="openKakaoAuth()">🔑 카카오 로그인</button>
-      <div style="margin-top:8px; display:flex; gap:8px;">
-        <input type="text" id="kakaoCode" placeholder="리다이렉트 URL의 code= 값 붙여넣기" style="flex:1;">
-        <button class="btn btn-green" onclick="linkKakao()">연동</button>
+      <div id="kakaoSection">
+        <div class="kakao-hint">
+          1. 아래 버튼으로 카카오 로그인<br>
+          2. 로그인 후 이동된 URL에서 <code>?code=</code> 뒤 값 복사<br>
+          3. 복사한 코드 아래에 붙여넣고 연동
+        </div>
+        <button class="btn btn-kakao" style="width:100%;margin-top:10px;" onclick="openKakaoAuth()">🔑 카카오 로그인</button>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <input type="text" id="kakaoCode" placeholder="code= 뒤 값 붙여넣기" style="flex:1;">
+          <button class="btn btn-green" onclick="linkKakao()">연동</button>
+        </div>
       </div>
     </div>
 
-    <!-- 텔레그램 봇 힌트 -->
+    <!-- 봇 명령어 -->
     <div class="card">
       <div class="card-title">🤖 텔레그램 봇 명령어</div>
-      <div style="font-size:0.82rem; color:#666; line-height:2;">
-        <code>/add BL번호</code> — BL 추가<br>
+      <div class="cmd-list">
+        <code>/add BL번호</code> — BL 추가 (자동 추적 시작)<br>
         <code>/remove BL번호</code> — BL 삭제<br>
-        <code>/list</code> — BL 목록<br>
+        <code>/list</code> — BL 목록 + 주기 확인<br>
         <code>/status</code> — 현재 상태 즉시 조회<br>
-        <code>/trigger 5</code> — 5분마다 자동 체크<br>
-        <code>/stop</code> — 자동 체크 중지
+        <code>/interval BL번호 10</code> — 알림 주기 변경<br>
+        <code>/clear</code> — BL 전체 삭제
       </div>
     </div>
 
-    <div style="text-align:center; margin-top:8px; margin-bottom:24px;">
-      <button class="btn btn-gray" onclick="logout()" style="font-size:0.8rem;">다른 계정으로 전환</button>
+    <div style="text-align:center; margin-top:4px;">
+      <button class="btn btn-gray" style="font-size:0.78rem;" onclick="logout()">다른 계정으로 전환</button>
     </div>
   </div>
 </div>
@@ -150,11 +179,8 @@ var kakaoAuthUrl = '';
 
 function init() {
   chatId = localStorage.getItem('chatId') || '';
-  if (!chatId) {
-    document.getElementById('setupScreen').style.display = 'flex';
-  } else {
-    showMain();
-  }
+  if (!chatId) { document.getElementById('setupScreen').style.display = 'flex'; }
+  else { showMain(); }
 }
 
 function setupComplete() {
@@ -176,12 +202,10 @@ function loadUserInfo() {
   google.script.run
     .withSuccessHandler(function(info) {
       renderBLList(info.bls);
-      renderTrigger(info.trigger);
       renderKakao(info.kakaoLinked);
     })
     .withFailureHandler(function(e) { showToast('로드 실패: ' + e.message); })
     .getUserInfo(chatId);
-
   google.script.run
     .withSuccessHandler(function(url) { kakaoAuthUrl = url; })
     .getKakaoOAuthUrl();
@@ -189,93 +213,101 @@ function loadUserInfo() {
 
 function renderBLList(bls) {
   var ul = document.getElementById('blList');
+  document.getElementById('selectAll').checked = false;
   if (!bls || bls.length === 0) {
-    ul.innerHTML = '<li style="color:#aaa;font-size:0.85rem;">등록된 BL이 없습니다.</li>';
+    ul.innerHTML = '<li style="color:#bbb;font-size:0.85rem;padding:8px 0;">등록된 BL이 없습니다.</li>';
     return;
   }
-  ul.innerHTML = bls.map(function(bl) {
-    return '<li class="bl-item"><span class="bl-no">' + bl + '</span>'
-      + '<button class="btn btn-danger" style="padding:4px 10px;font-size:0.78rem;" onclick="removeBL(\'' + bl + '\')" >삭제</button></li>';
+  ul.innerHTML = bls.map(function(b) {
+    var blNo = b.blNo || b; // 구 데이터 호환
+    var interval = b.interval || 5;
+    return '<li class="bl-item">'
+      + '<input type="checkbox" class="bl-check" value="' + blNo + '">'
+      + '<span class="bl-no">' + blNo + '</span>'
+      + '<select class="interval-select" onchange="changeInterval(\'' + blNo + '\', this.value)">'
+      + [1,5,10,30].map(function(m) {
+          return '<option value="' + m + '"' + (m === interval ? ' selected' : '') + '>' + m + '분</option>';
+        }).join('')
+      + '</select>'
+      + '<button class="btn btn-danger btn-sm bl-del" onclick="removeSingle(\'' + blNo + '\')">삭제</button>'
+      + '</li>';
   }).join('');
-}
-
-function renderTrigger(trigger) {
-  var status = document.getElementById('triggerStatus');
-  ['btn1','btn5','btn10','btn30'].forEach(function(id) {
-    document.getElementById(id).classList.remove('active');
-  });
-  if (trigger.active && trigger.minutes) {
-    status.textContent = '✅ ' + trigger.minutes + '분마다 자동 체크 중';
-    var btnId = 'btn' + trigger.minutes;
-    if (document.getElementById(btnId)) document.getElementById(btnId).classList.add('active');
-  } else {
-    status.textContent = '⏹ 자동 체크 꺼짐';
-  }
 }
 
 function renderKakao(linked) {
   var badge = document.getElementById('kakaoStatus');
   var section = document.getElementById('kakaoSection');
+  var unlinkBtn = document.getElementById('kakaoUnlinkBtn');
   if (linked) {
-    badge.textContent = '연동됨';
-    badge.className = 'linked-badge';
-    section.style.display = 'none';
+    badge.textContent = '연동됨'; badge.className = 'badge badge-green';
+    section.style.display = 'none'; unlinkBtn.style.display = 'inline-flex';
   } else {
-    badge.textContent = '미연동';
-    badge.className = 'unlinked-badge';
-    section.style.display = 'block';
+    badge.textContent = '미연동'; badge.className = 'badge badge-orange';
+    section.style.display = 'block'; unlinkBtn.style.display = 'none';
   }
 }
 
 function addBLs() {
   var raw = document.getElementById('blInput').value.trim();
   if (!raw) { showToast('BL번호를 입력하세요.'); return; }
+  var interval = parseInt(document.getElementById('defaultInterval').value, 10);
   var bls = raw.split(/[\n,]+/).map(function(s) { return s.trim().toUpperCase(); }).filter(Boolean);
-  var pending = bls.length;
-  var messages = [];
+  var pending = bls.length, msgs = [];
   bls.forEach(function(bl) {
     google.script.run
       .withSuccessHandler(function(r) {
-        messages.push(r.message);
-        pending--;
-        if (pending === 0) {
-          document.getElementById('blInput').value = '';
-          loadUserInfo();
-          showToast(messages.join('\n'));
-        }
+        msgs.push(r.message); pending--;
+        if (pending === 0) { document.getElementById('blInput').value = ''; loadUserInfo(); showToast(msgs.join('\n')); }
       })
       .withFailureHandler(function(e) { showToast('오류: ' + e.message); })
-      .addBL(chatId, bl);
+      .addBL(chatId, bl, interval);
   });
 }
 
-function removeBL(blNo) {
-  if (!confirm(blNo + ' 을 삭제할까요?')) return;
+function removeSingle(blNo) {
+  if (!confirm(blNo + ' 삭제할까요?')) return;
   google.script.run
     .withSuccessHandler(function(r) { showToast(r.message); renderBLList(r.bls); })
     .withFailureHandler(function(e) { showToast('오류: ' + e.message); })
     .removeBL(chatId, blNo);
 }
 
-function setTrigger(min) {
-  showToast('⏱ ' + min + '분마다 자동 체크 설정 중...');
-  google.script.run
-    .withSuccessHandler(function() { loadUserInfo(); showToast('✅ ' + min + '분마다 자동 체크 시작!'); })
-    .withFailureHandler(function(e) { showToast('오류: ' + e.message); })
-    .setTrigger(min, chatId);
+function toggleSelectAll() {
+  var checked = document.getElementById('selectAll').checked;
+  document.querySelectorAll('.bl-check').forEach(function(cb) { cb.checked = checked; });
 }
 
-function stopTrigger() {
+function deleteSelected() {
+  var selected = [];
+  document.querySelectorAll('.bl-check:checked').forEach(function(cb) { selected.push(cb.value); });
+  if (selected.length === 0) { showToast('삭제할 BL을 선택하세요.'); return; }
+  if (!confirm(selected.length + '개 BL을 삭제할까요?')) return;
   google.script.run
-    .withSuccessHandler(function() { loadUserInfo(); showToast('⏹ 자동 체크 중지됨'); })
+    .withSuccessHandler(function(r) { showToast(r.message); renderBLList(r.bls); })
     .withFailureHandler(function(e) { showToast('오류: ' + e.message); })
-    .stopTrigger();
+    .removeBLs(chatId, selected);
+}
+
+function deleteAll() {
+  if (!confirm('BL 전체를 삭제할까요?')) return;
+  google.script.run
+    .withSuccessHandler(function(r) { showToast(r.message); renderBLList(r.bls); })
+    .withFailureHandler(function(e) { showToast('오류: ' + e.message); })
+    .clearAllBL(chatId);
+}
+
+function changeInterval(blNo, val) {
+  var interval = parseInt(val, 10);
+  google.script.run
+    .withSuccessHandler(function(r) { showToast(r.message); })
+    .withFailureHandler(function(e) { showToast('오류: ' + e.message); })
+    .setBlInterval(chatId, blNo, interval);
 }
 
 function openKakaoAuth() {
   if (!kakaoAuthUrl) { showToast('잠시 후 다시 시도하세요.'); return; }
   window.open(kakaoAuthUrl, '_blank');
-  showToast('카카오 로그인 후 리다이렉트 URL에서\n?code= 값을 복사하여 붙여넣으세요.');
+  showToast('카카오 로그인 후\nURL에서 code= 값 복사하여 붙여넣으세요.');
 }
 
 function linkKakao() {
@@ -290,17 +322,23 @@ function linkKakao() {
     .linkKakaoWithCode(chatId, code);
 }
 
+function unlinkKakao() {
+  if (!confirm('카카오 연동을 해제할까요?')) return;
+  google.script.run
+    .withSuccessHandler(function() { showToast('카카오 연동 해제됨'); loadUserInfo(); })
+    .withFailureHandler(function(e) { showToast('오류: ' + e.message); })
+    .unlinkKakao(chatId);
+}
+
 function logout() {
   if (!confirm('다른 Chat ID로 전환할까요?')) return;
-  localStorage.removeItem('chatId');
-  location.reload();
+  localStorage.removeItem('chatId'); location.reload();
 }
 
 function showToast(msg) {
   var t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(function() { t.classList.remove('show'); }, 3000);
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 3200);
 }
 
 init();
