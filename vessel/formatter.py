@@ -15,10 +15,13 @@ MAP_LINK_TMPL = "https://www.google.com/maps?q={lat},{lon}"
 
 
 def format_terminal(call: TerminalCall) -> str:
-    """터미널 기준 정보 — 선사 스케줄/AIS보다 접안예정(ETB)이 실제 도착에 더 가깝다."""
-    header = (f"🧑‍💼 {call.terminal_name} — 직원이 직접 확인한 최신 정보"
-              if call.manual else
-              f"🏗️ {call.terminal_name} 터미널 기준 (실제 도착과 가장 가까움)")
+    """터미널/선사/직원입력 정보 — 정확도 순서는 보통 수동입력(방금 확인) ≥
+    터미널 ETB(실제 접안 관리) > 선사 스케줄(계획일 뿐, 지연 반영 늦음) > AIS ETA(추정)."""
+    header = {
+        "manual": f"🧑‍💼 {call.terminal_name} — 직원이 직접 확인한 최신 정보",
+        "terminal": f"🏗️ {call.terminal_name} 터미널 기준 (실제 도착과 가장 가까움)",
+        "carrier": f"🚩 {call.terminal_name} 선사 스케줄 기준 (터미널보다 부정확할 수 있음)",
+    }.get(call.kind, call.terminal_name)
     lines = [header]
     if call.berth:
         lines.append(f"선석: {call.berth}")
@@ -36,10 +39,10 @@ def format_terminal(call: TerminalCall) -> str:
 
 
 def format_terminal_links(tried: list[TerminalProvider]) -> str:
-    """터미널 자동 조회가 아직 안 붙었을 때 — 직접 확인할 수 있는 링크를 보여준다."""
+    """터미널/선사 자동 조회가 아직 안 붙었을 때 — 직접 확인할 수 있는 링크를 보여준다."""
     if not tried:
         return ""
-    lines = ["📋 터미널 직접 확인 (자동 연동 준비 중):"]
+    lines = ["📋 터미널·선사 직접 확인 (자동 연동 준비 중):"]
     for t in tried:
         lines.append(f"  • {t.name}: {t.query_url}")
     return "\n".join(lines)

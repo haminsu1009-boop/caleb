@@ -42,17 +42,19 @@ class NotConfiguredError(Exception):
 
 @dataclass
 class TerminalCall:
-    terminal: str                    # 터미널 코드 (예: "hjnc", 수동입력은 "manual")
+    """터미널/선사/직원수동입력 — 셋 다 "선명+항차로 찾은 스케줄 정보"라는
+    같은 모양이라 하나의 타입으로 통일했다. kind로 출처를 구분한다."""
+    terminal: str                    # 코드 (예: "hjnc", "hmm", 수동입력은 "manual")
     terminal_name: str                # 사람이 읽는 이름
     vessel_name: str
     voyage_no: str | None
-    berth: str | None = None          # 선석
+    kind: str = "terminal"             # "terminal" | "carrier" | "manual"
+    berth: str | None = None          # 선석 (터미널 전용, 선사엔 보통 없음)
     eta: str | None = None            # 입항 예정
-    etb: str | None = None            # 접안 예정 — 보통 이게 제일 정확
+    etb: str | None = None            # 접안 예정 — 터미널 기준일 때 제일 정확
     etd: str | None = None            # 출항 예정
     status: str | None = None
     source_url: str = ""
-    manual: bool = False              # True면 직원이 텔레그램 /update로 직접 입력한 값
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -127,7 +129,7 @@ def _manual_to_call(vessel_name: str, voyage_no: str | None, entry: dict) -> Ter
         etd=f.get("etd"),
         status=f.get("status"),
         source_url=f"직원 입력 · {age_label}",
-        manual=True,
+        kind="manual",
     )
 
 

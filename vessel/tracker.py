@@ -20,6 +20,7 @@ from vessel.formatter import (
     format_ambiguous, format_error, format_need_input,
     format_no_position, format_not_in_directory, format_position,
 )
+from vessel.carrier_providers import lookup_carriers
 from vessel.providers import VesselPosition, get_provider
 from vessel.terminal_providers import TerminalCall, lookup_terminals
 
@@ -45,7 +46,7 @@ class TrackResult:
     kind: str  # "position" | "ambiguous" | "not_found" | "no_position" | "no_input" | "error"
     message: str
     position: VesselPosition | None = None
-    terminal_call: TerminalCall | None = None
+    terminal_call: TerminalCall | None = None  # 터미널/선사/직원수동입력 중 하나 — call.kind로 구분
     vessel_name: str | None = None
     voyage_no: str | None = None
 
@@ -80,13 +81,25 @@ def _store_position(key: str, pos: VesselPosition) -> None:
     _save_cache(cache)
 
 
+def _lookup_schedule(vessel_name: str, voyage_no: str | None):
+    """스케줄 정보 우선순위: 직원 수동입력(lookup_terminals 안에서 처리) →
+    터미널 접안예정(제일 정확) → 선사 스케줄(차선책). 셋 다 우리 로컬
+    디렉터리(IMO/MMSI)와 무관하게 선명+항차만 있으면 시도할 수 있어서
+    AIS보다 먼저, 독립적으로 돌린다."""
+    call, tried_terminals = lookup_terminals(vessel_name, voyage_no)
+    if call is not None:
+        return call, []
+    carrier_call, tried_carriers = lookup_carriers(vessel_name, voyage_no)
+    if carrier_call is not None:
+        return carrier_call, []
+    return None, tried_terminals + tried_carriers
+
+
 def track(vessel_name: str | None, voyage_no: str | None) -> TrackResult:
     if not vessel_name:
         return TrackResult(False, "no_input", format_need_input())
 
-    # 터미널 조회는 우리 로컬 디렉터리(IMO/MMSI)와 무관하게 선명+항차만
-    # 있으면 시도할 수 있다 — AIS보다 먼저, 독립적으로 돌린다.
-    terminal_call, tried_terminals = lookup_terminals(vessel_name, voyage_no)
+    terminal_call, tried_terminals = _lookup_schedule(vessel_name, voyage_no)
 
     entry, candidates = directory.resolve(vessel_name)
     if entry is None:
