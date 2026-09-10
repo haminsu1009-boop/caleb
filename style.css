@@ -1532,3 +1532,79 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   .benefits-grid { grid-template-columns: 1fr; }
   .process-steps { flex-direction: column; align-items: center; gap: 20px; }
 }
+
+/* ============================================================
+   VESSEL TRACKING WIDGET (assets/vessel-widget.js)
+   ============================================================ */
+.vt-fab {
+  position: fixed; bottom: 96px; right: 32px; z-index: 1000;
+  width: 56px; height: 56px; border-radius: 50%; border: none;
+  background: var(--primary); color: var(--white); font-size: 1.5rem;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px rgba(53,104,212,0.4); cursor: pointer;
+  transition: background var(--transition), transform var(--transition);
+}
+.vt-fab:hover { background: var(--dark); transform: translateY(-2px); }
+
+.vt-panel {
+  position: fixed; bottom: 162px; right: 32px; z-index: 1000;
+  width: 340px; max-width: calc(100vw - 32px); max-height: 70vh;
+  background: var(--white); border-radius: var(--radius);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  display: flex; flex-direction: column; overflow: hidden;
+  opacity: 0; pointer-events: none; transform: translateY(12px) scale(0.98);
+  transition: opacity 0.2s, transform 0.2s;
+}
+.vt-panel.vt-open { opacity: 1; pointer-events: all; transform: translateY(0) scale(1); }
+
+.vt-header {
+  background: var(--primary); color: var(--white);
+  padding: 14px 16px; font-weight: 700; font-size: 0.95rem;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.vt-close {
+  background: none; border: none; color: var(--white); cursor: pointer;
+  font-size: 1rem; opacity: 0.85; line-height: 1;
+}
+.vt-close:hover { opacity: 1; }
+
+.vt-messages {
+  flex: 1; overflow-y: auto; padding: 14px; display: flex;
+  flex-direction: column; gap: 10px; background: var(--bg);
+  font-size: 0.86rem; line-height: 1.5; min-height: 220px;
+}
+.vt-msg {
+  max-width: 88%; padding: 9px 12px; border-radius: 12px;
+  white-space: pre-line; word-break: break-word;
+}
+.vt-msg-bot {
+  align-self: flex-start; background: var(--white); color: var(--text);
+  border: 1px solid var(--border); border-bottom-left-radius: 2px;
+}
+.vt-msg-user {
+  align-self: flex-end; background: var(--primary); color: var(--white);
+  border-bottom-right-radius: 2px;
+}
+
+.vt-input-row {
+  display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--border);
+  background: var(--white);
+}
+.vt-input {
+  flex: 1; padding: 9px 12px; border: 1px solid var(--border);
+  border-radius: 6px; font-size: 0.86rem; font-family: inherit;
+}
+.vt-input:focus { outline: none; border-color: var(--primary); }
+.vt-send {
+  padding: 9px 16px; background: var(--primary); color: var(--white);
+  border: none; border-radius: 6px; font-size: 0.85rem; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+}
+.vt-send:hover { background: var(--dark); }
+.vt-send:disabled, .vt-input:disabled { opacity: 0.6; cursor: not-allowed; }
+
+@media (max-width: 480px) {
+  .vt-fab { bottom: 88px; right: 20px; }
+  .vt-panel { bottom: 0; right: 0; left: 0; width: auto; max-width: none;
+    border-radius: var(--radius) var(--radius) 0 0; max-height: 80vh; }
+}

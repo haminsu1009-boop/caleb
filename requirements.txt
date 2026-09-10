@@ -18,3 +18,6 @@ pybit>=5.7.0
 
 # 알림 (선택)
 # python-telegram-bot>=20.0
+
+# 선박 추적 봇 (vessel/) — 웹위젯 API + 카카오톡 스킬 서버
+flask>=3.0.0
