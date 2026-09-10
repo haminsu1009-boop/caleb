@@ -16,7 +16,10 @@ MAP_LINK_TMPL = "https://www.google.com/maps?q={lat},{lon}"
 
 def format_terminal(call: TerminalCall) -> str:
     """터미널 기준 정보 — 선사 스케줄/AIS보다 접안예정(ETB)이 실제 도착에 더 가깝다."""
-    lines = [f"🏗️ {call.terminal_name} 터미널 기준 (실제 도착과 가장 가까움)"]
+    header = (f"🧑‍💼 {call.terminal_name} — 직원이 직접 확인한 최신 정보"
+              if call.manual else
+              f"🏗️ {call.terminal_name} 터미널 기준 (실제 도착과 가장 가까움)")
+    lines = [header]
     if call.berth:
         lines.append(f"선석: {call.berth}")
     if call.etb:

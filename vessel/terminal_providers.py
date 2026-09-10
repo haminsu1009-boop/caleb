@@ -30,7 +30,10 @@ vessel/terminal_providers.py
 from __future__ import annotations
 
 import os
+import time
 from dataclasses import asdict, dataclass
+
+from vessel import manual_store
 
 
 class NotConfiguredError(Exception):
@@ -39,7 +42,7 @@ class NotConfiguredError(Exception):
 
 @dataclass
 class TerminalCall:
-    terminal: str                    # 터미널 코드 (예: "hjnc")
+    terminal: str                    # 터미널 코드 (예: "hjnc", 수동입력은 "manual")
     terminal_name: str                # 사람이 읽는 이름
     vessel_name: str
     voyage_no: str | None
@@ -49,6 +52,7 @@ class TerminalCall:
     etd: str | None = None            # 출항 예정
     status: str | None = None
     source_url: str = ""
+    manual: bool = False              # True면 직원이 텔레그램 /update로 직접 입력한 값
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -108,14 +112,37 @@ def get_active_terminals() -> list[TerminalProvider]:
     return [t for t in ALL_TERMINALS if t.code in wanted]
 
 
+def _manual_to_call(vessel_name: str, voyage_no: str | None, entry: dict) -> TerminalCall:
+    f = entry["fields"]
+    age_min = round((time.time() - entry["updated_at"]) / 60)
+    age_label = f"{age_min}분 전" if age_min < 60 else f"{age_min // 60}시간 전"
+    return TerminalCall(
+        terminal="manual",
+        terminal_name=f.get("terminal_name") or "직원 확인",
+        vessel_name=entry.get("vessel_name") or vessel_name,
+        voyage_no=entry.get("voyage_no") or voyage_no,
+        berth=f.get("berth"),
+        eta=f.get("eta"),
+        etb=f.get("etb"),
+        etd=f.get("etd"),
+        status=f.get("status"),
+        source_url=f"직원 입력 · {age_label}",
+        manual=True,
+    )
+
+
 def lookup_terminals(vessel_name: str, voyage_no: str | None
                       ) -> tuple[TerminalCall | None, list[TerminalProvider]]:
-    """설정된 터미널을 순서대로 조회 시도.
+    """터미널 정보를 찾는다 — 순서: 직원 수동 입력(가장 신선) → 자동 프로바이더들.
 
-    반환: (첫 성공 결과 또는 None, 실제로 시도한 터미널 목록)
+    반환: (결과 또는 None, 자동 프로바이더 중 실제로 시도한 목록)
     두 번째 값은 전부 실패/미연동일 때 포맷터가 "직접 확인" 링크를
-    보여주는 데 쓴다.
+    보여주는 데 쓴다(수동 입력값을 이미 찾았으면 시도하지 않으므로 빈 리스트).
     """
+    manual_entry = manual_store.get_entry(vessel_name, voyage_no)
+    if manual_entry is not None:
+        return _manual_to_call(vessel_name, voyage_no, manual_entry), []
+
     tried = []
     for provider in get_active_terminals():
         tried.append(provider)

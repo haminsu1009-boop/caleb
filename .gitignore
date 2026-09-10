@@ -33,3 +33,4 @@ bot/cycle_state.json
 bot/ma_bot_state.json
 bot/upbit_watch_state.json
 data/vessel_cache.json
+data/vessel_manual_terminal.json
