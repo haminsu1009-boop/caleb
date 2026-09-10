@@ -36,7 +36,7 @@ WINDOW_DAYS = 365
 STEP_DAYS = 15
 
 
-def window_stats(trades, lev, per_trade, cb, cool):
+def window_stats(trades, lev, per_trade, cb, cool, compound=True):
     """모든 1년 창에 대해 배수 분포를 낸다."""
     t0, t1 = trades[0]["dt"], trades[-1]["dt"]
     starts = pd.date_range(pd.Timestamp(t0),
@@ -47,7 +47,8 @@ def window_stats(trades, lev, per_trade, cb, cool):
         win = [t for t in trades if s <= t["dt"] < s + pd.Timedelta(days=WINDOW_DAYS)]
         if len(win) < 10:
             continue
-        r = simulate(win, lev, per_trade, 1.0, cb, cool, 1e-6)
+        r = simulate(win, lev, per_trade, 1.0, cb, cool, 1e-6,
+                     compound=compound)
         out.append({"start": s, "mult": 0.0 if r["bust"] else r["final"],
                     "mdd": r["mdd_low"], "n": r["n"], "liq": r["liq"]})
     return pd.DataFrame(out)
@@ -56,6 +57,8 @@ def window_stats(trades, lev, per_trade, cb, cool):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--target", type=float, default=50.0)
+    ap.add_argument("--no-compound", action="store_true",
+                    help="베팅을 초기자본 고정으로 (구버전 재현용)")
     a = ap.parse_args()
 
     THRESHOLDS = [-12.26, -15.0, -18.0, -22.0]
@@ -63,7 +66,9 @@ def main():
     PER_TRADES = [0.05, 0.10, 0.25, 0.50, 1.0]
 
     print("=" * 104)
+    mode = "고정(초기자본 기준)" if a.no_compound else "복리(현재자본 기준)"
     print(f"  1년에 {a.target:.0f}배가 가능한 설정 탐색 — 바이낸스 현물 42종, 2017~2026")
+    print(f"  베팅 {mode}")
     print(f"  진입임계값 {len(THRESHOLDS)} × 배율 {len(LEVS)} × 동시보유 {len(PER_TRADES)} = "
           f"{len(THRESHOLDS)*len(LEVS)*len(PER_TRADES)}개 설정 × 1년 창 전부")
     print("=" * 104)
@@ -77,7 +82,8 @@ def main():
         print(f"\n  진입 {thr}% → 신호 {len(trades):,}건 ({len(have)}종)")
         for lev in LEVS:
             for pt in PER_TRADES:
-                d = window_stats(trades, lev, pt, 0.25, 30)
+                d = window_stats(trades, lev, pt, 0.25, 30,
+                                 compound=not a.no_compound)
                 if d.empty:
                     continue
                 rows.append({

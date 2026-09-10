@@ -198,7 +198,19 @@ def pnl_pct(entry_avg, exit_px, leverage, liq_line, mae=None):
     return px_ret, was_liq
 
 
-def simulate(trades, leverage, per_trade, max_gross, cb, cool_days, min_equity):
+def simulate(trades, leverage, per_trade, max_gross, cb, cool_days, min_equity,
+             compound=False):
+    """compound=False면 베팅 크기가 항상 *초기* 자본 기준으로 고정된다.
+
+    실제 계좌는 그렇게 굴리지 않는다. 자본이 10배가 되면 5%도 10배가
+    된다. 고정 베팅은 자본이 커질수록 사실상 베팅 비중이 줄어드는
+    것이라 성장을 구조적으로 누르고, 대신 파산 확률도 비현실적으로
+    낮춘다(청산 한 번이 자본의 5%가 아니라 0.5%가 되므로).
+
+    기본값을 False로 둔 이유는 이 세션의 기존 결과들이 전부 그 기준으로
+    나왔기 때문이다 — 바꾸면 조용히 어긋난다. 새 분석은 compound=True를
+    명시적으로 넘긴다.
+    """
     liq_line = -100.0 / leverage + 0.5
     cash = 1.0
     peak = 1.0
@@ -247,9 +259,13 @@ def simulate(trades, leverage, per_trade, max_gross, cb, cool_days, min_equity):
         if t["sym"] in positions or not can_enter:
             continue
 
-        full_notional = per_trade * leverage
+        # 복리면 베팅과 노출한도가 둘 다 현재 자본에 비례한다.
+        # 한도만 고정으로 두면 자본이 커질 때 첫 포지션에서 막힌다.
+        base = eq_mtm if compound else 1.0
+        margin = per_trade * base
+        full_notional = margin * leverage
         gross = sum(p.reserved for p in positions.values())
-        if gross + full_notional > max_gross * leverage:
+        if gross + full_notional > max_gross * leverage * base:
             continue
 
         px_ret, was_liq = pnl_pct(t["entry_avg"], t["exit_px"], leverage,
@@ -257,7 +273,6 @@ def simulate(trades, leverage, per_trade, max_gross, cb, cool_days, min_equity):
         held_h = (t["exit_bar"] - t["entry_bar"]) * BAR_HOURS
         fee = ROUND_TRIP + FUNDING_PER_8H * (held_h / 8.0)
         net = px_ret - fee
-        margin = per_trade
         realized = max(margin * leverage * net / 100, -margin)
         n_trades += 1
         wins += net > 0
@@ -278,13 +293,22 @@ def main():
     ap.add_argument("--max-gross", type=float, default=float(os.getenv("OS_MAX_GROSS", "1.0")))
     ap.add_argument("--cb", type=float, default=float(os.getenv("OS_MAX_DRAWDOWN", "0.25")))
     ap.add_argument("--cool-days", type=float, default=float(os.getenv("OS_HALT_COOLDOWN_DAYS", "30")))
+    # 실거래 봇은 executor.py:420에서
+    #     full_notional = equity * per_trade * leverage
+    # 즉 *현재* 자본 기준으로 베팅한다. 이 스크립트의 존재 이유가
+    # "봇과 어긋나지 않는 백테스트"이므로 기본값도 복리여야 한다.
+    # --fixed는 이 세션 초반 결과(초기자본 고정)를 재현할 때만 쓴다.
+    ap.add_argument("--fixed", action="store_true",
+                    help="베팅을 초기자본 고정으로 (구버전 재현용, 봇과 불일치)")
     a = ap.parse_args()
+    compound = not a.fixed
+    mode_label = "복리(봇과 동일)" if compound else "고정(구버전)"
 
     print("=" * 100)
     print("  현재 bot/oversold/ 설정 그대로 백테스트")
     print(f"  종목 S.SYMBOLS({len(S.SYMBOLS)}종) · 진입 {S.ENTRY_THRESH}% · {S.HOLD_BARS}봉 보유 · "
           f"분할 {S.SCALE_IN_FIRST_FRAC*100:.0f}%+{S.SCALE_IN_TRIGGER_PCT}%트리거 · 손절 {S.STOP_PCT}%")
-    print(f"  배율 {a.leverage}x · 진입당 {a.per_trade*100:.1f}% · 총노출 {a.max_gross*100:.0f}%×배율 · "
+    print(f"  베팅 {mode_label} · 배율 {a.leverage}x · 진입당 {a.per_trade*100:.1f}% · 총노출 {a.max_gross*100:.0f}%×배율 · "
           f"차단기 -{a.cb*100:.0f}%/{a.cool_days:.0f}일재개")
     print("=" * 100)
 
@@ -301,14 +325,16 @@ def main():
     print(f"\n  {'구간':22s}{'거래':>7s}{'승률':>7s}{'최종':>10s}{'연복리':>8s}{'낙폭':>8s}"
           f"{'장중':>8s}{'강제청산':>8s}{'차단발동':>8s}")
     print("  " + "-" * 92)
-    r_full = simulate(trades, a.leverage, a.per_trade, a.max_gross, a.cb, a.cool_days, 0.01)
+    r_full = simulate(trades, a.leverage, a.per_trade, a.max_gross, a.cb, a.cool_days, 0.01,
+                      compound=compound)
     cagr_full = (r_full["final"] ** (1/yrs_full) - 1) * 100 if r_full["final"] > 0 else -100
     fin = "파산" if r_full["bust"] else f"{r_full['final']:.2f}배"
     print(f"  {'전체 2017~2026':22s}{r_full['n']:>7,}{r_full['wr']:>6.1f}%{fin:>10s}"
           f"{cagr_full:>7.0f}%{r_full['mdd']*100:>7.1f}%{r_full['mdd_low']*100:>7.1f}%"
           f"{r_full['liq']:>8}{r_full['halts']:>8}")
 
-    r_ho = simulate(ho_trades, a.leverage, a.per_trade, a.max_gross, a.cb, a.cool_days, 0.01)
+    r_ho = simulate(ho_trades, a.leverage, a.per_trade, a.max_gross, a.cb, a.cool_days, 0.01,
+                    compound=compound)
     yrs_ho = (ho_trades[-1]["dt"] - ho_trades[0]["dt"]) / np.timedelta64(1, "D") / 365.25
     cagr_ho = (r_ho["final"] ** (1/yrs_ho) - 1) * 100 if r_ho["final"] > 0 else -100
     fin_ho = "파산" if r_ho["bust"] else f"{r_ho['final']:.2f}배"
