@@ -145,11 +145,18 @@ function addBL(chatId, blNo, interval) {
   saveUserData_(chatId, data);
 
   // 현재 상태 저장 (기준점)
+  // 추가 즉시 현재 상태 조회 & 알림
   try {
     var records = fetchCargoProgress_(blNo, CONFIG.BL_YEAR);
     if (records.length > 0) {
-      var sl = summaryLine_(pickLatest_(records));
+      var latest = pickLatest_(records);
+      var sl = summaryLine_(latest);
       PropertiesService.getScriptProperties().setProperty('STATE_' + chatId + '_' + blNo, JSON.stringify({ summaryLine: sl }));
+      // 현재 상태 즉시 알림
+      var msg = formatMessage_(blNo, true, null, latest);
+      sendTelegram_(chatId, msg);
+      var userData2 = getUserData_(chatId);
+      if (userData2.kakaoToken) { try { sendKakao_(userData2.kakaoToken, msg.replace(/<[^>]+>/g, '')); } catch(e) {} }
     }
   } catch(e) {}
 
