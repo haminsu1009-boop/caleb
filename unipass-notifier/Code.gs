@@ -16,6 +16,12 @@ var UNIPASS_URL = 'https://unipass.customs.go.kr:38010/ext/rest/cargCsclPrgsInfo
 // 웹앱 진입점
 // =====================================================================
 function doGet(e) {
+  // 카카오 OAuth 리다이렉트 처리
+  if (e && e.parameter && e.parameter.code) {
+    var code = e.parameter.code;
+    var html = '<script>if(window.opener){window.opener.postMessage({kakaoCode:"' + code + '"},"*");}window.close();</script><p>로그인 완료! 창을 닫아주세요.</p>';
+    return HtmlService.createHtmlOutput(html);
+  }
   return HtmlService.createHtmlOutputFromFile('Index')
     .setTitle('유니패스 통관 알림')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
@@ -125,6 +131,7 @@ function getUserInfo(chatId) {
     chatId: chatId,
     bls: data.bls || [],
     kakaoLinked: !!(data.kakaoToken),
+    telegramChatId: data.telegramChatId || null,
   };
 }
 
@@ -294,8 +301,13 @@ function checkBL_(chatId, blNo, kakaoToken, forceNotify) {
 
   if (changed || forceNotify) {
     var msg = formatMessage_(blNo, !prev && !forceNotify, forceNotify ? null : (prev ? prev.summaryLine : null), latest);
-    sendTelegram_(chatId, msg);
-    if (kakaoToken) { try { sendKakao_(kakaoToken, msg.replace(/<[^>]+>/g, '')); } catch(e) {} }
+    // 텔레그램: data.telegramChatId 또는 chatId 자체(구형 텔레그램 기반 사용자)
+    var data = getUserData_(chatId);
+    var telegramId = data.telegramChatId || (isNaN(String(chatId).replace('-','')) ? null : chatId);
+    if (telegramId) { try { sendTelegram_(telegramId, msg); } catch(e) {} }
+    // 카카오
+    var token = kakaoToken || data.kakaoToken;
+    if (token) { try { sendKakao_(token, msg.replace(/<[^>]+>/g, '')); } catch(e) {} }
   }
   props.setProperty(stateKey, JSON.stringify({ summaryLine: sl }));
 }
@@ -384,8 +396,56 @@ function sendTelegram_(chatId, text) {
 function getKakaoOAuthUrl() {
   return 'https://kauth.kakao.com/oauth/authorize'
     + '?client_id=' + CONFIG.KAKAO_REST_API_KEY
-    + '&redirect_uri=https://example.com'
+    + '&redirect_uri=https://script.google.com/macros/s/AKfycbx2UjYtt4r0qpJ4o4uXlUKKBnelEVh5CRCv3Pn3va7e6kJOyqj9GNpwMj02UIaUaBTe/exec'
     + '&response_type=code&scope=talk_message';
+}
+
+// 처음 카카오로 로그인 (설정 화면) - 카카오 ID를 userId로 사용
+function loginWithKakao(code) {
+  return linkKakaoToUser('', code);
+}
+
+// 기존 userId에 카카오 연결 (또는 신규 카카오 로그인)
+function linkKakaoToUser(existingUserId, code) {
+  var resp = UrlFetchApp.fetch('https://kauth.kakao.com/oauth/token', {
+    method: 'post',
+    payload: {
+      grant_type: 'authorization_code',
+      client_id: CONFIG.KAKAO_REST_API_KEY,
+      redirect_uri: 'https://script.google.com/macros/s/AKfycbx2UjYtt4r0qpJ4o4uXlUKKBnelEVh5CRCv3Pn3va7e6kJOyqj9GNpwMj02UIaUaBTe/exec',
+      code: code
+    },
+    muteHttpExceptions: true
+  });
+  var token = JSON.parse(resp.getContentText());
+  if (!token.access_token) return { success: false, message: '카카오 로그인 실패: ' + (token.error_description || '') };
+
+  var meResp = UrlFetchApp.fetch('https://kapi.kakao.com/v2/user/me', {
+    headers: { Authorization: 'Bearer ' + token.access_token },
+    muteHttpExceptions: true
+  });
+  var me = JSON.parse(meResp.getContentText());
+  if (!me.id) return { success: false, message: '사용자 정보 가져오기 실패' };
+
+  var nickname = (me.kakao_account && me.kakao_account.profile && me.kakao_account.profile.nickname) || '';
+  // userId 결정: 기존 유저면 기존 ID 유지, 신규면 K{kakaoId}
+  var userId = existingUserId ? String(existingUserId) : ('K' + me.id);
+  var data = getUserData_(userId);
+  data.kakaoToken = token.access_token;
+  if (token.refresh_token) data.kakaoRefreshToken = token.refresh_token;
+  data.kakaoNickname = nickname;
+  saveUserData_(userId, data);
+  ensureTrigger_();
+  return { success: true, userId: userId, nickname: nickname };
+}
+
+// 텔레그램 Chat ID 연결/해제
+function setTelegramChatId(userId, telegramChatId) {
+  userId = String(userId);
+  var data = getUserData_(userId);
+  data.telegramChatId = telegramChatId ? String(telegramChatId) : null;
+  saveUserData_(userId, data);
+  return { success: true };
 }
 
 function linkKakaoWithCode(chatId, code) {
