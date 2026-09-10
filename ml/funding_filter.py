@@ -128,8 +128,8 @@ def main():
         r_ho = np.corrcoef(xh[col], xh.ret)[0, 1] if len(xh) > 30 else float("nan")
         print(f"    {lab:>6s}  전체 {r_all:+.3f}   홀드아웃 {r_ho:+.3f}")
 
-    print(f"\n  ⚠️ 종목 {len(syms)}종만 대조했다 — 나머지 30종은 펀딩 데이터가")
-    print(f"     아직 없다(bybit/collect_metrics.py + 워크플로로 수집 예정).")
+    print(f"\n  참고: 펀딩비 아카이브는 2020년부터라 2017~2019년 신호"
+          f" {len(trades)-len(d):,}건은 대조 대상에서 빠진다.")
 
 
 if __name__ == "__main__":
