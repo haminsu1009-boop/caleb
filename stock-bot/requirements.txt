@@ -1,0 +1,26 @@
+# Stock Bot 의존성
+# pip install -r requirements.txt
+
+# 데이터 수집
+yfinance>=0.2.38
+pandas>=2.0.0
+numpy>=1.26.0
+requests>=2.31.0
+
+# 기술적 지표
+ta>=0.11.0                # TA-Lib Python 래퍼 (pip 설치 간편)
+
+# AI
+anthropic>=0.34.0         # Claude API (claude-opus-4-5)
+
+# 스케줄러
+schedule>=1.2.0
+
+# 유틸
+python-dotenv>=1.0.0      # .env 파일 로드
+
+# 선택: Alpaca (미국 주식 실거래/페이퍼트레이딩)
+# alpaca-py>=0.20.0
+
+# 선택: 알림 (텔레그램)
+# python-telegram-bot>=21.0
