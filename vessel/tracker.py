@@ -21,6 +21,7 @@ from vessel.formatter import (
     format_no_position, format_not_in_directory, format_position,
 )
 from vessel.providers import VesselPosition, get_provider
+from vessel.terminal_providers import TerminalCall, lookup_terminals
 
 load_dotenv()
 
@@ -44,6 +45,7 @@ class TrackResult:
     kind: str  # "position" | "ambiguous" | "not_found" | "no_position" | "no_input" | "error"
     message: str
     position: VesselPosition | None = None
+    terminal_call: TerminalCall | None = None
     vessel_name: str | None = None
     voyage_no: str | None = None
 
@@ -82,12 +84,19 @@ def track(vessel_name: str | None, voyage_no: str | None) -> TrackResult:
     if not vessel_name:
         return TrackResult(False, "no_input", format_need_input())
 
+    # 터미널 조회는 우리 로컬 디렉터리(IMO/MMSI)와 무관하게 선명+항차만
+    # 있으면 시도할 수 있다 — AIS보다 먼저, 독립적으로 돌린다.
+    terminal_call, tried_terminals = lookup_terminals(vessel_name, voyage_no)
+
     entry, candidates = directory.resolve(vessel_name)
     if entry is None:
         if candidates:
             return TrackResult(False, "ambiguous", format_ambiguous(vessel_name, candidates),
+                                terminal_call=terminal_call,
                                 vessel_name=vessel_name, voyage_no=voyage_no)
-        return TrackResult(False, "not_found", format_not_in_directory(vessel_name),
+        return TrackResult(False, "not_found",
+                            format_not_in_directory(vessel_name, terminal_call, tried_terminals),
+                            terminal_call=terminal_call,
                             vessel_name=vessel_name, voyage_no=voyage_no)
 
     imo, mmsi = entry.get("imo"), entry.get("mmsi")
@@ -99,16 +108,19 @@ def track(vessel_name: str | None, voyage_no: str | None) -> TrackResult:
             pos = _get_provider().position(imo=imo, mmsi=mmsi, name=entry["names"][0])
         except Exception as e:  # AIS API 네트워크/응답 오류 — 사용자에겐 조용히 재시도 유도
             return TrackResult(False, "error", format_error(str(e)),
+                                terminal_call=terminal_call,
                                 vessel_name=vessel_name, voyage_no=voyage_no)
         if pos is not None:
             _store_position(cache_key, pos)
 
     if pos is None:
-        return TrackResult(False, "no_position", format_no_position(vessel_name),
+        return TrackResult(False, "no_position",
+                            format_no_position(vessel_name, terminal_call, tried_terminals),
+                            terminal_call=terminal_call,
                             vessel_name=vessel_name, voyage_no=voyage_no)
 
-    msg = format_position(entry["names"][0], voyage_no, pos)
-    return TrackResult(True, "position", msg, position=pos,
+    msg = format_position(entry["names"][0], voyage_no, pos, terminal_call, tried_terminals)
+    return TrackResult(True, "position", msg, position=pos, terminal_call=terminal_call,
                         vessel_name=vessel_name, voyage_no=voyage_no)
 
 

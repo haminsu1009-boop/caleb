@@ -9,16 +9,55 @@ vessel/formatter.py
 from __future__ import annotations
 
 from vessel.providers import VesselPosition
+from vessel.terminal_providers import TerminalCall, TerminalProvider
 
 MAP_LINK_TMPL = "https://www.google.com/maps?q={lat},{lon}"
 
 
+def format_terminal(call: TerminalCall) -> str:
+    """터미널 기준 정보 — 선사 스케줄/AIS보다 접안예정(ETB)이 실제 도착에 더 가깝다."""
+    lines = [f"🏗️ {call.terminal_name} 터미널 기준 (실제 도착과 가장 가까움)"]
+    if call.berth:
+        lines.append(f"선석: {call.berth}")
+    if call.etb:
+        lines.append(f"접안예정(ETB): {call.etb}")
+    if call.eta:
+        lines.append(f"입항예정(ETA): {call.eta}")
+    if call.etd:
+        lines.append(f"출항예정(ETD): {call.etd}")
+    if call.status:
+        lines.append(f"상태: {call.status}")
+    if call.source_url:
+        lines.append(f"출처: {call.source_url}")
+    return "\n".join(lines)
+
+
+def format_terminal_links(tried: list[TerminalProvider]) -> str:
+    """터미널 자동 조회가 아직 안 붙었을 때 — 직접 확인할 수 있는 링크를 보여준다."""
+    if not tried:
+        return ""
+    lines = ["📋 터미널 직접 확인 (자동 연동 준비 중):"]
+    for t in tried:
+        lines.append(f"  • {t.name}: {t.query_url}")
+    return "\n".join(lines)
+
+
 def format_position(name: str | None, voyage_no: str | None,
-                     pos: VesselPosition) -> str:
+                     pos: VesselPosition,
+                     terminal_call: TerminalCall | None = None,
+                     tried_terminals: list[TerminalProvider] | None = None) -> str:
+    blocks = []
+
+    if terminal_call is not None:
+        blocks.append(format_terminal(terminal_call))
+    elif tried_terminals:
+        blocks.append(format_terminal_links(tried_terminals))
+
     lines = [f"🚢 {pos.name or name or '선박'}" + (f" (IMO {pos.imo})" if pos.imo else "")]
 
     if voyage_no:
-        lines.append(f"항차: {voyage_no}  ※AIS 데이터엔 항차번호가 없어 참고 표시용입니다")
+        note = "" if terminal_call else "  ※AIS 데이터엔 항차번호가 없어 참고 표시용입니다"
+        lines.append(f"항차: {voyage_no}{note}")
 
     if pos.lat is not None and pos.lon is not None:
         lines.append(f"위치: {pos.lat:.4f}, {pos.lon:.4f}  ({MAP_LINK_TMPL.format(lat=pos.lat, lon=pos.lon)})")
@@ -45,7 +84,8 @@ def format_position(name: str | None, voyage_no: str | None,
     if pos.imo and pos.source != "mock":
         lines.append(f"지도에서 보기: https://www.marinetraffic.com/en/ais/details/ships/imo:{pos.imo}")
 
-    return "\n".join(lines)
+    blocks.append("\n".join(lines))
+    return "\n\n".join(blocks)
 
 
 def format_ambiguous(vessel_name: str, candidates: list[dict]) -> str:
@@ -58,16 +98,31 @@ def format_ambiguous(vessel_name: str, candidates: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def format_not_in_directory(vessel_name: str) -> str:
-    return (
+def format_not_in_directory(vessel_name: str,
+                             terminal_call: TerminalCall | None = None,
+                             tried_terminals: list[TerminalProvider] | None = None) -> str:
+    msg = (
         f"🚢 '{vessel_name}'을(를) 선박 디렉터리에서 찾을 수 없어요.\n"
         "등록된 선박명이 아니거나 표기가 달라서 그럴 수 있어요.\n"
         "정확한 영문 선명으로 다시 시도하거나, 담당자에게 등록을 요청해 주세요."
     )
+    return _with_terminal_block(msg, terminal_call, tried_terminals)
 
 
-def format_no_position(vessel_name: str) -> str:
-    return f"🚢 '{vessel_name}'의 IMO/MMSI는 확인했지만, 현재 AIS 위치 데이터를 가져오지 못했어요. 잠시 후 다시 시도해 주세요."
+def format_no_position(vessel_name: str,
+                        terminal_call: TerminalCall | None = None,
+                        tried_terminals: list[TerminalProvider] | None = None) -> str:
+    msg = f"🚢 '{vessel_name}'의 IMO/MMSI는 확인했지만, 현재 AIS 위치 데이터를 가져오지 못했어요. 잠시 후 다시 시도해 주세요."
+    return _with_terminal_block(msg, terminal_call, tried_terminals)
+
+
+def _with_terminal_block(msg: str, terminal_call: TerminalCall | None,
+                          tried_terminals: list[TerminalProvider] | None) -> str:
+    if terminal_call is not None:
+        return format_terminal(terminal_call) + "\n\n" + msg
+    if tried_terminals:
+        return format_terminal_links(tried_terminals) + "\n\n" + msg
+    return msg
 
 
 def format_need_input() -> str:

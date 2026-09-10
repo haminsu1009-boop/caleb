@@ -64,6 +64,7 @@ def api_track():
         "vessel_name": result.vessel_name,
         "voyage_no": result.voyage_no,
         "position": result.position.to_dict() if result.position else None,
+        "terminal": result.terminal_call.to_dict() if result.terminal_call else None,
     })
 
 
