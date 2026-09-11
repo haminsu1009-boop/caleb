@@ -75,6 +75,10 @@ else
   warn ".env가 비어 있어 건너뛴다. 키를 넣고 아래를 직접 실행해라."
 fi
 
+# 공인 IP를 먼저 구해 둔다. heredoc 안에서 $(...)를 쓰면 이스케이프를
+# 한 단계 잘못 세기 쉽고, 실제로 처음엔 명령이 문자 그대로 찍혔다.
+MYIP="$(curl -s --max-time 10 https://api.ipify.org || echo '조회 실패')"
+
 cat <<EOF
 
 ────────────────────────────────────────────────────────
@@ -83,7 +87,7 @@ cat <<EOF
   1) API 키 넣기
        nano ${DIR}/.env
      바이빗에서 키를 만들 때 출금 권한 끄기, 접속 IP를 이 서버로 제한.
-     이 서버의 IP:  \$(curl -s --max-time 10 https://api.ipify.org || echo '조회 실패')
+     이 서버의 IP:  ${MYIP}
 
   2) 모의로 연결·자본 확인
        cd ${DIR} && ./.venv/bin/python -m bot.oversold.executor --once
