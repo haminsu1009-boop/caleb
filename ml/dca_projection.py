@@ -46,7 +46,8 @@ MIN_DEFAULT = 5.0
 
 def simulate_dca(trades, *, start_krw, monthly_krw, fx,
                  leverage=2.0, per_trade=0.05, max_gross=0.8,
-                 cb=0.25, cool_days=30, apply_min_order=True):
+                 cb=0.25, cool_days=30, apply_min_order=True,
+                 short_trades=None, short_weight=0.0):
     """적립식 시뮬레이션. 현금이 매달 들어온다.
 
     반환 단위는 원이다. 내부 계산은 달러로 하고 마지막에 환산한다.
@@ -95,10 +96,11 @@ def simulate_dca(trades, *, start_krw, monthly_krw, fx,
             continue
 
         margin = per_trade * eq
-        full_notional = margin * leverage
+        full_notional = margin * leverage        # 노출 한도는 전체 물량 기준
         # 1차만 즉시 나간다. 이게 최소주문량을 못 넘으면 진입 자체가 안 된다.
         if apply_min_order:
-            first = full_notional * S.SCALE_IN_FIRST_FRAC
+            first = full_notional * t.get("deployed", S.SCALE_IN_FIRST_FRAC) \
+                    if False else full_notional * S.SCALE_IN_FIRST_FRAC
             if first < MIN_NOTIONAL.get(t["sym"], MIN_DEFAULT):
                 skipped += 1
                 continue
@@ -111,7 +113,10 @@ def simulate_dca(trades, *, start_krw, monthly_krw, fx,
         held_h = (t["exit_bar"] - t["entry_bar"]) * BAR_HOURS
         fee = ROUND_TRIP + FUNDING_PER_8H * (held_h / 8.0)
         net = px_ret - fee
-        realized = max(margin * leverage * net / 100, -margin)
+        # 2차가 안 걸리면 그만큼만 투입된 것이다 (커밋 6173729 참고).
+        # 이 함수에도 같은 버그가 있어서 적립식 전망이 부풀어 있었다.
+        dep = t.get("deployed", 1.0)
+        realized = max(margin * dep * leverage * net / 100, -margin * dep)
         n_trades += 1
         wins += net > 0
         liqs += was_liq
