@@ -117,6 +117,10 @@ python -m bot.oversold.executor --live
 # 백그라운드로 계속 돌리기 (리눅스/맥)
 nohup python -m bot.oversold.executor --live > bot.log 2>&1 &
 
+# systemd 등 사람이 없는 환경이면 (deploy/README.md 참고)
+#   OS_CONFIRM_LIVE=START python -m bot.oversold.executor --live-nonint
+# 플래그와 환경변수가 둘 다 있어야만 실거래가 켜진다.
+
 # 로그 보기
 tail -f bot.log
 ```

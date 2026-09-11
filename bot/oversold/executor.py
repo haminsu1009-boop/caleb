@@ -598,6 +598,12 @@ def capital_check(ex, cfg, symbols) -> dict:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--live", action="store_true", help="실거래 (기본은 모의)")
+    # systemd·컨테이너에서는 START를 타이핑할 사람이 없다. 그렇다고
+    # 확인 절차를 그냥 없애면 실수로 실거래가 도는 길이 생긴다.
+    # 그래서 플래그와 환경변수 둘 다 있어야만 통과시킨다 —
+    # 어느 한쪽만으로는 절대 켜지지 않는다.
+    ap.add_argument("--live-nonint", action="store_true",
+                    help="실거래 (무인). OS_CONFIRM_LIVE=START 도 함께 필요")
     ap.add_argument("--once", action="store_true", help="1회만 점검하고 종료")
     ap.add_argument("--dump-candles", action="store_true", help="조회한 캔들 저장")
     ap.add_argument("--close-all", action="store_true", help="전량 청산하고 종료")
@@ -607,6 +613,13 @@ def main():
                         datefmt="%m-%d %H:%M:%S")
     load_env()
     cfg = Config()
+
+    if a.live_nonint:
+        if os.getenv("OS_CONFIRM_LIVE") != "START":
+            print("  ⛔ --live-nonint 는 환경변수 OS_CONFIRM_LIVE=START 가 있어야 합니다.")
+            print("     (사람이 없는 환경에서 실수로 실거래가 도는 것을 막기 위한 이중 잠금)")
+            return
+        a.live = True
 
     mode = "🔴 실거래" if a.live else "🟢 모의(dry-run)"
     print("=" * 84)
@@ -618,7 +631,7 @@ def main():
     print(f"        → {S.HOLD_BARS}봉 후 청산 · 손절(평단 대비) {S.STOP_PCT}%")
     print("=" * 84)
 
-    if a.live:
+    if a.live and not a.live_nonint:
         print("\n  ⚠️  실제 자금으로 주문을 냅니다.")
         print(f"     배율 {cfg.leverage:g}x, 거래 1건의 전체 물량은 자본의 "
               f"{cfg.per_trade*100:.1f}%(최대 {int(1/cfg.per_trade)}건 동시), "
@@ -629,6 +642,8 @@ def main():
         print(f"     실제 체결은 백테스트보다 나쁠 수 있습니다.")
         if input("\n  계속하려면 START 입력: ").strip() != "START":
             print("  중단했습니다."); return
+    elif a.live_nonint:
+        log.warning("무인 실거래로 시작합니다 (OS_CONFIRM_LIVE 확인됨)")
 
     ex = Exchange(live=a.live)
 
