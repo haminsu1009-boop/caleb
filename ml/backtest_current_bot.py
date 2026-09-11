@@ -79,8 +79,15 @@ def load(sym: str):
     return d.rename(columns={tc: "datetime"})
 
 
+def bb_upper(c, n=20, k=2.0):
+    m = pd.Series(c).rolling(n).mean()
+    sd = pd.Series(c).rolling(n).std()
+    return (m + k * sd).values
+
+
 def resolve_trade(sym, o, h, l, c, dt, i, n, *, hold_bars=None,
-                  trigger_pct=None, first_frac=None):
+                  trigger_pct=None, first_frac=None,
+                  bb_exit=None, bb_k=2.0):
     """신호 바로 i에서 시작하는 거래 하나를 끝까지 판정한다.
     (판단은 종가, 체결은 다음봉 시가 — 진입·2차·시간청산 전부 동일 규칙)
     보유 구간의 시가·저가 경로도 같이 담아 mtm 평가에 쓴다.
@@ -108,6 +115,11 @@ def resolve_trade(sym, o, h, l, c, dt, i, n, *, hold_bars=None,
         if l[bar] <= stop_active:
             exit_bar, exit_px, reason = bar, stop_active, "stop"
             break
+        # 볼린저 상단 목표 청산. bb_exit가 주어지면 상단에 닿는 순간 판다.
+        # 시간청산은 그때까지 안 닿았을 때의 한도로만 남는다.
+        if bb_exit is not None and not np.isnan(bb_exit[bar]) and h[bar] >= bb_exit[bar]:
+            exit_bar, exit_px, reason = bar, bb_exit[bar], "bb"
+            break
         if tranche == 1 and c[bar] <= trigger and bar + 1 < n:
             fill2_px = o[bar + 1]
             fill2_dt = dt[bar + 1]
@@ -130,7 +142,8 @@ def resolve_trade(sym, o, h, l, c, dt, i, n, *, hold_bars=None,
             "mae": (l[i + 1: exit_bar + 1].min() / entry_avg - 1) * 100}
 
 
-def build_all(*, hold_bars=None, trigger_pct=None, first_frac=None, entry_thresh=None):
+def build_all(*, hold_bars=None, trigger_pct=None, first_frac=None,
+              entry_thresh=None, bb_exit=False, bb_k=2.0):
     """기본 호출(인자 없음)은 실거래 봇과 정확히 같은 신호 집합을 낸다."""
     thresh = S.ENTRY_THRESH if entry_thresh is None else entry_thresh
     hold = S.HOLD_BARS if hold_bars is None else hold_bars
@@ -149,12 +162,14 @@ def build_all(*, hold_bars=None, trigger_pct=None, first_frac=None, entry_thresh
         n = len(g)
         ma = pd.Series(c).rolling(S.MA_PERIOD).mean().values
         vs = (c / ma - 1) * 100
+        bb = bb_upper(c, 20, bb_k) if bb_exit else None
         lock = -10**9
         for i in np.where(vs <= thresh)[0]:
             if i <= lock:
                 continue
             tr = resolve_trade(sym, o, h, l, c, dt, i, n, hold_bars=hold,
-                               trigger_pct=trigger_pct, first_frac=first_frac)
+                               trigger_pct=trigger_pct, first_frac=first_frac,
+                               bb_exit=bb, bb_k=bb_k)
             if tr is None:
                 continue
             lock = i + hold
