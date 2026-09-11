@@ -45,6 +45,7 @@ def run(trades, *, leverage=2.0, per_trade=0.05, max_gross=1.0,
         soft_cb=None,           # 이 낙폭부터 베팅을 줄인다 (2단계)
         soft_frac=0.5,          # 줄이는 비율
         taper=False,            # 낙폭에 비례해 연속적으로 줄인다
+        reserve_full=True,      # 노출 한도를 전체 물량으로 잡을 것인가
         ):
     """차단기 설계를 바꿔가며 돌릴 수 있는 시뮬레이터.
 
@@ -115,7 +116,13 @@ def run(trades, *, leverage=2.0, per_trade=0.05, max_gross=1.0,
 
         base = eq_mtm
         margin = per_trade * base * scale
-        full_notional = margin * leverage
+        # reserve_full=True면 2차·3차가 들어올 자리를 미리 비워둔다.
+        # 안전하지만, 2차가 끝내 안 걸리는 거래(전체의 47%)는 자리만
+        # 차지하고 자본은 30%만 쓴 셈이 되어 나머지가 논다.
+        # False면 실제 투입분만 잡는다 — 자본은 더 쓰지만, 2차가
+        # 한꺼번에 걸리면 의도한 동시보유 한도를 넘길 수 있다.
+        dep_now = t.get("deployed", 1.0)
+        full_notional = margin * leverage * (1.0 if reserve_full else dep_now)
         gross = sum(p.reserved for p in positions.values())
         if gross + full_notional > max_gross * leverage * base:
             continue
@@ -131,7 +138,9 @@ def run(trades, *, leverage=2.0, per_trade=0.05, max_gross=1.0,
         n_trades += 1
         wins += net > 0
         liqs += was_liq
-        positions[t["sym"]] = Pos(t, margin, leverage, liq_line, fee, realized)
+        pos = Pos(t, margin, leverage, liq_line, fee, realized)
+        pos.reserved = full_notional
+        positions[t["sym"]] = pos
 
     for p in positions.values():
         cash += p.realized
