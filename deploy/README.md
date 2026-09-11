@@ -9,6 +9,25 @@
 | VPS (해외 서버) | ✅ | 가장 현실적. 월 $4~6 |
 | 집 PC / 라즈베리파이 | ✅ | 무료. 24시간 켜둬야 한다 |
 
+### 거래소별 실측 (GitHub Actions 러너, 미국 IP)
+
+`scripts/exchange_probe.py`를 Actions에서 돌린 결과다.
+
+| 거래소 | 결과 |
+|---|---|
+| **Bybit** | ⛔ 403 — CloudFront 국가 차단 |
+| **Binance** | ⛔ 451 — 제한 지역 |
+| OKX · Bitget · Gate.io · MEXC | ✅ 200 |
+| KuCoin · Kraken · Upbit · Bithumb | ✅ 200 |
+| Binance 아카이브 (data.binance.vision) | ✅ 200 |
+
+**바이빗과 바이낸스만 미국 IP를 막는다.** 다른 거래소를 쓰면 Actions로
+굴릴 길이 있지만, 계정·KYC를 새로 만들어야 하고 거래소 API가 달라
+executor를 새로 짜야 한다.
+
+이 Claude 세션에서는 위 14개가 **전부** 막힌다(HTTP 000, 프록시 정책).
+거래소를 바꿔도 세션에서는 안 된다.
+
 ### GitHub Actions가 안 되는 이유 (실측)
 
 `collect_bybit_real.yml` 실행 기록에서 46/46 종목이 같은 오류로 실패했다:

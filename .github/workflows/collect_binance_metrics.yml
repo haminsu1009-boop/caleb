@@ -23,7 +23,16 @@ on:
         default: both
         options: [both, funding, metrics]
   schedule:
-    - cron: "40 3 * * *"    # 매일 03:40 UTC — 03:00/03:20 수집과 겹치지 않게
+    # 매일 → 매주 일요일. 이 지표들(펀딩비·미결제약정·고래/개미 롱숏)이
+    # 규칙을 전혀 개선하지 못한다는 것이 검증으로 확정됐다:
+    #   ml/funding_backtest.py    8개 필터 전부 자본곡선 악화
+    #   ml/whale_backtest.py      10개 필터 전부 악화, 상관 ±0.13 이내
+    #   ml/indicator_backtest.py  63개 필터 중 학습·홀드아웃 통과 0
+    # 기록 삼아 계속 모으되 매일 43개 잡을 돌릴 이유는 없다.
+    # (비공개 저장소로 전환하면 Actions 분이 과금 대상이 되는데,
+    #  이 워크플로 하나가 하루 86분을 쓴다 — 월 2,580분으로 무료
+    #  한도 2,000분을 혼자 넘긴다.)
+    - cron: "40 3 * * 0"    # 매주 일요일 03:40 UTC
 
 permissions:
   contents: write
