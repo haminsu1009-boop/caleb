@@ -40,18 +40,25 @@ API 키:
     접속 IP를 고정해라. 이 봇은 조회·주문 권한만 있으면 된다.
 
 안전장치 (모두 강제):
-    · 격리마진 필수        한 포지션이 터져도 계좌 전체가 날아가지 않는다
+    · 격리마진 필수        진입 직전에 종목별로 전환한다. 전환에 실패하면
+                          그 종목은 건너뛴다 — 교차마진으로는 안 들어간다
     · 일일 손실 한도       기본 자본의 5% — 넘으면 그날 신규 진입 중단
-    · 최대 낙폭 차단기     기본 25% — 넘으면 전량 청산 후 완전 정지
+    · 최대 낙폭 차단기     기본 25% — 신규 진입만 30일 중단, 보유분은 그대로
+                          두고 자동 재개한다. 전량 청산하지 않는다
     · 종목당 1포지션       중복 진입 금지
-    · 총 노출 상한         자본의 100% × 배율
+    · 총 노출 상한         자본의 80% × 배율
     · 상태 파일 저장       재시작해도 보유 봉수를 잃지 않는다
     · 시작 시 대조         거래소 실제 포지션과 상태 파일을 맞춘다
 
+차단기가 총낙폭을 25%로 묶어주지는 않는다:
+    발동할 때 고점을 현재 자본으로 다시 잡기 때문에 -25%가 겹쳐 쌓인다.
+    백테스트에서 8.8년 동안 5번 발동했고 누적 낙폭은 68.7%(장중 78.0%)
+    였다. 총노출 80% 제한이 그나마 이걸 묶는 장치다(ml/breaker_designs.py).
+
 시간 청산이라는 점이 중요하다:
-    이 규칙은 목표가에 파는 게 아니라 10봉 뒤에 판다. 봇이 죽어 있으면
-    청산이 안 된다. 그래서 상태를 파일에 남기고, 재시작하면 밀린 청산부터
-    처리한다.
+    이 규칙은 목표가에 파는 게 아니라 20봉(80시간) 뒤에 판다. 봇이 죽어
+    있으면 청산이 안 된다. 그래서 상태를 파일에 남기고, 재시작하면 밀린
+    청산부터 처리한다.
 
 사용법:
     python -m bot.oversold.executor                  # 모의 (기본)
@@ -219,6 +226,31 @@ class Exchange:
         except Exception as e:
             if "110043" not in str(e):        # 이미 같은 배율이면 무시
                 log.warning("%s 배율 설정 실패: %s", symbol, e)
+
+    def set_isolated(self, symbol: str, lev: float) -> bool:
+        """격리마진으로 전환한다.
+
+        문서에는 "격리마진 필수"라고 적혀 있었지만 실제로 설정하는
+        코드가 없었다. 교차마진이면 한 종목이 크게 틀어졌을 때 계좌
+        전체 증거금을 끌어다 쓰다가 다 같이 청산된다. 동시에 20종목을
+        드는 규칙에서 이건 치명적이다.
+
+        tradeMode=1 이 격리다. 이미 격리면 110026이 돌아오는데
+        그건 성공으로 친다. 실패하면 True를 돌려주지 않는다 —
+        호출부가 "설정했다"고 착각하면 안 된다.
+        """
+        if not self.live:
+            return True
+        try:
+            self.session.switch_margin_mode(
+                category="linear", symbol=symbol, tradeMode=1,
+                buyLeverage=str(lev), sellLeverage=str(lev))
+            return True
+        except Exception as e:
+            if "110026" in str(e):            # 이미 격리마진
+                return True
+            log.warning("%s 격리마진 전환 실패: %s", symbol, e)
+            return False
 
     def open_long(self, symbol: str, qty: float, stop: float) -> bool:
         if not self.live:
@@ -448,6 +480,9 @@ class Trader:
             log.info("🔔 신호 %s  종가 %.6g  20MA대비 %.1f%%  →  1차 진입 %.6g USDT (%.4g개)"
                      "  · 2차 트리거 %.6g", sym, sig.close, sig.vs_ma20, notional1, qty1, trigger)
             self.ex.set_leverage(sym, self.cfg.leverage)
+            if not self.ex.set_isolated(sym, self.cfg.leverage):
+                log.error("  %s 격리마진 전환 실패 — 진입을 건너뜁니다", sym)
+                continue
             if self.ex.open_long(sym, qty1, stop1):
                 positions[sym] = {"qty": qty1, "entry": price, "stop": stop1,
                                   "entry_bar": bar_time, "tranche": 1,
@@ -459,6 +494,45 @@ class Trader:
                 # 자리를 이미 잡아둔 것으로 본다.
                 gross += full_notional
                 save_state(self.st)
+
+
+def capital_check(ex, cfg, symbols) -> dict:
+    """이 자본으로 42종 중 몇 종을 실제로 거래할 수 있는가.
+
+    1차 진입액 = 자본 × per_trade × 배율 × 분할1차비율 이다.
+    기본값이면 자본의 3%뿐이라, 소액 계좌에서는 상당수 종목이
+    최소주문량에 못 미쳐 신호가 떠도 그냥 건너뛴다. 지금까지는
+    그 사실을 "신호가 떴을 때 로그 한 줄"로만 알 수 있었다 —
+    돈을 넣기 전에 알아야 하는 정보다.
+
+    거래 가능 종목이 줄면 백테스트와 다른 것을 굴리게 된다.
+    백테스트는 42종 전부에서 신호를 받았다.
+    """
+    eq = ex.equity()
+    notional1 = eq * cfg.per_trade * cfg.leverage * S.SCALE_IN_FIRST_FRAC
+    ok, bad, err, need = [], [], [], {}
+    for sym in symbols:
+        try:
+            spec = ex.spec(sym)
+            rows = ex.klines(sym, limit=2)
+            price = float(rows[-1][4])
+        except Exception:
+            # 조회 실패는 "거래 불가"와 다르다. 섞어 세면 네트워크가
+            # 잠깐 끊겼을 때 "0/42종 거래 가능"이라는 거짓 경보가 뜬다.
+            err.append(sym)
+            continue
+        min_notional = spec["min"] * price
+        if round_qty(notional1 / price, spec) > 0:
+            ok.append(sym)
+        else:
+            bad.append(sym)
+            need[sym] = min_notional
+    return {"equity": eq, "notional1": notional1, "ok": ok, "bad": bad,
+            "err": err, "need": need,
+            # 전 종목을 커버하려면 필요한 자본
+            "need_equity": (max(need.values()) /
+                            (cfg.per_trade * cfg.leverage * S.SCALE_IN_FIRST_FRAC)
+                            if need else 0.0)}
 
 
 def main():
@@ -489,12 +563,35 @@ def main():
         print(f"     배율 {cfg.leverage:g}x, 거래 1건의 전체 물량은 자본의 "
               f"{cfg.per_trade*100:.1f}%(최대 {int(1/cfg.per_trade)}건 동시), "
               f"그중 1차는 {cfg.per_trade*S.SCALE_IN_FIRST_FRAC*100:.1f}%만 즉시 나갑니다.")
-        print(f"     백테스트(1배, 20종동시, 분할매수) 최대낙폭은 계좌기준 29.7% / 장중기준 48.4%였고,")
-        print(f"     배율을 올리면 이보다 커집니다. 실제 체결은 백테스트보다 나쁠 수 있습니다.")
+        print(f"     백테스트(2배·총노출 80%·복리·왕복 0.40%) 8.8년 기준:")
+        print(f"       전체 135배 · 최대낙폭 68.7%(장중 78.0%) · 1년 구간 5번 중 1번은 손실")
+        print(f"       1년 구간 189개 중 -70% 이상 겪을 확률 13%")
+        print(f"     실제 체결은 백테스트보다 나쁠 수 있습니다.")
         if input("\n  계속하려면 START 입력: ").strip() != "START":
             print("  중단했습니다."); return
 
     ex = Exchange(live=a.live)
+
+    try:
+        cc = capital_check(ex, cfg, S.SYMBOLS)
+        print(f"\n  자본 {cc['equity']:,.2f} USDT · 1차 진입액 {cc['notional1']:,.2f} USDT"
+              f" (자본의 {cfg.per_trade*cfg.leverage*S.SCALE_IN_FIRST_FRAC*100:.1f}%)")
+        checked = len(cc["ok"]) + len(cc["bad"])
+        if checked == 0:
+            print(f"  ⚠️  종목 정보를 하나도 조회하지 못했습니다 "
+                  f"({len(cc['err'])}종 실패) — 거래소 연결을 확인하세요")
+        else:
+            print(f"  거래 가능 종목 {len(cc['ok'])}/{checked}종"
+                  + (f" (조회 실패 {len(cc['err'])}종)" if cc["err"] else ""))
+        if cc["bad"]:
+            print(f"  ⚠️  최소주문량 미달로 건너뛸 종목 {len(cc['bad'])}종: "
+                  f"{', '.join(cc['bad'][:8])}{' …' if len(cc['bad']) > 8 else ''}")
+            print(f"     42종 전부를 거래하려면 자본 약 {cc['need_equity']:,.0f} USDT 필요")
+            print(f"     (백테스트는 42종 전부에서 신호를 받았다 — 종목이 빠지면")
+            print(f"      검증한 것과 다른 것을 굴리게 된다)")
+    except Exception as e:
+        log.warning("자본 점검 실패: %s", e)
+
     tr = Trader(ex, cfg, dump=a.dump_candles)
     tr.reconcile()
 

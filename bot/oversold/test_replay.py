@@ -72,6 +72,12 @@ class FakeExchange:
     def set_leverage(self, symbol, lev):
         pass
 
+    def set_isolated(self, symbol, lev):
+        # 실거래에서는 여기서 실패하면 그 종목을 건너뛴다. 재생
+        # 테스트는 신호·수량·노출을 보는 것이라 항상 성공으로 둔다.
+        # (전환 실패 경로는 fail_isolated로 따로 시험한다)
+        return symbol not in getattr(self, "fail_isolated", set())
+
     def open_long(self, symbol, qty, stop):
         px = float(self.data[symbol][self.cursor][4])
         if symbol in self.pos:
