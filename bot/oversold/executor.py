@@ -212,9 +212,11 @@ class Exchange:
         out = {}
         for p in r["result"]["list"]:
             if float(p["size"]) > 0:
+                sl = p.get("stopLoss") or "0"
                 out[p["symbol"]] = {"size": float(p["size"]),
                                     "entry": float(p["avgPrice"]),
-                                    "side": p["side"]}
+                                    "side": p["side"],
+                                    "stop": float(sl) if sl not in ("", "0") else 0.0}
         return out
 
     def set_leverage(self, symbol: str, lev: float):
@@ -250,6 +252,30 @@ class Exchange:
             if "110026" in str(e):            # 이미 격리마진
                 return True
             log.warning("%s 격리마진 전환 실패: %s", symbol, e)
+            return False
+
+    def set_stop(self, symbol: str, stop: float) -> bool:
+        """포지션에 손절가를 (다시) 건다.
+
+        진입 주문에 stopLoss를 실어 보내지만, 그게 조용히 무시되거나
+        나중에 취소되는 경우가 있다. 손절이 없는 줄 모르고 도는 것이
+        이 봇에서 가장 크게 잃는 경로다 — -40%에서 끊기라고 설계한
+        포지션이 배율 2배 기준 -49.5%에서 강제청산될 때까지 간다.
+        그래서 매 점검마다 거래소 쪽 손절가를 읽어 확인하고,
+        비어 있으면 여기로 다시 건다.
+        """
+        if not self.live:
+            log.info("  [모의] 손절 재설정 %s → %.6g", symbol, stop)
+            return True
+        try:
+            self.session.set_trading_stop(
+                category="linear", symbol=symbol, positionIdx=0,
+                stopLoss=f"{stop:.10g}", slTriggerBy="LastPrice")
+            return True
+        except Exception as e:
+            if "34040" in str(e):        # 바꿀 내용이 없음 = 이미 같은 값
+                return True
+            log.error("  %s 손절 설정 실패: %s", symbol, e)
             return False
 
     def open_long(self, symbol: str, qty: float, stop: float) -> bool:
@@ -402,6 +428,38 @@ class Trader:
             p["tranche"] = 2
             save_state(self.st)
 
+    def _verify_stops(self, positions: dict) -> None:
+        """거래소에 손절이 실제로 걸려 있는지 매 점검마다 확인한다.
+
+        진입 주문에 stopLoss를 실어 보내지만 그게 무시되거나 나중에
+        취소되는 일이 있다. 손절이 없는 줄 모르고 도는 것이 이 봇에서
+        가장 크게 잃는 경로다 — -40%에서 끊기라고 설계한 포지션이
+        배율 2배 기준 -49.5% 강제청산까지 간다. 백테스트는 손절이
+        항상 걸려 있다고 가정하므로, 그 가정이 깨지면 검증한 것과
+        다른 것을 굴리는 셈이다.
+
+        0.5% 이상 어긋나면 다시 건다. 가격 소수점 반올림 때문에
+        완전히 같을 수는 없다.
+        """
+        if not positions:
+            return
+        try:
+            live_pos = self.ex.positions()
+        except Exception as e:
+            log.warning("포지션 조회 실패 — 손절 확인을 건너뜁니다: %s", e)
+            return
+        for sym, p in positions.items():
+            lp = live_pos.get(sym)
+            if lp is None:
+                continue                       # reconcile이 따로 처리한다
+            want = p["stop"]
+            have = lp.get("stop", 0.0)
+            if have > 0 and abs(have / want - 1) <= 0.005:
+                continue
+            log.error("  ⚠️ %s 손절이 %s (기대 %.6g) — 다시 겁니다",
+                      sym, f"{have:.6g}" if have > 0 else "없음", want)
+            self.ex.set_stop(sym, want)
+
     def tick(self):
         equity = self.ex.equity()
         can_enter = self._guard(equity)
@@ -417,6 +475,8 @@ class Trader:
         gross = sum(p["reserved"] for p in positions.values())
         log.info("자본 %.2f USDT · 보유 %d종목 · %s",
                  equity, len(positions), "진입 가능" if can_enter else "진입 중단")
+
+        self._verify_stops(positions)
 
         for sym in S.SYMBOLS:
             try:

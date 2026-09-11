@@ -66,8 +66,19 @@ class FakeExchange:
         return self._equity
 
     def positions(self):
-        return {k: {"size": v["size"], "entry": v["entry"], "side": "Buy"}
+        # 실제 거래소는 손절가도 함께 돌려준다. _verify_stops가 이걸
+        # 읽어 손절이 빠졌는지 본다. drop_stops에 넣은 심볼은 손절이
+        # 사라진 상황을 흉내낸다.
+        return {k: {"size": v["size"], "entry": v["entry"], "side": "Buy",
+                    "stop": 0.0 if k in getattr(self, "drop_stops", set())
+                            else v.get("stop", 0.0)}
                 for k, v in self.pos.items()}
+
+    def set_stop(self, symbol, stop):
+        if symbol in self.pos:
+            self.pos[symbol]["stop"] = stop
+            self.orders.append(("setstop", symbol, 0.0, stop, "재설정", self.cursor))
+        return True
 
     def set_leverage(self, symbol, lev):
         pass
@@ -260,6 +271,44 @@ def main():
     check("중간 재시작 후에도 보유 봉수를 정확히 유지",
           not bad2 and len(opens2) == len(opens),
           f"진입 {len(opens2)} · 어긋난 청산 {len(bad2)}")
+
+    # ── 손절이 거래소에서 사라지면 다시 거는가
+    # 진입 주문에 stopLoss를 실어 보내도 무시되거나 나중에 취소되는
+    # 일이 있다. 손절 없이 도는 것이 이 봇에서 가장 크게 잃는 경로다.
+    data = load(syms)
+    E.STATE_PATH = os.path.join(tmp, "s3.json")
+    if os.path.exists(E.STATE_PATH):
+        os.remove(E.STATE_PATH)
+    ex3 = FakeExchange(data)
+    cfg3 = E.Config()
+    cfg3.leverage, cfg3.per_trade, cfg3.max_gross = 3.0, 0.15, 1.0
+    cfg3.daily_loss, cfg3.max_drawdown = 1.0, 1.0
+    tr3 = E.Trader(ex3, cfg3)
+    n3 = min(len(v) for v in data.values())
+    dropped_once = False
+    for i in range(S.MA_PERIOD + 1, n3):
+        ex3.cursor = i
+        ex3.apply_stops()
+        for sym in list(tr3.st["positions"]):
+            if sym not in ex3.pos:
+                tr3.st["positions"].pop(sym)
+        # 포지션이 생기면 한 번 손절을 지워보고, 봇이 되살리는지 본다
+        if not dropped_once and tr3.st["positions"]:
+            ex3.drop_stops = set(tr3.st["positions"])
+            dropped_once = True
+        tr3.tick()
+        if dropped_once and getattr(ex3, "drop_stops", None):
+            ex3.drop_stops = set()          # 한 번만 지운다
+    resets = [o for o in ex3.orders if o[0] == "setstop"]
+    check("손절이 사라지면 다시 건다", dropped_once and len(resets) > 0,
+          f"재설정 {len(resets)}회")
+    if resets:
+        bad_stop = [o for o in resets
+                    if abs(o[3] / (ex3.pos.get(o[1], {}).get("entry", o[3])
+                                   * (1 + S.STOP_PCT / 100)) - 1) > 0.05
+                    and o[1] in ex3.pos]
+        check("다시 건 손절가가 평단 기준으로 맞다", not bad_stop,
+              f"어긋난 건수 {len(bad_stop)}")
 
     # 상태 파일이 유효한 JSON인가
     st = info["state"]
