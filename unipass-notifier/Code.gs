@@ -13,13 +13,68 @@ var CONFIG = {
 var UNIPASS_URL = 'https://unipass.customs.go.kr:38010/ext/rest/cargCsclPrgsInfoQry/retrieveCargCsclPrgsInfo';
 
 // =====================================================================
+// 초대 코드 시스템
+// =====================================================================
+function getInviteCodes_() {
+  var raw = PropertiesService.getScriptProperties().getProperty('INVITE_CODES');
+  return raw ? JSON.parse(raw) : {};
+}
+
+function saveInviteCodes_(codes) {
+  PropertiesService.getScriptProperties().setProperty('INVITE_CODES', JSON.stringify(codes));
+}
+
+function issueInviteCode(code, label) {
+  if (!code) return;
+  var codes = getInviteCodes_();
+  codes[String(code).toUpperCase()] = { label: label || '', used: false, usedBy: null };
+  saveInviteCodes_(codes);
+  Logger.log('발급 완료: ' + code + ' (' + (label || '') + ')');
+}
+
+function verifyAndUseInviteCode(code, userId) {
+  if (!code) return { success: false, message: '초대 코드를 입력하세요.' };
+  var codes = getInviteCodes_();
+  var entry = codes[String(code).trim().toUpperCase()];
+  if (!entry) return { success: false, message: '존재하지 않는 초대 코드입니다.' };
+  if (entry.used) return { success: false, message: '이미 사용된 초대 코드입니다.' };
+  entry.used = true;
+  entry.usedBy = userId || 'unknown';
+  codes[String(code).trim().toUpperCase()] = entry;
+  saveInviteCodes_(codes);
+  return { success: true };
+}
+
+// 초대 코드 목록 조회 (관리자용)
+function listInviteCodes() {
+  var codes = getInviteCodes_();
+  var result = [];
+  for (var k in codes) {
+    result.push({ code: k, label: codes[k].label, used: codes[k].used, usedBy: codes[k].usedBy });
+  }
+  Logger.log(JSON.stringify(result, null, 2));
+  return result;
+}
+
+// 초대 코드 일괄 발급 (Apps Script 에디터에서 직접 실행)
+function 코드발급() {
+  issueInviteCode('HAMIN2026', '하민수');
+  issueInviteCode('EUNJAE2026', '김은재');
+  issueInviteCode('BOSEOK2026', '손보석');
+  issueInviteCode('CHUL2026', '장철훈');
+  Logger.log('초대 코드 발급 완료');
+}
+
+// =====================================================================
 // 웹앱 진입점
 // =====================================================================
 function doGet(e) {
-  // 카카오 OAuth 리다이렉트 처리
+  // 카카오 OAuth 리다이렉트 처리 - localStorage에 코드 저장 후 창 닫기
   if (e && e.parameter && e.parameter.code) {
     var code = e.parameter.code;
-    var html = '<script>if(window.opener){window.opener.postMessage({kakaoCode:"' + code + '"},"*");}window.close();</script><p>로그인 완료! 창을 닫아주세요.</p>';
+    var html = '<!DOCTYPE html><html><body><p>로그인 완료! 잠시 기다리세요...</p>'
+      + '<script>try{localStorage.setItem("kakaoCode","' + code + '");}catch(ex){}'
+      + 'setTimeout(function(){window.close();},500);</script></body></html>';
     return HtmlService.createHtmlOutput(html);
   }
   return HtmlService.createHtmlOutputFromFile('Index')
@@ -394,9 +449,10 @@ function sendTelegram_(chatId, text) {
 // 카카오 나에게 보내기
 // =====================================================================
 function getKakaoOAuthUrl() {
+  var redirectUri = ScriptApp.getService().getUrl();
   return 'https://kauth.kakao.com/oauth/authorize'
     + '?client_id=' + CONFIG.KAKAO_REST_API_KEY
-    + '&redirect_uri=https://script.google.com/macros/s/AKfycbx2UjYtt4r0qpJ4o4uXlUKKBnelEVh5CRCv3Pn3va7e6kJOyqj9GNpwMj02UIaUaBTe/exec'
+    + '&redirect_uri=' + encodeURIComponent(redirectUri)
     + '&response_type=code&scope=talk_message';
 }
 
@@ -407,12 +463,13 @@ function loginWithKakao(code) {
 
 // 기존 userId에 카카오 연결 (또는 신규 카카오 로그인)
 function linkKakaoToUser(existingUserId, code) {
+  var redirectUri = ScriptApp.getService().getUrl();
   var resp = UrlFetchApp.fetch('https://kauth.kakao.com/oauth/token', {
     method: 'post',
     payload: {
       grant_type: 'authorization_code',
       client_id: CONFIG.KAKAO_REST_API_KEY,
-      redirect_uri: 'https://script.google.com/macros/s/AKfycbx2UjYtt4r0qpJ4o4uXlUKKBnelEVh5CRCv3Pn3va7e6kJOyqj9GNpwMj02UIaUaBTe/exec',
+      redirect_uri: redirectUri,
       code: code
     },
     muteHttpExceptions: true

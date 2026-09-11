@@ -310,13 +310,7 @@ select { cursor: pointer; }
 /* ── Right sidebar panels ── */
 .sidebar { display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
 
-/* ── Kakao status ── */
-.status-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-}
+/* ── Status badges ── */
 .badge {
   font-size: 0.7rem;
   font-weight: 600;
@@ -326,23 +320,6 @@ select { cursor: pointer; }
 .badge-on { background: var(--success-light); color: var(--success); }
 .badge-off { background: var(--danger-light); color: var(--danger); }
 
-.kakao-steps {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 8px 10px;
-  margin-bottom: 8px;
-  font-size: 0.74rem;
-  color: var(--text-2);
-  line-height: 1.8;
-}
-.kakao-steps code {
-  background: var(--border);
-  padding: 0 3px;
-  border-radius: 3px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.7rem;
-}
 .kakao-input-row {
   display: flex;
   gap: 6px;
@@ -389,6 +366,24 @@ select { cursor: pointer; }
 .field + .field { margin-top: 12px; }
 .hint { font-size: 0.71rem; color: var(--text-3); margin-top: 3px; }
 
+/* ── Divider ── */
+.or-divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+}
+.or-divider::before, .or-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.or-divider span {
+  font-size: 0.72rem;
+  color: var(--text-3);
+}
+
 /* ── Responsive ── */
 @media (max-width: 640px) {
   .columns { grid-template-columns: 1fr; grid-template-rows: auto auto; }
@@ -399,39 +394,44 @@ select { cursor: pointer; }
 </head>
 <body>
 
-<!-- Setup -->
+<!-- Setup Screen -->
 <div id="setupScreen" class="setup-wrap" style="display:none;">
   <div class="setup-box">
     <div class="logo">📦</div>
     <h2>유니패스 통관 알림</h2>
-    <p style="margin-bottom:16px;">알림 받을 방법을 선택하세요. 하나 또는 둘 다 연결할 수 있어요.</p>
+    <p>시작하려면 초대 코드와 알림 방법을 선택하세요.</p>
 
-    <!-- Kakao -->
-    <button class="btn btn-kakao btn-full" style="font-size:0.88rem;padding:11px;" onclick="startKakaoLogin()">
-      💬 카카오톡으로 시작
-    </button>
-
-    <div style="display:flex;align-items:center;gap:8px;margin:12px 0;">
-      <div style="flex:1;height:1px;background:var(--border);"></div>
-      <span style="font-size:0.72rem;color:var(--text-3);">또는</span>
-      <div style="flex:1;height:1px;background:var(--border);"></div>
-    </div>
-
-    <!-- Telegram -->
+    <!-- 초대 코드 -->
     <div class="field">
-      <label class="field-label">✈️ 텔레그램 Chat ID</label>
-      <input type="text" id="setupChatId" placeholder="예: 8624472047" inputmode="numeric">
-      <div class="hint"><a href="https://t.me/userinfobot" target="_blank" style="color:var(--accent);text-decoration:none;">@userinfobot</a>에 /start 보내면 확인할 수 있어요.</div>
+      <label class="field-label">🔑 초대 코드</label>
+      <input type="text" id="inviteCodeInput" placeholder="초대 코드 입력 (예: HAMIN2026)" style="text-transform:uppercase;letter-spacing:0.05em;">
     </div>
-    <button class="btn btn-primary btn-full" style="margin-top:10px;" onclick="setupWithTelegram()">✈️ 텔레그램으로 시작</button>
+
+    <div style="margin-top:16px;">
+      <!-- 카카오로 시작 -->
+      <button class="btn btn-kakao btn-full" style="font-size:0.88rem;padding:11px;" onclick="startKakaoLogin()">
+        💬 카카오로 시작
+      </button>
+
+      <div class="or-divider"><span>또는</span></div>
+
+      <!-- 텔레그램으로 시작 -->
+      <div class="field">
+        <label class="field-label">✈️ 텔레그램 Chat ID</label>
+        <input type="text" id="setupChatId" placeholder="예: 8624472047" inputmode="numeric">
+        <div class="hint"><a href="https://t.me/userinfobot" target="_blank">@userinfobot</a>에 /start 보내면 확인할 수 있어요.</div>
+      </div>
+      <button class="btn btn-primary btn-full" style="margin-top:8px;" onclick="setupWithTelegram()">✈️ 텔레그램으로 시작</button>
+    </div>
 
     <div id="setupLoading" style="display:none;text-align:center;margin-top:14px;font-size:0.8rem;color:var(--text-3);">
-      로그인 처리 중...
+      ⏳ 로그인 처리 중...
     </div>
+    <div id="setupError" style="display:none;margin-top:10px;padding:8px 10px;background:var(--danger-light);color:var(--danger);border-radius:6px;font-size:0.78rem;"></div>
   </div>
 </div>
 
-<!-- Main -->
+<!-- Main App -->
 <div id="mainScreen" class="app" style="display:none;">
   <header>
     <span class="logo-icon">📦</span>
@@ -558,54 +558,65 @@ select { cursor: pointer; }
 <script>
 var userId = '';
 var kakaoAuthUrl = '';
+var pollTimer = null;
 
 function init() {
   userId = localStorage.getItem('userId') || '';
-  if (!userId) {
+  var invited = localStorage.getItem('invited') || '';
+
+  if (userId && invited) {
+    showMain();
+  } else {
     document.getElementById('setupScreen').style.display = 'flex';
-    // 카카오 OAuth URL 미리 로드
     google.script.run
       .withSuccessHandler(function(url) { kakaoAuthUrl = url; })
       .getKakaoOAuthUrl();
-  } else {
-    showMain();
   }
 
-  // 카카오 리다이렉트 코드 수신 (팝업 → 메인)
-  window.addEventListener('message', function(e) {
-    if (e.data && e.data.kakaoCode) {
-      handleKakaoCode(e.data.kakaoCode);
+  // localStorage 폴링: 카카오 팝업이 code를 써놓으면 감지
+  pollTimer = setInterval(function() {
+    var code = localStorage.getItem('kakaoCode');
+    if (code) {
+      localStorage.removeItem('kakaoCode');
+      handleKakaoCode(code);
     }
-  });
+  }, 500);
 }
 
-function setupWithTelegram() {
-  var id = document.getElementById('setupChatId').value.trim();
-  if (!id || isNaN(id)) { showToast('올바른 Chat ID를 입력하세요.'); return; }
-  userId = id;
-  localStorage.setItem('userId', userId);
-  // 텔레그램 Chat ID를 user data에도 저장
-  google.script.run
-    .withSuccessHandler(function() { showMain(); })
-    .withFailureHandler(function() { showMain(); }) // 실패해도 로컬은 저장됨
-    .setTelegramChatId(userId, userId);
+function getInviteCode() {
+  var el = document.getElementById('inviteCodeInput');
+  if (!el) return '';
+  return el.value.trim().toUpperCase();
+}
+
+function showSetupError(msg) {
+  var el = document.getElementById('setupError');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = msg ? 'block' : 'none';
 }
 
 function startKakaoLogin() {
-  openKakaoPopup();
+  showSetupError('');
+  var code = getInviteCode();
+  if (!code) { showSetupError('초대 코드를 입력하세요.'); return; }
+
+  if (!kakaoAuthUrl) {
+    showSetupError('잠시 후 다시 시도하세요.');
+    google.script.run
+      .withSuccessHandler(function(url) { kakaoAuthUrl = url; })
+      .getKakaoOAuthUrl();
+    return;
+  }
+  window.open(kakaoAuthUrl, 'kakaoLogin', 'width=500,height=600');
   document.getElementById('setupLoading').style.display = 'block';
 }
 
 function startKakaoLink() {
-  // 메인화면에서 카카오 추가 연결
-  openKakaoPopup();
-}
-
-function openKakaoPopup() {
+  // 메인화면에서 카카오 추가 연결 (초대 코드 불필요)
   if (!kakaoAuthUrl) {
-    showToast('잠시 후 다시 시도하세요.');
     google.script.run
-      .withSuccessHandler(function(url) { kakaoAuthUrl = url; })
+      .withSuccessHandler(function(url) { kakaoAuthUrl = url; window.open(url, 'kakaoLogin', 'width=500,height=600'); })
       .getKakaoOAuthUrl();
     return;
   }
@@ -613,36 +624,110 @@ function openKakaoPopup() {
 }
 
 function handleKakaoCode(code) {
-  var isSetup = !userId; // 처음 로그인인지 여부
+  var isSetup = !localStorage.getItem('invited'); // 아직 입장 안 한 상태
   var loadingEl = document.getElementById('setupLoading');
   if (loadingEl) loadingEl.style.display = 'block';
+  showSetupError('');
 
-  google.script.run
-    .withSuccessHandler(function(r) {
+  if (isSetup) {
+    // 설정 화면: 초대 코드 확인 후 카카오 로그인
+    var inviteCode = getInviteCode();
+    if (!inviteCode) {
       if (loadingEl) loadingEl.style.display = 'none';
-      if (r.success) {
-        if (isSetup) {
-          // 설정 화면: 카카오 ID로 로그인
-          userId = r.userId;
-          localStorage.setItem('userId', userId);
-          localStorage.setItem('kakaoNickname', r.nickname || '');
-          showMain();
-        } else {
-          // 메인 화면: 기존 계정에 카카오 추가 연결
-          // 카카오 토큰이 userId 기준으로 저장됨 (loginWithKakao가 K{kakaoId}로 저장)
-          // 현재 userId의 데이터에 kakaoToken 복사 필요 → 서버에서 처리
+      showSetupError('초대 코드를 먼저 입력하세요.');
+      return;
+    }
+    // 1. 초대 코드 검증 (임시 userId로 KAKAO_PENDING 사용)
+    google.script.run
+      .withSuccessHandler(function(vResult) {
+        if (!vResult.success) {
+          if (loadingEl) loadingEl.style.display = 'none';
+          showSetupError(vResult.message || '초대 코드 오류');
+          return;
+        }
+        // 2. 카카오 연결 (userId 없이 넘기면 서버가 K{kakaoId}로 생성)
+        google.script.run
+          .withSuccessHandler(function(r) {
+            if (loadingEl) loadingEl.style.display = 'none';
+            if (r.success) {
+              userId = r.userId;
+              localStorage.setItem('userId', userId);
+              localStorage.setItem('invited', '1');
+              localStorage.setItem('kakaoNickname', r.nickname || '');
+              showMain();
+            } else {
+              showSetupError('카카오 연결 실패: ' + (r.message || ''));
+            }
+          })
+          .withFailureHandler(function(e) {
+            if (loadingEl) loadingEl.style.display = 'none';
+            showSetupError('오류: ' + (e.message || e));
+          })
+          .linkKakaoToUser('', code);
+      })
+      .withFailureHandler(function(e) {
+        if (loadingEl) loadingEl.style.display = 'none';
+        showSetupError('오류: ' + (e.message || e));
+      })
+      .verifyAndUseInviteCode(inviteCode, 'KAKAO_PENDING');
+  } else {
+    // 메인화면: 기존 계정에 카카오 추가 연결
+    google.script.run
+      .withSuccessHandler(function(r) {
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (r.success) {
           showToast('카카오 연결됨! ✅');
           loadUserInfo();
+        } else {
+          showToast('카카오 연결 실패: ' + (r.message || ''));
         }
-      } else {
-        showToast('카카오 연결 실패: ' + r.message);
+      })
+      .withFailureHandler(function(e) {
+        if (loadingEl) loadingEl.style.display = 'none';
+        showToast('오류: ' + (e.message || e));
+      })
+      .linkKakaoToUser(userId, code);
+  }
+}
+
+function setupWithTelegram() {
+  showSetupError('');
+  var inviteCode = getInviteCode();
+  if (!inviteCode) { showSetupError('초대 코드를 입력하세요.'); return; }
+  var chatId = document.getElementById('setupChatId').value.trim();
+  if (!chatId || isNaN(chatId)) { showSetupError('올바른 Chat ID를 입력하세요.'); return; }
+
+  document.getElementById('setupLoading').style.display = 'block';
+
+  google.script.run
+    .withSuccessHandler(function(vResult) {
+      if (!vResult.success) {
+        document.getElementById('setupLoading').style.display = 'none';
+        showSetupError(vResult.message || '초대 코드 오류');
+        return;
       }
+      userId = chatId;
+      google.script.run
+        .withSuccessHandler(function() {
+          localStorage.setItem('userId', userId);
+          localStorage.setItem('invited', '1');
+          document.getElementById('setupLoading').style.display = 'none';
+          showMain();
+        })
+        .withFailureHandler(function() {
+          // 실패해도 로컬은 저장
+          localStorage.setItem('userId', userId);
+          localStorage.setItem('invited', '1');
+          document.getElementById('setupLoading').style.display = 'none';
+          showMain();
+        })
+        .setTelegramChatId(chatId, chatId);
     })
     .withFailureHandler(function(e) {
-      if (loadingEl) loadingEl.style.display = 'none';
-      showToast('오류: ' + e.message);
+      document.getElementById('setupLoading').style.display = 'none';
+      showSetupError('오류: ' + (e.message || e));
     })
-    .linkKakaoToUser(userId, code);
+    .verifyAndUseInviteCode(inviteCode, chatId);
 }
 
 function showMain() {
@@ -650,6 +735,12 @@ function showMain() {
   document.getElementById('mainScreen').style.display = 'grid';
   var nickname = localStorage.getItem('kakaoNickname') || userId;
   document.getElementById('nicknameDisplay').textContent = nickname;
+  // 카카오 OAuth URL 미리 로드 (메인화면에서 연결할 때 사용)
+  if (!kakaoAuthUrl) {
+    google.script.run
+      .withSuccessHandler(function(url) { kakaoAuthUrl = url; })
+      .getKakaoOAuthUrl();
+  }
   loadUserInfo();
 }
 
@@ -723,7 +814,7 @@ function linkTelegram() {
   var chatId = document.getElementById('telegramChatIdInput').value.trim();
   if (!chatId || isNaN(chatId)) { showToast('올바른 Chat ID를 입력하세요.'); return; }
   google.script.run
-    .withSuccessHandler(function(r) {
+    .withSuccessHandler(function() {
       showToast('텔레그램 연결됨!');
       document.getElementById('telegramChatIdInput').value = '';
       loadUserInfo();
@@ -808,6 +899,7 @@ function changeInterval(blNo, val) {
 function logout() {
   if (!confirm('로그아웃할까요?')) return;
   localStorage.removeItem('userId');
+  localStorage.removeItem('invited');
   localStorage.removeItem('kakaoNickname');
   location.reload();
 }
