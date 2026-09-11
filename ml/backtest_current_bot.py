@@ -134,8 +134,12 @@ def resolve_trade(sym, o, h, l, c, dt, i, n, *, hold_bars=None,
         reason = "time"
 
     seg = slice(i + 1, exit_bar + 1)
+    # ⚠️ 실제로 자본의 몇 %가 나갔는지. 2차가 안 걸리면 1차분(기본 30%)만
+    # 나간 것이다. 이걸 기록하지 않으면 simulate가 전체 물량이 나간 것처럼
+    # 손익을 계산해, 2차 미체결 거래(전체의 47.5%)를 3.3배 부풀린다.
+    deployed = frac if tranche == 1 else 1.0
     return {"sym": sym, "dt": dt[i], "entry_bar": i + 1, "e1": e1,
-            "entry_avg": entry_avg, "tranche": tranche,
+            "entry_avg": entry_avg, "tranche": tranche, "deployed": deployed,
             "fill2_dt": fill2_dt, "fill2_px": fill2_px, "fill2_bar": fill2_bar,
             "exit_dt": dt[exit_bar], "exit_bar": exit_bar, "exit_px": exit_px,
             "reason": reason, "path_dt": dt[seg], "path_o": o[seg], "path_l": l[seg],
@@ -180,11 +184,18 @@ def build_all(*, hold_bars=None, trigger_pct=None, first_frac=None,
 class Pos:
     """평가손익을 실제 보유 경로(시가·저가)로 매 시점 다시 계산한다."""
     __slots__ = ("sym", "entry_avg", "reserved", "margin", "lev", "exit_dt",
-                 "path_dt", "path_o", "path_l", "liq_line", "fee", "realized")
+                 "path_dt", "path_o", "path_l", "liq_line", "fee", "realized", "dep")
+
+    __slots_extra__ = ("dep",)
 
     def __init__(self, t, margin, lev, liq_line, fee, realized):
         self.sym = t["sym"]; self.entry_avg = t["entry_avg"]
-        self.reserved = margin * lev; self.margin = margin; self.lev = lev
+        # 노출 한도는 여전히 "예약액"(1차+2차 전체) 기준이다 — 2차가
+        # 걸릴 자리를 비워둬야 하기 때문이다. 반면 평가손익은 실제로
+        # 나간 물량에만 붙는다. 둘은 다른 개념이다.
+        self.reserved = margin * lev
+        self.dep = t.get("deployed", 1.0)
+        self.margin = margin * self.dep; self.lev = lev
         self.exit_dt = t["exit_dt"]; self.path_dt = t["path_dt"]
         self.path_o = t["path_o"]; self.path_l = t["path_l"]
         self.liq_line = liq_line; self.fee = fee; self.realized = realized
@@ -297,7 +308,10 @@ def simulate(trades, leverage, per_trade, max_gross, cb, cool_days, min_equity,
         held_h = (t["exit_bar"] - t["entry_bar"]) * BAR_HOURS
         fee = ROUND_TRIP + FUNDING_PER_8H * (held_h / 8.0)
         net = px_ret - fee
-        realized = max(margin * leverage * net / 100, -margin)
+        # 실제 나간 물량만큼만 손익이 난다. deployed가 없는 (구버전
+        # 호출이 만든) 거래는 1.0으로 본다.
+        dep = t.get("deployed", 1.0)
+        realized = max(margin * dep * leverage * net / 100, -margin * dep)
         n_trades += 1
         wins += net > 0
         liqs += was_liq

@@ -125,7 +125,9 @@ def run(trades, *, leverage=2.0, per_trade=0.05, max_gross=1.0,
         held_h = (t["exit_bar"] - t["entry_bar"]) * BAR_HOURS
         fee = ROUND_TRIP + FUNDING_PER_8H * (held_h / 8.0)
         net = px_ret - fee
-        realized = max(margin * leverage * net / 100, -margin)
+        # 실제 나간 물량만큼만 손익이 난다 (ml/backtest_current_bot.py 참고)
+        dep = t.get("deployed", 1.0)
+        realized = max(margin * dep * leverage * net / 100, -margin * dep)
         n_trades += 1
         wins += net > 0
         liqs += was_liq
