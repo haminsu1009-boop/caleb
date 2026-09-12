@@ -13,7 +13,13 @@ ml/report.py
   과매도 롱    4시간봉  20기간선 대비 −12.26% 이하 → 분할 진입 → 볼린저 상단/20봉
   주봉 숏      주봉     MA60주 이탈 + 4연속 음봉 → 4주 보유
   상승 다이버   일봉     저점 낮아지는데 RSI 높아짐(격차 ≥8p) → 10일 보유
-  돌파 롱      일봉     시장 200일선 위 + 100일 신고가 → 40일 보유
+
+돌파 롱(일봉·신고가)은 뺐다. 장부를 펼쳐보니 승률 56%로 넷 중
+꼴찌였고, 평균 29.91%인데 중앙값은 5.56% — 몇 건이 크게 터뜨려
+평균을 올린 것이고 보통은 5%다. 최악은 −99.9%로 40일 안에 코인이
+전멸한 건이다. 자본 보존과 승률을 앞에 두면 빠지는 게 맞다.
+연구 기록은 ml/bull_breakout.py 에 남아 있고 --with-break 로
+다시 볼 수 있다.
 
 쓰는 법:
   python ml/report.py                  최근 40건 + 전략별 요약
@@ -22,6 +28,7 @@ ml/report.py
   python ml/report.py --kind short     전략 하나만
   python ml/report.py --year 2025      연도별
   python ml/report.py --open           지금이라면 열려 있을 포지션
+  python ml/report.py --with-break     뺀 돌파 모듈까지 포함해서 비교
   python ml/report.py --csv out.csv    파일로
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
@@ -47,12 +54,12 @@ KINDS = {
     "break": ("돌파 롱",   "일봉",    "시장 200일선 위 + 100일 신고가 → 40일 보유"),
 }
 
-# 승인된 설정 — 자본 보존 우선. ml/max_return_grid.py 의 근거를 따른다.
-PER_TRADE = {"long": .02, "short": .30, "div": .30, "break": .04}
+# 운용 설정 — 자본 보존 우선. 돌파는 빠졌으므로 배분 대상이 아니다.
+PER_TRADE = {"long": .02, "short": .30, "div": .30}
 LEVERAGE = {"long": 2., "short": 1., "div": 1., "break": 1.}
 
 
-def ledger(with_break=True) -> pd.DataFrame:
+def ledger(with_break=False) -> pd.DataFrame:
     """모든 신호를 한 장부로. 자본 배분 전, 신호 그 자체의 성적이다."""
     syms = [s for s in S.SYMBOLS if os.path.exists(f"data/{s}_1d_all.csv.gz")]
     D = {s: SS.load_daily(s) for s in syms}
@@ -120,12 +127,13 @@ def main():
     ap.add_argument("--kind", choices=list(KINDS), help="전략 하나만")
     ap.add_argument("--year", type=int, help="연도 하나만")
     ap.add_argument("--open", action="store_true", help="지금이라면 열려 있을 포지션")
-    ap.add_argument("--no-break", action="store_true", help="돌파 모듈 빼고")
+    ap.add_argument("--with-break", action="store_true",
+                    help="뺀 돌파 모듈까지 포함 (비교용)")
     ap.add_argument("--csv", help="CSV로 저장")
     ap.add_argument("-n", type=int, default=40, help="최근 몇 건 (기본 40)")
     a = ap.parse_args()
 
-    df = ledger(with_break=not a.no_break)
+    df = ledger(with_break=a.with_break)
     label = []
     if a.sym:
         df = df[df["코인"] == a.sym.upper()]; label.append(a.sym.upper())
