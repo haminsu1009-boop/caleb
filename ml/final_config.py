@@ -35,11 +35,15 @@ import ml.short_setups as SS
 KW = dict(leverage=2.0, per_trade=0.05, max_gross=0.8)
 
 
-def build(fracs, step=-5.0, hold=S.HOLD_BARS, bb=False, bb_k=2.0):
-    """4시간봉 · 이평 -12.26% 진입 · 다단 분할 · (선택) 볼린저 상단 청산."""
+def build(fracs, step=-5.0, hold=S.HOLD_BARS, bb=False, bb_k=2.0, symbols=None):
+    """4시간봉 · 이평 -12.26% 진입 · 다단 분할 · (선택) 볼린저 상단 청산.
+
+    symbols를 주면 그 목록만 쓴다 — 생존편향 분석에서 상장폐지 종목을
+    넣고 빼며 비교하려면 필요하다(ml/survivorship.py).
+    """
     nt = len(fracs)
     out = []
-    for sym in S.SYMBOLS:
+    for sym in (symbols if symbols is not None else S.SYMBOLS):
         g = load(sym)
         if g is None:
             continue
