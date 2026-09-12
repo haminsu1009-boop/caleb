@@ -100,7 +100,7 @@ class Config:
         # 1차는 이 중 SCALE_IN_FIRST_FRAC(30%)만 즉시 나간다. 0.05 =
         # 최대 20종목 동시 보유, ml/scale_in_portfolio.py --all46의
         # 검증값과 동일하다.
-        self.per_trade     = float(os.getenv("OS_PER_TRADE",      "0.05"))
+        self.per_trade     = float(os.getenv("OS_PER_TRADE",      "0.015"))
         # 1.0 → 0.8. ml/breaker_designs.py 참고.
         # 총노출 100%에서는 1년 창 189개 중 13%에서 장중 낙폭이
         # -90%를 넘는다. -25% 차단기가 그걸 못 막는 이유는 발동할 때
@@ -116,9 +116,9 @@ class Config:
         #   총노출  80%  전체 179.2배  홀드  9.94배  중앙낙폭 37%  -90%  0%
         # 전체 수익과 1년 중앙값(1.53→1.62배)은 오히려 올라간다.
         # 대가는 홀드아웃 13.68 → 9.94배다.
-        self.max_gross     = float(os.getenv("OS_MAX_GROSS",      "0.8"))
+        self.max_gross     = float(os.getenv("OS_MAX_GROSS",      "0.6"))
         self.daily_loss    = float(os.getenv("OS_DAILY_LOSS",     "0.05"))
-        self.max_drawdown  = float(os.getenv("OS_MAX_DRAWDOWN",   "0.25"))
+        self.max_drawdown  = float(os.getenv("OS_MAX_DRAWDOWN",   "0.20"))
         # 백테스트(ml/sim_correct.py, ml/path_to_100x.py)가 검증한 차단기는
         # 영구 정지가 아니라 "30일간 신규진입만 중단, 그 뒤 자동 재개"다.
         # 이걸 영구 정지로 바꾸면 낙폭은 그대로 낮아지지만 100배 도달
@@ -129,7 +129,7 @@ class Config:
         self.poll_seconds  = int(os.getenv("OS_POLL_SECONDS",     "300"))
 
     def describe(self) -> str:
-        return (f"배율 {self.leverage:g}x · 거래당 전체물량 {self.per_trade*100:.0f}% · "
+        return (f"배율 {self.leverage:g}x · 거래당 전체물량 {self.per_trade*100:.1f}% · "
                 f"총노출 상한 {self.max_gross*100:.0f}%×배율 · "
                 f"일일손실 {self.daily_loss*100:.0f}% · "
                 f"낙폭차단 {self.max_drawdown*100:.0f}%({self.halt_cooldown_days:.0f}일 재개)")
@@ -214,10 +214,12 @@ class Exchange:
         for p in r["result"]["list"]:
             if float(p["size"]) > 0:
                 sl = p.get("stopLoss") or "0"
+                tp = p.get("takeProfit") or "0"
                 out[p["symbol"]] = {"size": float(p["size"]),
                                     "entry": float(p["avgPrice"]),
                                     "side": p["side"],
-                                    "stop": float(sl) if sl not in ("", "0") else 0.0}
+                                    "stop": float(sl) if sl not in ("", "0") else 0.0,
+                                    "tp": float(tp) if tp not in ("", "0") else 0.0}
         return out
 
     def set_leverage(self, symbol: str, lev: float):
@@ -255,7 +257,8 @@ class Exchange:
             log.warning("%s 격리마진 전환 실패: %s", symbol, e)
             return False
 
-    def set_stop(self, symbol: str, stop: float) -> bool:
+    def set_stop(self, symbol: str, stop: float,
+                 take_profit: float | None = None) -> bool:
         """포지션에 손절가를 (다시) 건다.
 
         진입 주문에 stopLoss를 실어 보내지만, 그게 조용히 무시되거나
@@ -266,12 +269,20 @@ class Exchange:
         비어 있으면 여기로 다시 건다.
         """
         if not self.live:
-            log.info("  [모의] 손절 재설정 %s → %.6g", symbol, stop)
+            log.info("  [모의] 손절 재설정 %s → %.6g%s", symbol, stop,
+                     f" · 익절 {take_profit:.6g}" if take_profit else "")
             return True
         try:
+            kw = {}
+            if take_profit is not None:
+                # 볼린저 상단에 지정가로 걸어둔다. 시장가로 받으면
+                # 백테스트가 가정한 체결가(상단 가격)와 어긋난다.
+                kw = {"takeProfit": f"{take_profit:.10g}",
+                      "tpTriggerBy": "LastPrice", "tpslMode": "Full",
+                      "tpOrderType": "Limit", "tpLimitPrice": f"{take_profit:.10g}"}
             self.session.set_trading_stop(
                 category="linear", symbol=symbol, positionIdx=0,
-                stopLoss=f"{stop:.10g}", slTriggerBy="LastPrice")
+                stopLoss=f"{stop:.10g}", slTriggerBy="LastPrice", **kw)
             return True
         except Exception as e:
             if "34040" in str(e):        # 바꿀 내용이 없음 = 이미 같은 값
@@ -279,14 +290,20 @@ class Exchange:
             log.error("  %s 손절 설정 실패: %s", symbol, e)
             return False
 
-    def open_long(self, symbol: str, qty: float, stop: float) -> bool:
+    def open_long(self, symbol: str, qty: float, stop: float,
+                  take_profit: float | None = None) -> bool:
         if not self.live:
-            log.info("  [모의] 진입 %s qty=%s 손절=%.6f", symbol, qty, stop)
+            log.info("  [모의] 진입 %s qty=%s 손절=%.6f%s", symbol, qty, stop,
+                     f" 목표={take_profit:.6f}" if take_profit else "")
             return True
+        kw = {}
+        if take_profit is not None:
+            kw = {"takeProfit": f"{take_profit:.10g}", "tpTriggerBy": "LastPrice",
+                  "tpOrderType": "Limit", "tpLimitPrice": f"{take_profit:.10g}"}
         r = self.session.place_order(
             category="linear", symbol=symbol, side="Buy", orderType="Market",
             qty=str(qty), stopLoss=f"{stop:.10g}", slTriggerBy="LastPrice",
-            timeInForce="IOC", reduceOnly=False)
+            timeInForce="IOC", reduceOnly=False, **kw)
         ok = r.get("retCode") == 0
         log.info("  진입 %s qty=%s → %s", symbol, qty, "성공" if ok else r.get("retMsg"))
         return ok
@@ -429,6 +446,22 @@ class Trader:
             p["tranche"] = 2
             save_state(self.st)
 
+    def _sync_tp(self, sym: str, p: dict, closes: list) -> None:
+        """볼린저 상단은 봉마다 움직인다. 매 점검마다 다시 계산해 건다.
+
+        상단이 평단 아래면 목표로 쓸 수 없으므로(손실 확정 주문이 된다)
+        그때는 걸지 않고 시간청산에 맡긴다.
+        """
+        tp = S.take_profit_price(closes, p["entry"])
+        if tp is None:
+            return
+        have = p.get("tp") or 0.0
+        if have > 0 and abs(tp / have - 1) <= 0.005:
+            return                              # 반올림 수준의 차이는 그대로 둔다
+        if self.ex.set_stop(sym, p["stop"], take_profit=tp):
+            p["tp"] = tp
+            save_state(self.st)
+
     def _verify_stops(self, positions: dict) -> None:
         """거래소에 손절이 실제로 걸려 있는지 매 점검마다 확인한다.
 
@@ -455,11 +488,19 @@ class Trader:
                 continue                       # reconcile이 따로 처리한다
             want = p["stop"]
             have = lp.get("stop", 0.0)
-            if have > 0 and abs(have / want - 1) <= 0.005:
+            want_tp = p.get("tp") or None
+            have_tp = lp.get("tp", 0.0)
+            sl_ok = have > 0 and abs(have / want - 1) <= 0.005
+            tp_ok = want_tp is None or (have_tp > 0 and abs(have_tp / want_tp - 1) <= 0.005)
+            if sl_ok and tp_ok:
                 continue
-            log.error("  ⚠️ %s 손절이 %s (기대 %.6g) — 다시 겁니다",
-                      sym, f"{have:.6g}" if have > 0 else "없음", want)
-            self.ex.set_stop(sym, want)
+            if not sl_ok:
+                log.error("  ⚠️ %s 손절이 %s (기대 %.6g) — 다시 겁니다",
+                          sym, f"{have:.6g}" if have > 0 else "없음", want)
+            if not tp_ok:
+                log.error("  ⚠️ %s 익절이 %s (기대 %.6g) — 다시 겁니다",
+                          sym, f"{have_tp:.6g}" if have_tp > 0 else "없음", want_tp)
+            self.ex.set_stop(sym, want, take_profit=want_tp)
 
     def tick(self):
         equity = self.ex.equity()
@@ -514,9 +555,12 @@ class Trader:
                 else:
                     if p["tranche"] == 1:
                         self._try_scale_in(sym, p, price)
-                    log.info("  보유 %s %d/%d봉 · %d/2차  평단 %.6g  현재 %.6g (%.1f%%)",
+                    self._sync_tp(sym, p, closes)
+                    tp = p.get("tp")
+                    log.info("  보유 %s %d/%d봉 · %d/2차  평단 %.6g  현재 %.6g (%.1f%%)%s",
                              sym, held, S.HOLD_BARS, p["tranche"], p["entry"], price,
-                             (price / p["entry"] - 1) * 100)
+                             (price / p["entry"] - 1) * 100,
+                             f"  목표 {tp:.6g} (+{(tp/p['entry']-1)*100:.1f}%)" if tp else "")
                 continue
 
             # ② 신규 진입 판정
@@ -537,15 +581,18 @@ class Trader:
                 log.info("  신호 %s — 1차 수량이 최소주문량 미만", sym)
                 continue
             stop1 = S.stop_price(price)
+            tp1 = S.take_profit_price(closes, price)
             trigger = S.scale_in_trigger_price(price)
             log.info("🔔 신호 %s  종가 %.6g  20MA대비 %.1f%%  →  1차 진입 %.6g USDT (%.4g개)"
-                     "  · 2차 트리거 %.6g", sym, sig.close, sig.vs_ma20, notional1, qty1, trigger)
+                     "  · 2차 트리거 %.6g%s", sym, sig.close, sig.vs_ma20, notional1, qty1, trigger,
+                     f"  · 목표 {tp1:.6g}" if tp1 else "  · 목표 없음(상단이 진입가 아래)")
             self.ex.set_leverage(sym, self.cfg.leverage)
             if not self.ex.set_isolated(sym, self.cfg.leverage):
                 log.error("  %s 격리마진 전환 실패 — 진입을 건너뜁니다", sym)
                 continue
-            if self.ex.open_long(sym, qty1, stop1):
+            if self.ex.open_long(sym, qty1, stop1, take_profit=tp1):
                 positions[sym] = {"qty": qty1, "entry": price, "stop": stop1,
+                                  "tp": tp1,
                                   "entry_bar": bar_time, "tranche": 1,
                                   "notional": notional1, "reserved": full_notional,
                                   "full_notional": full_notional, "trigger": trigger,
@@ -637,7 +684,8 @@ def main():
     print(f"  {mode}   {cfg.describe()}")
     print(f"  규칙: 20기간선 대비 {S.ENTRY_THRESH}% 이하 → 1차 {S.SCALE_IN_FIRST_FRAC*100:.0f}% 진입, "
           f"거기서 {S.SCALE_IN_TRIGGER_PCT}% 더 빠지면 2차 {(1-S.SCALE_IN_FIRST_FRAC)*100:.0f}% 추가")
-    print(f"        → {S.HOLD_BARS}봉 후 청산 · 손절(평단 대비) {S.STOP_PCT}%")
+    print(f"        → 볼린저 상단({S.BB_PERIOD}봉·{S.BB_K}σ) 도달 시 목표청산, "
+          f"안 닿으면 {S.HOLD_BARS}봉 시간청산 · 손절(평단 대비) {S.STOP_PCT}%")
     print(f"  {REG.describe()}")
     print("=" * 84)
 
@@ -646,9 +694,10 @@ def main():
         print(f"     배율 {cfg.leverage:g}x, 거래 1건의 전체 물량은 자본의 "
               f"{cfg.per_trade*100:.1f}%(최대 {int(1/cfg.per_trade)}건 동시), "
               f"그중 1차는 {cfg.per_trade*S.SCALE_IN_FIRST_FRAC*100:.1f}%만 즉시 나갑니다.")
-        print(f"     백테스트(2배·총노출 80%·복리·왕복 0.40%) 8.8년 기준:")
-        print(f"       전체 135배 · 최대낙폭 68.7%(장중 78.0%) · 1년 구간 5번 중 1번은 손실")
-        print(f"       1년 구간 189개 중 -70% 이상 겪을 확률 13%")
+        print(f"     백테스트(2배·총노출 60%·차단기 20%·복리·왕복 0.40%) 8.9년 기준:")
+        print(f"       롱 단독  3.14배 · 최대낙폭 21.6% · 승률 81% · 1년 손실확률 29%")
+        print(f"       숏·다이버전스까지 붙이면 21.5배 · 낙폭 21.6% · 1년 손실확률 1%")
+        print(f"       (숏·다이버전스는 아직 백테스트에만 있다 — ml/report.py 참고)")
         print(f"     실제 체결은 백테스트보다 나쁠 수 있습니다.")
         if input("\n  계속하려면 START 입력: ").strip() != "START":
             print("  중단했습니다."); return

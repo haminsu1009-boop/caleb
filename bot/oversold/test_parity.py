@@ -130,10 +130,34 @@ def main():
     check("2차 미체결 시 평단은 1차 진입가 그대로",
           abs(avg_no_fill - 100.0) < 1e-9, f"{avg_no_fill:.4f}")
 
+    # ── 볼린저 상단 목표 청산 ─────────────────────────────────────
+    # 백테스트는 pandas .std()(ddof=1)를 쓴다. 봇이 모집단 표준편차를
+    # 쓰면 상단이 낮게 잡혀 더 일찍 팔게 되고, 검증한 것과 다른 것을
+    # 굴리게 된다.
+    from ml.backtest_current_bot import bb_upper as bt_bb
+    rng2 = np.random.default_rng(3)
+    worst = 0.0
+    for _ in range(200):
+        c = list(np.cumprod(1 + rng2.normal(0, .03, 60)) * 100)
+        worst = max(worst, abs(S.bb_upper(c) / bt_bb(c, S.BB_PERIOD, S.BB_K)[-1] - 1))
+    check("볼린저 상단이 백테스트와 일치", worst < 1e-12, f"최대 오차 {worst:.2e}")
+
+    check("봉이 모자라면 상단 없음", S.bb_upper([1.0] * (S.BB_PERIOD - 1)) is None)
+
+    # 상단이 평단 아래면 목표를 걸면 안 된다 — 손실 확정 주문이 된다.
+    cc = [100.0] * 19 + [50.0]
+    up = S.bb_upper(cc)
+    check("상단이 평단 아래면 목표 없음",
+          S.take_profit_price(cc, up + 1) is None, f"상단 {up:.4f}")
+    check("상단이 평단 위면 그 값이 목표",
+          S.take_profit_price(cc, up - 1) == up, f"목표 {up:.4f}")
+
     print("=" * 84)
     print(f"  {'✅ 전부 통과' if FAILED == 0 else f'❌ {FAILED}건 실패'}")
     print("=" * 84)
     return 1 if FAILED else 0
+
+
 
 
 if __name__ == "__main__":

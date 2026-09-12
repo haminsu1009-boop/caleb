@@ -90,6 +90,21 @@ SCALE_IN_TRIGGER_PCT = -5.0   # 1차 진입가 대비 이만큼 더 빠지면 2�
 STOP_PCT      = -40.0       # 진입가(분할 완료 후엔 평단) 대비 %
 SIDE          = "Buy"       # 롱 전용. 숏 규칙은 검증 통과 못 했다.
 
+# ── 볼린저 상단 목표 청산 ────────────────────────────────────────
+# 20봉 시간청산만 쓰면 반등이 끝나기 전에 나오거나, 이미 꺾인 뒤에
+# 나온다. 과매도 진입은 "평균으로 돌아오는 것"에 거는 거래이므로
+# 돌아왔다는 신호에서 나오는 게 맞다 — 그게 볼린저 상단이다.
+# 상단에 지정가를 걸어두고, 안 닿으면 20봉에서 시간청산한다.
+#
+#   (롱 단독·전체 8.9년 / 홀드아웃 2024~)
+#   시간청산만    1.44배  낙폭 63.3%  승률 63%  |  1.93배  낙폭 25.8%  승률 70%
+#   +볼린저 1.5σ  3.83배  낙폭 57.2%  승률 80%  |  3.03배  낙폭  9.7%  승률 85%
+#
+# k는 1.5σ다. 2.0σ는 덜 닿아서 시간청산으로 밀리고, 1.0σ는 너무 일찍
+# 나온다(ml/backtest_current_bot.py --bb-k 로 재현 가능).
+BB_PERIOD     = 20
+BB_K          = 1.5
+
 
 @dataclass(frozen=True)
 class Signal:
@@ -137,3 +152,27 @@ def stop_price(entry: float) -> float:
 
 def should_exit(bars_held: int) -> bool:
     return bars_held >= HOLD_BARS
+
+
+def bb_upper(closes: Sequence[float], period: int = BB_PERIOD,
+             k: float = BB_K) -> Optional[float]:
+    """확정봉 종가 기준 볼린저 상단. 봉이 모자라면 None."""
+    if len(closes) < period:
+        return None
+    w = list(closes[-period:])
+    m = sum(w) / period
+    # 백테스트가 pandas .std()(표본표준편차, ddof=1)를 쓰므로 여기도 맞춘다.
+    var = sum((x - m) ** 2 for x in w) / (period - 1)
+    return m + k * var ** 0.5
+
+
+def take_profit_price(closes: Sequence[float], entry: float) -> Optional[float]:
+    """목표 청산가. 상단이 평단 아래면 목표로 쓸 수 없다(이미 지나갔다).
+
+    그 경우 None을 주고 시간청산에 맡긴다 — 평단 아래에 익절을 걸면
+    손실 확정 주문이 된다.
+    """
+    up = bb_upper(closes)
+    if up is None or up <= entry:
+        return None
+    return up

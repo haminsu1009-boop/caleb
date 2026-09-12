@@ -71,12 +71,16 @@ class FakeExchange:
         # 사라진 상황을 흉내낸다.
         return {k: {"size": v["size"], "entry": v["entry"], "side": "Buy",
                     "stop": 0.0 if k in getattr(self, "drop_stops", set())
-                            else v.get("stop", 0.0)}
+                            else v.get("stop", 0.0),
+                    "tp": 0.0 if k in getattr(self, "drop_stops", set())
+                          else v.get("tp", 0.0)}
                 for k, v in self.pos.items()}
 
-    def set_stop(self, symbol, stop):
+    def set_stop(self, symbol, stop, take_profit=None):
         if symbol in self.pos:
             self.pos[symbol]["stop"] = stop
+            if take_profit is not None:
+                self.pos[symbol]["tp"] = take_profit
             self.orders.append(("setstop", symbol, 0.0, stop, "재설정", self.cursor))
         return True
 
@@ -89,7 +93,7 @@ class FakeExchange:
         # (전환 실패 경로는 fail_isolated로 따로 시험한다)
         return symbol not in getattr(self, "fail_isolated", set())
 
-    def open_long(self, symbol, qty, stop):
+    def open_long(self, symbol, qty, stop, take_profit=None):
         px = float(self.data[symbol][self.cursor][4])
         if symbol in self.pos:
             # 이미 포지션이 있다 — 2차 분할매수다. 실제 거래소처럼 같은
@@ -97,10 +101,12 @@ class FakeExchange:
             old = self.pos[symbol]
             new_qty = old["size"] + qty
             new_entry = (old["entry"] * old["size"] + px * qty) / new_qty
-            self.pos[symbol] = {"size": new_qty, "entry": new_entry, "stop": stop}
+            self.pos[symbol] = {"size": new_qty, "entry": new_entry, "stop": stop,
+                                "tp": take_profit or old.get("tp", 0.0)}
             self.orders.append(("add", symbol, qty, px, stop, self.cursor))
         else:
-            self.pos[symbol] = {"size": qty, "entry": px, "stop": stop}
+            self.pos[symbol] = {"size": qty, "entry": px, "stop": stop,
+                                "tp": take_profit or 0.0}
             self.orders.append(("open", symbol, qty, px, stop, self.cursor))
         return True
 
