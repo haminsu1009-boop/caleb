@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+    padding:24px 16px; background:#f4f6fb; color:#222; }
+  h1 { font-size:1.2rem; margin:0 0 6px; }
+  p.sub { color:#666; font-size:0.85rem; margin:0 0 18px; }
+  table { width:100%; border-collapse:collapse; background:#fff; box-shadow:0 2px 10px rgba(0,0,0,0.05); }
+  th, td { border:1px solid #dde3f0; padding:8px 10px; font-size:0.8rem; text-align:left; vertical-align:top; }
+  th { background:#eef2fb; }
+  td.body { max-width:420px; white-space:pre-wrap; word-break:break-all; max-height:160px;
+    overflow:auto; font-family:ui-monospace, monospace; font-size:0.7rem; color:#444; }
+  .status-ok { color:#0a7d2c; font-weight:700; }
+  .status-bad { color:#c0392b; font-weight:700; }
+  .back { display:inline-block; margin-top:16px; font-size:0.85rem; }
+</style>
+</head>
+<body>
+<h1>🔌 터미널·선사 연결 진단</h1>
+<p class="sub">
+  이 페이지는 지금 이 스크립트(구글 인프라)에서 각 사이트에 실제로
+  접속해본 결과입니다. 상태가 <b>200</b>이고 응답 내용이 그럴듯한
+  HTML이면, 이 페이지 내용을 캡처해서 Claude에게 다시 보여주세요 —
+  실제 자동조회를 완성할 수 있습니다. (정적 페이지만 가져오므로,
+  사이트가 자바스크립트로 결과를 그리는 구조면 빈 뼈대만 보일 수 있어요.)
+</p>
+<table>
+<tr><th>이름</th><th>상태</th><th>URL</th><th>응답 앞부분(500자)</th></tr>
+<? for (var i = 0; i < rows.length; i++) { var r = rows[i]; ?>
+<tr>
+  <td><?= r.name ?></td>
+  <td class="<?= (r.status === 200) ? 'status-ok' : 'status-bad' ?>"><?= r.status ?></td>
+  <td><a href="<?= r.url ?>" target="_blank"><?= r.url ?></a></td>
+  <td class="body"><?= r.body ?></td>
+</tr>
+<? } ?>
+</table>
+<a class="back" href="?">← 조회 화면으로 돌아가기</a>
+</body>
+</html>

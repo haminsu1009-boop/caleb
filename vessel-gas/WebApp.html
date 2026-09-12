@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+      background:#f4f6fb; margin:0; padding:32px 16px; color:#222; }
+    .card { max-width:480px; margin:0 auto; background:#fff; border-radius:12px;
+      box-shadow:0 4px 20px rgba(0,0,0,0.08); padding:28px 24px; }
+    h1 { font-size:1.3rem; margin:0 0 4px; }
+    p.sub { color:#666; font-size:0.85rem; margin:0 0 20px; }
+    label { display:block; font-size:0.8rem; font-weight:600; color:#444; margin-bottom:4px; }
+    input[type=text] { width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #dde3f0;
+      border-radius:8px; font-size:0.95rem; margin-bottom:14px; font-family:inherit; }
+    input[type=text]:focus { outline:none; border-color:#3568d4; }
+    button { width:100%; padding:12px; background:#3568d4; color:#fff; border:none; border-radius:8px;
+      font-size:0.95rem; font-weight:700; cursor:pointer; }
+    button:hover { background:#254e9e; }
+    button:disabled { opacity:0.6; cursor:not-allowed; }
+    #result { margin-top:20px; white-space:pre-wrap; font-size:0.86rem; line-height:1.6;
+      background:#f8faff; border:1px solid #dde3f0; border-radius:8px; padding:14px; display:none; }
+    #result.show { display:block; }
+    .loading { text-align:center; color:#888; font-size:0.85rem; margin-top:16px; display:none; }
+    .loading.show { display:block; }
+    .footer-link { display:block; text-align:center; margin-top:18px; font-size:0.75rem; color:#999; }
+    .footer-link a { color:#888; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🚢 선박 추적</h1>
+    <p class="sub">모선명과 항차번호를 입력하면 현재 정보를 알려드려요.</p>
+    <label for="vesselName">모선명</label>
+    <input type="text" id="vesselName" placeholder="예) EVER GIVEN">
+    <label for="voyageNo">항차번호</label>
+    <input type="text" id="voyageNo" placeholder="예) 0526E">
+    <button id="searchBtn" onclick="doSearch()">조회</button>
+    <div class="loading" id="loading">조회 중...</div>
+    <div id="result"></div>
+    <div class="footer-link"><a href="?probe=1">🔌 터미널·선사 연결 진단 보기</a></div>
+  </div>
+
+  <script>
+    function doSearch() {
+      const vesselName = document.getElementById('vesselName').value.trim();
+      const voyageNo = document.getElementById('voyageNo').value.trim();
+      const resultEl = document.getElementById('result');
+      const loadingEl = document.getElementById('loading');
+      const btn = document.getElementById('searchBtn');
+      if (!vesselName) { alert('모선명을 입력해 주세요.'); return; }
+
+      btn.disabled = true;
+      resultEl.classList.remove('show');
+      loadingEl.classList.add('show');
+
+      google.script.run
+        .withSuccessHandler(function (res) {
+          loadingEl.classList.remove('show');
+          btn.disabled = false;
+          resultEl.textContent = res.message;
+          resultEl.classList.add('show');
+        })
+        .withFailureHandler(function (err) {
+          loadingEl.classList.remove('show');
+          btn.disabled = false;
+          resultEl.textContent = '⚠️ 오류가 발생했어요: ' + (err && err.message ? err.message : err);
+          resultEl.classList.add('show');
+        })
+        .trackFromWeb(vesselName, voyageNo);
+    }
+
+    document.getElementById('voyageNo').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') doSearch();
+    });
+    document.getElementById('vesselName').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') document.getElementById('voyageNo').focus();
+    });
+  </script>
+</body>
+</html>
