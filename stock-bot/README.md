@@ -124,7 +124,7 @@ python main.py --schedule
 
 ## API 키 발급 안내
 
-- **Claude AI**: https://console.anthropic.com/
+- **Gemini (무료)**: https://aistudio.google.com → Get API key
 - **KIS (한국투자증권)**: https://apiportal.koreainvestment.com/
 - **Alpha Vantage**: https://www.alphavantage.co/support/#api-key
 - **Alpaca**: https://alpaca.markets/ (페이퍼트레이딩 무료)

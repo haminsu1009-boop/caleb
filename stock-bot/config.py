@@ -12,8 +12,8 @@ from typing import List
 # API 키 설정 (.env 파일 또는 환경변수로 관리)
 # ─────────────────────────────────────────────
 
-# Claude AI
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+# Google Gemini (무료 티어)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 # 한국투자증권 KIS Developers (https://apiportal.koreainvestment.com/)
 KIS_APP_KEY    = os.getenv("KIS_APP_KEY", "")

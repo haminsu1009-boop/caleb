@@ -10,8 +10,8 @@ requests>=2.31.0
 # 기술적 지표
 ta>=0.11.0                # TA-Lib Python 래퍼 (pip 설치 간편)
 
-# AI
-anthropic>=0.34.0         # Claude API (claude-opus-4-5)
+# AI (Gemini 무료 티어 사용)
+google-generativeai>=0.7.0   # Gemini API (gemini-1.5-flash, 무료)
 
 # 스케줄러
 schedule>=1.2.0

@@ -1,23 +1,30 @@
 """
-Claude AI Advisor
-=================
-추천 결과를 바탕으로 Claude가 자연어 투자 해설을 생성
+AI Advisor (Gemini)
+===================
+추천 결과를 바탕으로 Gemini가 자연어 투자 해설을 생성
+무료 티어: 분당 15회, 일 1500회 (gemini-1.5-flash)
 """
 
 import logging
+import os
 from typing import Dict, List, Optional
-import anthropic
+import google.generativeai as genai
 
 logger = logging.getLogger(__name__)
-
 
 # ─────────────────────────────────────────────
 # 클라이언트 초기화
 # ─────────────────────────────────────────────
 
-def _get_client() -> anthropic.Anthropic:
-    from config import ANTHROPIC_API_KEY
-    return anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+def _get_model():
+    api_key = os.getenv("GEMINI_API_KEY", "")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY 환경변수가 없습니다. .env 파일을 확인하세요.")
+    genai.configure(api_key=api_key)
+    return genai.GenerativeModel(
+        model_name="gemini-1.5-flash",
+        system_instruction=SYSTEM_PROMPT,
+    )
 
 
 # ─────────────────────────────────────────────
@@ -52,48 +59,32 @@ def generate_recommendation_report(
     top_stocks: List[Dict],
     horizon: str = "중기",
     user_note: str = "",
-    stream: bool = False,
+    stream: bool = True,
 ) -> str:
     """
-    상위 추천 종목 리스트 → Claude 자연어 리포트.
-
-    top_stocks 예시:
-    [
-        {
-            "ticker": "NVDA",
-            "score": 0.82,
-            "rank": 1,
-            "indicators": {"rsi": {"value": 52, "score": 0.55}, ...},
-            "fundamental": {"pe_ratio": 45.2, "eps_growth": 0.85, ...},
-            "current_price": 875.0,
-        },
-        ...
-    ]
-    horizon: "단기" | "중기" | "장기"
+    상위 추천 종목 리스트 → Gemini 자연어 리포트.
     """
-    client = _get_client()
-
     # 종목 정보 직렬화
     stock_lines = []
-    for s in top_stocks[:8]:  # 최대 8개
+    for s in top_stocks[:8]:
         ticker = s["ticker"]
         score  = s.get("score", 0)
         price  = s.get("current_price")
         ind    = s.get("indicators", {})
         fund   = s.get("fundamental", {})
 
-        rsi_val    = ind.get("rsi",      {}).get("value",     "N/A")
-        macd_hist  = ind.get("macd",     {}).get("histogram", "N/A")
-        bb_pctb    = ind.get("bollinger",{}).get("pct_b",     "N/A")
-        vol_ratio  = ind.get("volume",   {}).get("ratio",     "N/A")
-        mom20      = ind.get("momentum", {}).get("mom_20",    "N/A")
+        rsi_val   = ind.get("rsi",       {}).get("value",     "N/A")
+        macd_hist = ind.get("macd",      {}).get("histogram", "N/A")
+        bb_pctb   = ind.get("bollinger", {}).get("pct_b",     "N/A")
+        vol_ratio = ind.get("volume",    {}).get("ratio",     "N/A")
+        mom20     = ind.get("momentum",  {}).get("mom_20",    "N/A")
 
-        pe         = fund.get("pe_ratio")
-        fpe        = fund.get("forward_pe")
-        eps_g      = fund.get("eps_growth")
-        roe        = fund.get("roe")
-        rev_g      = fund.get("revenue_growth")
-        sector     = fund.get("sector", "")
+        pe    = fund.get("pe_ratio")
+        fpe   = fund.get("forward_pe")
+        eps_g = fund.get("eps_growth")
+        roe   = fund.get("roe")
+        rev_g = fund.get("revenue_growth")
+        sector= fund.get("sector", "")
 
         line = (
             f"종목: ${ticker} | 종합점수: {score:.2f} | "
@@ -119,30 +110,24 @@ def generate_recommendation_report(
 """.strip()
 
     try:
+        model = _get_model()
+
         if stream:
             full_text = ""
-            with client.messages.stream(
-                model="claude-opus-4-5",
-                max_tokens=2000,
-                system=SYSTEM_PROMPT,
-                messages=[{"role": "user", "content": user_msg}],
-            ) as s:
-                for chunk in s.text_stream:
-                    full_text += chunk
-                    print(chunk, end="", flush=True)
-            print()  # newline
+            response = model.generate_content(user_msg, stream=True)
+            for chunk in response:
+                text = chunk.text if hasattr(chunk, "text") else ""
+                print(text, end="", flush=True)
+                full_text += text
+            print()
             return full_text
         else:
-            resp = client.messages.create(
-                model="claude-opus-4-5",
-                max_tokens=2000,
-                system=SYSTEM_PROMPT,
-                messages=[{"role": "user", "content": user_msg}],
-            )
-            return resp.content[0].text
+            response = model.generate_content(user_msg)
+            return response.text
+
     except Exception as e:
-        logger.error(f"[claude_advisor] API 호출 실패: {e}")
-        return f"⚠️ Claude API 오류: {e}"
+        logger.error(f"[ai_advisor] Gemini API 호출 실패: {e}")
+        return f"⚠️ Gemini API 오류: {e}"
 
 
 # ─────────────────────────────────────────────
@@ -150,12 +135,7 @@ def generate_recommendation_report(
 # ─────────────────────────────────────────────
 
 def analyze_single_stock(ticker: str, data: Dict, horizon: str = "중기") -> str:
-    """
-    단일 종목 심층 분석 리포트.
-    data: fetch_all_stocks()의 단일 엔트리
-    """
-    client = _get_client()
-
+    """단일 종목 심층 분석 리포트."""
     ind  = data.get("indicators", {})
     fund = data.get("fundamental", {})
 
@@ -184,13 +164,9 @@ ${ticker}에 대해 {horizon} 투자 관점에서 심층 분석 리포트를 작
 """.strip()
 
     try:
-        resp = client.messages.create(
-            model="claude-opus-4-5",
-            max_tokens=1500,
-            system=SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": user_msg}],
-        )
-        return resp.content[0].text
+        model = _get_model()
+        response = model.generate_content(user_msg)
+        return response.text
     except Exception as e:
-        logger.error(f"[claude_advisor] {ticker} 심층분석 실패: {e}")
+        logger.error(f"[ai_advisor] {ticker} 심층분석 실패: {e}")
         return f"⚠️ 분석 실패: {e}"
