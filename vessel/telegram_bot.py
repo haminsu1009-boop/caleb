@@ -22,6 +22,7 @@ vessel/telegram_bot.py
 관리자 전용:
   /update EVER GIVEN, 0526E | 터미널=HJNC | 선석=1부두 | ETB=2026-09-15 08:00 | 상태=접안예정
   /delete EVER GIVEN, 0526E
+  /list                (현재 저장된 수동입력 전체 확인)
 """
 
 from __future__ import annotations
@@ -57,7 +58,8 @@ UPDATE_HELP = (
     "예)\n"
     "/update EVER GIVEN, 0526E | ETB=2026-09-15 08:00 | 선석=1부두 | 터미널=HJNC\n\n"
     f"저장된 값은 {manual_store.TTL_HOURS:.0f}시간 지나면 자동으로 사라져요(오래된 정보 방지).\n"
-    "삭제: /delete 선명, 항차"
+    "삭제: /delete 선명, 항차\n"
+    "전체 확인: /list"
 )
 
 
@@ -108,6 +110,23 @@ def handle_delete(chat_id, text: str) -> None:
     send(chat_id, "🗑️ 삭제했어요." if ok else "해당 항목을 찾지 못했어요.")
 
 
+def handle_list(chat_id) -> None:
+    if not is_admin(chat_id):
+        send(chat_id, "⛔ 이 명령은 관리자만 쓸 수 있어요.")
+        return
+    entries = manual_store.list_entries()
+    if not entries:
+        send(chat_id, "저장된 수동입력이 없어요.")
+        return
+    lines = [f"📋 현재 수동입력 {len(entries)}건:"]
+    for e in entries:
+        age_min = round((time.time() - e["updated_at"]) / 60)
+        age = f"{age_min}분 전" if age_min < 60 else f"{age_min // 60}시간 전"
+        summary = ", ".join(f"{k}={v}" for k, v in e["fields"].items())
+        lines.append(f"  • {e['vessel_name']} / {e['voyage_no']} — {summary} ({age})")
+    send(chat_id, "\n".join(lines))
+
+
 def run() -> None:
     if not TOKEN:
         print("⚠️ TELEGRAM_TOKEN 없음 — .env 설정 후 다시 실행하세요.")
@@ -136,6 +155,8 @@ def run() -> None:
                     handle_update(chat_id, text)
                 elif text.startswith("/delete"):
                     handle_delete(chat_id, text)
+                elif text.startswith("/list"):
+                    handle_list(chat_id)
                 else:
                     result = track_from_text(text)
                     send(chat_id, result.message)

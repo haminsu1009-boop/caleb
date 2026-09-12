@@ -93,6 +93,14 @@ def get_entry(vessel_name: str, voyage_no: str | None) -> dict | None:
     return entry
 
 
+def list_entries() -> list[dict]:
+    """만료 안 된 수동 입력을 전부 돌려준다(운영 확인용, 텔레그램 /list가 씀).
+    최근 입력 순으로 정렬."""
+    now = time.time()
+    entries = [e for e in _load().values() if (now - e["updated_at"]) / 3600 <= TTL_HOURS]
+    return sorted(entries, key=lambda e: e["updated_at"], reverse=True)
+
+
 def parse_update_args(args: str) -> tuple[str, str, dict] | None:
     """"/update" 뒤에 오는 문자열을 파싱한다.
 
