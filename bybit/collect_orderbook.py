@@ -17,11 +17,12 @@ bybit/collect_orderbook.py
 정체이기도 하다.
 
 받는 것 (data.binance.vision, API 키 불필요)
-  bookTicker  최우선 매수/매도 호가와 수량 — 스프레드를 잰다
-  bookDepth   호가창 깊이 스냅샷 — 불균형을 잰다
+  bookDepth   호가창 깊이 스냅샷 — 불균형과 두께를 잰다
+  (bookTicker는 아카이브에 없다 — 최근·과거 전부 404다.
+   scripts/orderbook_probe.py 로 확인했다.)
 
 ⚠️ 용량 주의
-  bookTicker는 체결 단위라 하루치가 종목당 수십~수백 MB다.
+  bookDepth는 하루 0.5MB로 가볍다(bookTicker와 달리).
   전 종목 전 기간을 받으면 저장소가 감당 못 한다. 그래서
   · 종목을 지정해서 받고
   · 받는 즉시 1분 단위로 요약해 저장한다(원본은 버린다)
@@ -44,7 +45,15 @@ import numpy as np
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-BASE = "https://data.binance.vision/data/futures/um/daily"
+# 첫 실행에서 futures/um/daily/bookTicker 가 30일 전부 404였다.
+# 아카이브 종류가 시장(spot/futures)마다 다를 수 있으므로 후보를
+# 순서대로 시도한다. scripts/orderbook_probe.py 가 실제로 어느 것이
+# 존재하는지 확인해 준다.
+BASES = [
+    "https://data.binance.vision/data/futures/um/daily",
+    "https://data.binance.vision/data/spot/daily",
+]
+BASE = BASES[0]          # 하위 호환
 SAVE_DIR = os.path.join(ROOT, "data", "orderbook")
 os.makedirs(SAVE_DIR, exist_ok=True)
 
@@ -64,44 +73,71 @@ def fetch_zip(url: str, retries: int = 3):
     return None
 
 
-def day_bookticker(symbol: str, d: date):
-    """최우선 호가 → 1분 요약. 원본은 버린다(하루치가 수백 MB다)."""
-    z = fetch_zip(f"{BASE}/bookTicker/{symbol}/{symbol}-bookTicker-{d}.zip")
+def day_bookdepth(symbol: str, d: date):
+    """호가창 깊이 스냅샷 → 1분 요약.
+
+    bookTicker(최우선 호가)는 아카이브에 없다 — 최근·과거 전부 404다
+    (scripts/orderbook_probe.py 로 확인). 대신 bookDepth가 있고
+    하루 0.5MB로 가볍다.
+
+    bookDepth 형식
+        timestamp, percentage, depth, notional
+      percentage는 중간가로부터의 거리(%)다. 양수는 매도호가 쪽,
+      음수는 매수호가 쪽이다. 보통 ±1~5% 구간이 들어 있다.
+      depth는 그 구간까지의 누적 수량, notional은 명목가치다.
+
+    여기서 뽑는 것
+      imbalance   (매수쪽 명목 − 매도쪽 명목) / 합
+                  +1이면 매수벽만, -1이면 매도벽만
+      depth_1pct  ±1% 안의 총 명목가치 — 시장 두께
+      ratio_5_1   5% 명목 ÷ 1% 명목 — 호가가 얼마나 퍼져 있나
+    """
+    z = fetch_zip(f"{BASE}/bookDepth/{symbol}/{symbol}-bookDepth-{d}.zip")
     if z is None:
         return None
     try:
         raw = pd.read_csv(z.open(z.namelist()[0]))
     except Exception:
         return None
-    cols = {c.lower(): c for c in raw.columns}
-    need = ["best_bid_price", "best_bid_qty", "best_ask_price", "best_ask_qty"]
-    if not all(n in cols for n in need):
-        return None
-    tcol = cols.get("transaction_time") or cols.get("event_time")
-    if tcol is None:
+    cols = {c.lower().strip(): c for c in raw.columns}
+    tcol = cols.get("timestamp")
+    pcol = cols.get("percentage")
+    ncol = cols.get("notional")
+    dcol = cols.get("depth")
+    if not all([tcol, pcol, ncol]):
         return None
     df = pd.DataFrame({
-        "dt": pd.to_datetime(raw[tcol], unit="ms", errors="coerce"),
-        "bid": pd.to_numeric(raw[cols["best_bid_price"]], errors="coerce"),
-        "bq": pd.to_numeric(raw[cols["best_bid_qty"]], errors="coerce"),
-        "ask": pd.to_numeric(raw[cols["best_ask_price"]], errors="coerce"),
-        "aq": pd.to_numeric(raw[cols["best_ask_qty"]], errors="coerce"),
-    }).dropna()
+        "dt": pd.to_datetime(raw[tcol], errors="coerce"),
+        "pct": pd.to_numeric(raw[pcol], errors="coerce"),
+        "notional": pd.to_numeric(raw[ncol], errors="coerce"),
+        "depth": pd.to_numeric(raw[dcol], errors="coerce") if dcol else np.nan,
+    }).dropna(subset=["dt", "pct", "notional"])
     if df.empty:
         return None
-    mid = (df.bid + df.ask) / 2
-    df["spread_bp"] = (df.ask - df.bid) / mid * 10000
-    # 호가 불균형: +1이면 매수호가만, -1이면 매도호가만
-    df["imbalance"] = (df.bq - df.aq) / (df.bq + df.aq).replace(0, np.nan)
-    g = df.set_index("dt").resample("1min")
-    return pd.DataFrame({
-        "spread_bp": g["spread_bp"].mean(),
-        "spread_bp_max": g["spread_bp"].max(),
-        "imbalance": g["imbalance"].mean(),
-        "bid_qty": g["bq"].mean(),
-        "ask_qty": g["aq"].mean(),
-        "ticks": g.size(),
-    }).dropna(how="all")
+
+    df["side"] = np.where(df["pct"] < 0, "bid", "ask")
+    df["band"] = df["pct"].abs()
+    g = df.groupby([pd.Grouper(key="dt", freq="1min"), "side"])["notional"].sum()
+    wide = g.unstack("side")
+    if "bid" not in wide or "ask" not in wide:
+        return None
+    tot = (wide["bid"] + wide["ask"]).replace(0, np.nan)
+    out = pd.DataFrame({
+        "imbalance": (wide["bid"] - wide["ask"]) / tot,
+        "notional_total": tot,
+    })
+    # ±1% 구간만 따로 — 가까운 호가가 진짜 유동성이다
+    near = df[df["band"] <= 1.0]
+    if not near.empty:
+        gn = near.groupby([pd.Grouper(key="dt", freq="1min"), "side"])["notional"].sum()
+        wn = gn.unstack("side")
+        if "bid" in wn and "ask" in wn:
+            tn = (wn["bid"] + wn["ask"]).replace(0, np.nan)
+            out["imbalance_1pct"] = (wn["bid"] - wn["ask"]) / tn
+            out["notional_1pct"] = tn
+    out["spread_proxy"] = out["notional_1pct"] / out["notional_total"] \
+        if "notional_1pct" in out else np.nan
+    return out.dropna(how="all")
 
 
 def collect(symbol: str, days: int):
@@ -128,7 +164,7 @@ def collect(symbol: str, days: int):
     print(f"\n  {symbol} 호가창 {start} ~ {end} ({n}일)")
     for i in range(n):
         d = start + timedelta(days=i)
-        one = day_bookticker(symbol, d)
+        one = day_bookdepth(symbol, d)
         if one is None or one.empty:
             miss += 1
         else:
@@ -148,8 +184,8 @@ def collect(symbol: str, days: int):
     out.to_csv(path, index=False, compression={"method": "gzip", "mtime": 0})
     mb = os.path.getsize(path) / 1e6
     print(f"  ✅ {path}  ({len(out):,}행, {mb:.1f}MB, 새로 받은 날 {got}/{n})")
-    print(f"     평균 스프레드 {out.spread_bp.mean():.2f}bp · "
-          f"평균 불균형 {out.imbalance.mean():+.4f}")
+    print(f"     평균 불균형 {out.imbalance.mean():+.4f} · "
+          f"±1% 불균형 {out.get('imbalance_1pct', pd.Series([np.nan])).mean():+.4f}")
     return path
 
 

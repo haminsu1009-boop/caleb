@@ -6,16 +6,15 @@ name: 📖 호가창 데이터 수집 (미시구조)
 #   시장미시구조(호가 불균형·스프레드)는 한 번도 안 봤다.
 #
 # 용량 주의:
-#   bookTicker 원본은 종목당 하루 수십~수백 MB다. 받는 즉시 1분
-#   단위로 요약해 저장하고 원본은 버린다. 그래도 종목을 늘리면
-#   저장소가 커지므로 핵심 6종만 받는다.
+#   bookTicker는 아카이브에 없다(최근·과거 전부 404). bookDepth를
+#   쓰는데 하루 0.5MB로 가볍다. 1분 요약으로 더 줄여 저장한다.
 
 on:
   workflow_dispatch:
     inputs:
       days:
         description: "최근 며칠"
-        default: "30"
+        default: "180"
       symbols:
         description: "종목 (공백 구분)"
         default: "BTCUSDT ETHUSDT SOLUSDT"
@@ -53,7 +52,7 @@ jobs:
         run: |
           python -u bybit/collect_orderbook.py \
             --symbol ${{ matrix.symbol }} \
-            --days ${{ github.event.inputs.days || 14 }} \
+            --days ${{ github.event.inputs.days || 180 }} \
             --fail-if-empty
 
       # 첫 실행에서 30일 전부 404였는데 워크플로는 "성공"으로 끝났다.
