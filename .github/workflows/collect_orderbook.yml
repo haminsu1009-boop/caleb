@@ -53,7 +53,15 @@ jobs:
         run: |
           python -u bybit/collect_orderbook.py \
             --symbol ${{ matrix.symbol }} \
-            --days ${{ github.event.inputs.days || 14 }}
+            --days ${{ github.event.inputs.days || 14 }} \
+            --fail-if-empty
+
+      # 첫 실행에서 30일 전부 404였는데 워크플로는 "성공"으로 끝났다.
+      # 실패를 성공으로 보고하면 문제를 못 찾는다. --fail-if-empty로
+      # 수집 0건이면 종료코드 1을 내게 했다.
+      - name: 경로 탐색 (수집 실패 시)
+        if: failure()
+        run: python -u scripts/orderbook_probe.py | tee -a "$GITHUB_STEP_SUMMARY"
       - name: 커밋 & 푸시
         run: |
           git config user.name  "github-actions[bot]"

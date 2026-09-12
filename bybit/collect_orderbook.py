@@ -158,17 +158,27 @@ def main():
     ap.add_argument("--symbol", default="BTCUSDT")
     ap.add_argument("--symbols", nargs="*", default=None)
     ap.add_argument("--days", type=int, default=30)
+    # 첫 실행에서 30일 전부 404였는데 스크립트가 정상 종료해 워크플로가
+    # "성공"으로 끝났다. 아무것도 못 받았으면 실패로 끝내야 한다.
+    ap.add_argument("--fail-if-empty", action="store_true",
+                    help="한 종목도 못 받으면 종료코드 1")
     a = ap.parse_args()
     syms = a.symbols or [a.symbol]
     print("=" * 60)
     print(f"  호가창 수집 — {len(syms)}종 × 최근 {a.days}일")
     print("  bookTicker를 받아 1분 요약만 저장한다 (원본은 버린다)")
     print("=" * 60)
+    got_any = False
     for s in syms:
         try:
-            collect(s, a.days)
+            p = collect(s, a.days)
+            if p and os.path.exists(p):
+                got_any = True
         except Exception as e:
             print(f"  {s}: 실패 — {e}")
+    if a.fail_if_empty and not got_any:
+        print("\n  ⛔ 한 종목도 받지 못했다. 경로나 접근 권한을 확인해야 한다.")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
