@@ -82,8 +82,10 @@ from datetime import datetime, timezone, timedelta
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, ROOT)
 
+import pandas as pd
 from bot.oversold import strategy as S
 from bot.oversold import regime as REG
+from bot.oversold import modules as MOD
 
 STATE_PATH  = os.path.join(ROOT, "bot", "oversold", "state.json")
 CANDLE_DIR  = os.path.join(ROOT, "data", "bybit")
@@ -117,6 +119,11 @@ class Config:
         # 전체 수익과 1년 중앙값(1.53→1.62배)은 오히려 올라간다.
         # 대가는 홀드아웃 13.68 → 9.94배다.
         self.max_gross     = float(os.getenv("OS_MAX_GROSS",      "0.6"))
+        # 모듈별 거래당 자본 비중. 숏·다이버는 연 2.6건·7.4건뿐이라
+        # 크게 싣는다 — 작게 실으면 대부분의 시간 그 자본이 논다.
+        # ml/unified_pool.py 의 3,456조합 탐색에서 나온 값이다.
+        self.per_trade_short = float(os.getenv("OS_PER_TRADE_SHORT", "0.40"))
+        self.per_trade_div   = float(os.getenv("OS_PER_TRADE_DIV",   "0.40"))
         self.daily_loss    = float(os.getenv("OS_DAILY_LOSS",     "0.05"))
         self.max_drawdown  = float(os.getenv("OS_MAX_DRAWDOWN",   "0.20"))
         # 백테스트(ml/sim_correct.py, ml/path_to_100x.py)가 검증한 차단기는
@@ -129,7 +136,9 @@ class Config:
         self.poll_seconds  = int(os.getenv("OS_POLL_SECONDS",     "300"))
 
     def describe(self) -> str:
-        return (f"배율 {self.leverage:g}x · 거래당 전체물량 {self.per_trade*100:.1f}% · "
+        return (f"배율 롱 {self.leverage:g}x·숏/다이버 1x · 거래당 "
+                f"롱 {self.per_trade*100:.1f}% / 숏 {self.per_trade_short*100:.0f}% / "
+                f"다이버 {self.per_trade_div*100:.0f}% · "
                 f"총노출 상한 {self.max_gross*100:.0f}%×배율 · "
                 f"일일손실 {self.daily_loss*100:.0f}% · "
                 f"낙폭차단 {self.max_drawdown*100:.0f}%({self.halt_cooldown_days:.0f}일 재개)")
@@ -154,7 +163,8 @@ def load_state() -> dict:
             return json.load(open(STATE_PATH, encoding="utf-8"))
         except Exception:
             log.warning("상태 파일 손상 — 새로 시작한다")
-    return {"positions": {}, "peak_equity": 0.0, "day": "", "day_start_equity": 0.0,
+    return {"positions": {}, "mod_positions": {}, "last_daily_scan": "",
+            "peak_equity": 0.0, "day": "", "day_start_equity": 0.0,
             "halted_until": None, "halt_count": 0}
 
 
@@ -182,13 +192,30 @@ class Exchange:
         else:
             self.session = HTTP(testnet=False)      # 공개 조회만
 
-    def klines(self, symbol: str, limit: int = 200) -> list:
+    def klines(self, symbol: str, limit: int = 200, interval: str = None) -> list:
         r = self.session.get_kline(category="linear", symbol=symbol,
-                                   interval=S.INTERVAL, limit=limit)
+                                   interval=interval or S.INTERVAL, limit=limit)
         if r.get("retCode") != 0:
             raise RuntimeError(f"{symbol} kline 실패: {r.get('retMsg')}")
         rows = r["result"]["list"]
         return sorted(rows, key=lambda x: int(x[0]))     # 오래된 순
+
+    def daily(self, symbol: str, limit: int = 600) -> pd.DataFrame:
+        """일봉. 주봉 숏(MA60주=420일)과 다이버전스가 같이 쓴다.
+
+        거래소의 주봉 캔들을 쓰지 않는 이유는 modules.py에 적어뒀다 —
+        주의 시작 요일이 백테스트와 다를 수 있어서다.
+        """
+        rows = self.klines(symbol, limit=limit, interval="D")
+        if not rows:
+            return pd.DataFrame()
+        d = pd.DataFrame([{"dt": pd.to_datetime(int(r[0]), unit="ms"),
+                           "open": float(r[1]), "high": float(r[2]),
+                           "low": float(r[3]), "close": float(r[4])}
+                          for r in rows])
+        # 마지막 일봉은 진행 중일 수 있다 — 확정봉만 쓴다
+        now = pd.Timestamp.utcnow().tz_localize(None)
+        return d[d["dt"] + pd.Timedelta(days=1) <= now].reset_index(drop=True)
 
     def spec(self, symbol: str) -> dict:
         """수량 단위·최소주문량. 안 맞으면 주문이 거절된다."""
@@ -308,6 +335,31 @@ class Exchange:
         log.info("  진입 %s qty=%s → %s", symbol, qty, "성공" if ok else r.get("retMsg"))
         return ok
 
+    def open_short(self, symbol: str, qty: float, stop: float) -> bool:
+        if not self.live:
+            log.info("  [모의] 숏 진입 %s qty=%s 손절=%.6f", symbol, qty, stop)
+            return True
+        r = self.session.place_order(
+            category="linear", symbol=symbol, side="Sell", orderType="Market",
+            qty=str(qty), stopLoss=f"{stop:.10g}", slTriggerBy="LastPrice",
+            timeInForce="IOC", reduceOnly=False)
+        ok = r.get("retCode") == 0
+        log.info("  숏 진입 %s qty=%s → %s", symbol, qty,
+                 "성공" if ok else r.get("retMsg"))
+        return ok
+
+    def close_short(self, symbol: str, qty: float, reason: str) -> bool:
+        if not self.live:
+            log.info("  [모의] 숏 청산 %s qty=%s (%s)", symbol, qty, reason)
+            return True
+        r = self.session.place_order(
+            category="linear", symbol=symbol, side="Buy", orderType="Market",
+            qty=str(qty), reduceOnly=True, timeInForce="IOC")
+        ok = r.get("retCode") == 0
+        log.info("  숏 청산 %s qty=%s (%s) → %s", symbol, qty, reason,
+                 "성공" if ok else r.get("retMsg"))
+        return ok
+
     def close_long(self, symbol: str, qty: float, reason: str) -> bool:
         if not self.live:
             log.info("  [모의] 청산 %s qty=%s (%s)", symbol, qty, reason)
@@ -352,13 +404,19 @@ class Trader:
             return
         actual = self.ex.positions()
         tracked = self.st["positions"]
+        mods = self.st.setdefault("mod_positions", {})
         for sym in list(tracked):
             if sym not in actual:
                 log.warning("상태엔 있으나 거래소에 없는 포지션 제거: %s "
                             "(손절 체결로 이미 닫혔을 수 있다)", sym)
                 tracked.pop(sym)
+        for sym in list(mods):
+            if sym not in actual:
+                log.warning("상태엔 있으나 거래소에 없는 모듈 포지션 제거: %s [%s]",
+                            sym, mods[sym]["kind"])
+                mods.pop(sym)
         for sym, p in actual.items():
-            if sym not in tracked and sym in S.SYMBOLS:
+            if sym not in tracked and sym not in mods and sym in S.SYMBOLS:
                 log.warning("거래소에만 있는 포지션 발견: %s — 이 봇이 연 것이 아니므로 "
                             "건드리지 않는다", sym)
         save_state(self.st)
@@ -414,6 +472,8 @@ class Trader:
             spec = self.ex.spec(sym)
             if self.ex.close_long(sym, round_qty(p["qty"], spec), reason):
                 self.st["positions"].pop(sym, None)
+        for sym, p in list(self.st.get("mod_positions", {}).items()):
+            self._close_mod(sym, p, reason)      # 숏은 매수로 닫는다
         save_state(self.st)
 
     def _try_scale_in(self, sym: str, p: dict, price: float) -> None:
@@ -461,6 +521,125 @@ class Trader:
         if self.ex.set_stop(sym, p["stop"], take_profit=tp):
             p["tp"] = tp
             save_state(self.st)
+
+    # ── 일봉 계열 모듈 (주봉 숏 · 상승 다이버전스) ────────────────
+    def _mod_gross(self) -> float:
+        return sum(p["reserved"] for p in self.st.get("mod_positions", {}).values())
+
+    def _held_symbols(self) -> set:
+        """한 종목을 두 모듈이 동시에 잡지 않는다 (백테스트도 그렇다)."""
+        return set(self.st["positions"]) | set(self.st.get("mod_positions", {}))
+
+    def _close_mod(self, sym: str, p: dict, reason: str) -> bool:
+        spec = self.ex.spec(sym)
+        q = round_qty(p["qty"], spec)
+        if not q:
+            log.error("  %s 청산 수량이 0 — 수동 확인 필요", sym)
+            return False
+        fn = self.ex.close_short if p["side"] == "Sell" else self.ex.close_long
+        if not fn(sym, q, reason):
+            return False
+        self.st["mod_positions"].pop(sym, None)
+        save_state(self.st)
+        return True
+
+    def _daily_pass(self, equity: float, can_enter: bool) -> None:
+        """하루 한 번만 도는 계열. 일봉을 받아 숏·다이버전스를 판정한다.
+
+        4시간봉 롱은 tick()마다 돌지만 이쪽은 일봉·주봉이라 하루에 한 번
+        이상 볼 이유가 없다. 42종 일봉 조회가 가볍지도 않다.
+        """
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        if self.st.get("last_daily_scan") == today:
+            return
+        mode = REG.read()["mode"]
+        mods = self.st.setdefault("mod_positions", {})
+        log.info("일봉 계열 점검 — 보유 %d건 · %s", len(mods), REG.describe())
+
+        opened_short_this_pass = 0
+        gross = sum(p["reserved"] for p in self.st["positions"].values()) + self._mod_gross()
+        cap = equity * self.cfg.max_gross * self.cfg.leverage
+
+        for sym in S.SYMBOLS:
+            try:
+                d = self.ex.daily(sym)
+            except Exception as e:
+                log.warning("%s 일봉 조회 실패: %s", sym, e)
+                continue
+            if len(d) < 60:
+                continue
+            last_bar = int(pd.Timestamp(d["dt"].iloc[-1]).value // 10**6)
+
+            # ① 보유분 — 시간 청산
+            p = mods.get(sym)
+            if p is not None:
+                now_bar = last_bar
+                if p["kind"] == "short":
+                    # 확정된 주봉만 센다. 진행 중인 주의 라벨은 미래
+                    # 월요일이라 그대로 쓰면 한 봉 일찍 닫는다.
+                    w = MOD.to_weekly(d, drop_partial=True)
+                    if len(w) == 0:
+                        continue
+                    now_bar = int(pd.Timestamp(w["dt"].iloc[-1]).value // 10**6)
+                held = MOD.bars_since(p["kind"], p["signal_bar"], now_bar)
+                if MOD.should_exit(p["kind"], p["signal_bar"], now_bar):
+                    if self._close_mod(sym, p, f"{held}봉 경과"):
+                        gross -= p["reserved"]
+                else:
+                    px = float(d["close"].iloc[-1])
+                    sgn = -1 if p["side"] == "Sell" else 1
+                    log.info("  보유 %s [%s] %d/%d봉  진입 %.6g  현재 %.6g (%.1f%%)",
+                             sym, p["kind"], held, MOD.hold_bars(p["kind"]),
+                             p["entry"], px, sgn * (px / p["entry"] - 1) * 100)
+                continue
+
+            # ② 신규 판정
+            if not can_enter or sym in self._held_symbols():
+                continue
+            sig = None
+            if REG.enabled("short", mode):
+                sig = MOD.evaluate_short(sym, d)
+                if sig and opened_short_this_pass >= MOD.SHORT_MAX_CONCURRENT:
+                    # 2020-03-23에 숏 2건이 동시에 터져 그 주가 -76.7%p였다.
+                    log.info("  숏 신호 %s — 이번 주 동시 진입 상한으로 건너뜀", sym)
+                    sig = None
+            if sig is None and REG.enabled("div", mode):
+                sig = MOD.evaluate_div(sym, d)
+            if sig is None:
+                continue
+
+            frac = (self.cfg.per_trade_short if sig.kind == "short"
+                    else self.cfg.per_trade_div)
+            notional = equity * frac          # 숏·다이버는 배율 1배
+            if gross + notional > cap:
+                log.info("  %s 신호 %s — 총노출 상한 초과로 건너뜀", sig.kind, sym)
+                continue
+            px = float(d["close"].iloc[-1])
+            spec = self.ex.spec(sym)
+            qty = round_qty(notional / px, spec)
+            if qty <= 0:
+                log.info("  %s 신호 %s — 수량이 최소주문량 미만", sig.kind, sym)
+                continue
+            stop = MOD.stop_price(px, sig.side)
+            log.info("🔔 %s 신호 %s  종가 %.6g  →  %.2f USDT (%.4g개) · 손절 %.6g",
+                     sig.kind, sym, px, notional, qty, stop)
+            self.ex.set_leverage(sym, 1)
+            if not self.ex.set_isolated(sym, 1):
+                log.error("  %s 격리마진 전환 실패 — 진입을 건너뜁니다", sym)
+                continue
+            fn = self.ex.open_short if sig.side == "Sell" else self.ex.open_long
+            if fn(sym, qty, stop):
+                mods[sym] = {"kind": sig.kind, "side": sig.side, "qty": qty,
+                             "entry": px, "stop": stop, "signal_bar": sig.bar_time,
+                             "reserved": notional,
+                             "opened_at": datetime.now(timezone.utc).isoformat()}
+                gross += notional
+                if sig.kind == "short":
+                    opened_short_this_pass += 1
+                save_state(self.st)
+
+        self.st["last_daily_scan"] = today
+        save_state(self.st)
 
     def _verify_stops(self, positions: dict) -> None:
         """거래소에 손절이 실제로 걸려 있는지 매 점검마다 확인한다.
@@ -514,11 +693,16 @@ class Trader:
         # 이번 순회 뒤쪽 심볼일 경우 앞쪽 심볼의 신규 진입 판정 시점에는
         # 아직 그 노출이 안 잡힌다 — cap을 넘겨서 진입을 허용하게 된다
         # (test_replay.py가 실제로 잡아냈다: cap 2990인데 예약합 4036).
-        gross = sum(p["reserved"] for p in positions.values())
-        log.info("자본 %.2f USDT · 보유 %d종목 · %s",
-                 equity, len(positions), "진입 가능" if can_enter else "진입 중단")
+        # 모듈(숏·다이버) 노출도 같은 지갑에서 나간다 — 함께 세야 한다.
+        gross = (sum(p["reserved"] for p in positions.values()) + self._mod_gross())
+        mods = self.st.get("mod_positions", {})
+        log.info("자본 %.2f USDT · 롱 %d종목 + 모듈 %d건 · 노출 %.0f%% · %s",
+                 equity, len(positions), len(mods),
+                 gross / equity * 100 if equity else 0,
+                 "진입 가능" if can_enter else "진입 중단")
 
         self._verify_stops(positions)
+        self._daily_pass(equity, can_enter)
 
         for sym in S.SYMBOLS:
             try:
@@ -565,6 +749,10 @@ class Trader:
 
             # ② 신규 진입 판정
             if not can_enter:
+                continue
+            if sym in self.st.get("mod_positions", {}):
+                continue          # 숏·다이버가 이미 잡고 있는 종목
+            if not REG.enabled("long"):
                 continue
             sig = S.evaluate(sym, closes, bar_time)
             if sig is None:

@@ -134,6 +134,45 @@ def main():
     check("다이버: 뒤 데이터가 과거 신호를 바꾸지 않는다", changed == 0,
           f"어긋난 구간 {changed}")
 
+    # ── 7b. 발화 타이밍 — 백테스트 거래 89건 전부를 '정확히 하루'에만
+    #        잡는가. 하루라도 이르면 미완성 봉으로 거래하는 것이고,
+    #        여러 날 걸쳐 뜨면 봇이 틀린 가격에 들어간다.
+    import ml.unified_pool as UP
+    W = {s: SS.to_weekly(x) for s, x in D.items()}
+    for nm, trades, is_short in [("숏", UP.make_short(W), True),
+                                 ("다이버", UP.make_div(D), False)]:
+        ok = miss = multi = 0
+        for t in trades:
+            sym, x = t["sym"], D[t["sym"]]
+            if is_short:
+                w = W[sym]
+                L = w["dt"].iloc[list(w["dt"]).index(t["dt"]) - 1]
+                ev = lambda c: M.evaluate_short(sym, c)
+            else:
+                L = t["dt"] - pd.Timedelta(days=1)
+                ev = lambda c: M.evaluate_div(sym, c)
+            fires = [day for day in pd.date_range(L - pd.Timedelta(days=4),
+                                                  L + pd.Timedelta(days=6))
+                     if ev(x[x.dt <= day].tail(600).reset_index(drop=True))]
+            if fires == [L]:
+                ok += 1
+            elif not fires:
+                miss += 1
+            else:
+                multi += 1
+        check(f"{nm}: 백테스트 거래를 정확히 신호일 하루에만 잡는다",
+              miss == 0 and multi == 0,
+              f"{ok}/{len(trades)} · 미발화 {miss} · 여러날 {multi}")
+
+    # 미완성 주봉으로 발화하지 않는가 — 실제로 있었던 버그다
+    sym = "CHZUSDT"
+    if sym in D:
+        x = D[sym]
+        early = [day for day in pd.date_range("2025-02-05", "2025-02-09")
+                 if M.evaluate_short(sym, x[x.dt <= day])]
+        check("진행 중인 주봉으로는 발화하지 않는다", len(early) == 0,
+              f"주가 닫히기 전 발화 {len(early)}일")
+
     # ── 8. 손절 방향
     check("숏 손절은 진입가 위", M.stop_price(100, "Sell") == 150.0,
           f"{M.stop_price(100, 'Sell'):.1f}")
