@@ -83,6 +83,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 sys.path.insert(0, ROOT)
 
 from bot.oversold import strategy as S
+from bot.oversold import regime as REG
 
 STATE_PATH  = os.path.join(ROOT, "bot", "oversold", "state.json")
 CANDLE_DIR  = os.path.join(ROOT, "data", "bybit")
@@ -607,10 +608,18 @@ def main():
     ap.add_argument("--once", action="store_true", help="1회만 점검하고 종료")
     ap.add_argument("--dump-candles", action="store_true", help="조회한 캔들 저장")
     ap.add_argument("--close-all", action="store_true", help="전량 청산하고 종료")
+    ap.add_argument("--regime", choices=REG.MODES,
+                    help="국면 스위치를 바꾸고 종료 (봇이 돌고 있어도 다음 틱에 반영된다)")
+    ap.add_argument("--note", default="", help="--regime 과 함께 남길 메모")
     a = ap.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(message)s",
                         datefmt="%m-%d %H:%M:%S")
+
+    if a.regime:
+        print("  " + REG.describe(REG.write(a.regime, a.note)))
+        return
+
     load_env()
     cfg = Config()
 
@@ -629,6 +638,7 @@ def main():
     print(f"  규칙: 20기간선 대비 {S.ENTRY_THRESH}% 이하 → 1차 {S.SCALE_IN_FIRST_FRAC*100:.0f}% 진입, "
           f"거기서 {S.SCALE_IN_TRIGGER_PCT}% 더 빠지면 2차 {(1-S.SCALE_IN_FIRST_FRAC)*100:.0f}% 추가")
     print(f"        → {S.HOLD_BARS}봉 후 청산 · 손절(평단 대비) {S.STOP_PCT}%")
+    print(f"  {REG.describe()}")
     print("=" * 84)
 
     if a.live and not a.live_nonint:

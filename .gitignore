@@ -32,3 +32,4 @@ data/*_3m_all.csv.gz
 bot/cycle_state.json
 bot/ma_bot_state.json
 bot/upbit_watch_state.json
+state/
