@@ -1,0 +1,67 @@
+name: 📖 호가창 데이터 수집 (미시구조)
+
+# 왜 필요한가:
+#   이 저장소의 모든 검증이 OHLCV만 썼다. 지표 63개·규칙 계열 452개가
+#   전부 탈락한 것은 가격 데이터를 다 짜냈다는 뜻이기도 하다.
+#   시장미시구조(호가 불균형·스프레드)는 한 번도 안 봤다.
+#
+# 용량 주의:
+#   bookTicker 원본은 종목당 하루 수십~수백 MB다. 받는 즉시 1분
+#   단위로 요약해 저장하고 원본은 버린다. 그래도 종목을 늘리면
+#   저장소가 커지므로 핵심 6종만 받는다.
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "최근 며칠"
+        default: "30"
+      symbols:
+        description: "종목 (공백 구분)"
+        default: "BTCUSDT ETHUSDT SOLUSDT"
+  schedule:
+    - cron: "0 5 * * 0"      # 매주 일요일 05:00 UTC
+
+permissions:
+  contents: write
+
+concurrency:
+  group: collect-orderbook
+  cancel-in-progress: false
+
+jobs:
+  book:
+    name: "호가창 ${{ matrix.symbol }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        symbol: [BTCUSDT, ETHUSDT, SOLUSDT, BNBUSDT, XRPUSDT, ADAUSDT]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/quant-trading-bot-tkjtd
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install pandas requests numpy
+      - name: 수집
+        run: |
+          python -u bybit/collect_orderbook.py \
+            --symbol ${{ matrix.symbol }} \
+            --days ${{ github.event.inputs.days || 14 }}
+      - name: 커밋 & 푸시
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "data/orderbook/${{ matrix.symbol }}_book_1m.csv.gz" 2>/dev/null || true
+          git diff --staged --quiet && { echo "변경 없음"; exit 0; }
+          git commit -m "data: ${{ matrix.symbol }} 호가창 1분 요약"
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin claude/quant-trading-bot-tkjtd && \
+            git push origin HEAD:claude/quant-trading-bot-tkjtd && break || sleep $((i*6))
+          done
