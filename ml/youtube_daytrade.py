@@ -115,48 +115,70 @@ def r_stochrsi(d, lo=20):
 
 
 # ── 청산 ────────────────────────────────────────────────────────
-def exit_rsi(d, i, hi=70, cap=300):
-    r = rsi(d["close"].values); n = len(r)
-    for j in range(i + 1, min(i + cap, n)):
-        if r[j] >= hi:
-            return j
-    return min(i + cap, n - 1)
+# 봉마다 "이 조건을 만족하는 다음 봉"을 미리 한 번에 구해둔다.
+# 5분봉 94만 개에 파이썬 루프를 돌리면 규칙 하나에 수 분이 걸린다.
+def _next_true(cond, cap):
+    """cond[j]가 True인 가장 이른 j>i 를 각 i에 대해. 없으면 -1.
+    뒤에서 앞으로 한 번 훑으면 O(n)이다."""
+    n = len(cond)
+    nxt = np.full(n, -1, dtype=np.int64)
+    ahead = -1
+    for j in range(n - 1, -1, -1):
+        nxt[j] = ahead
+        if cond[j]:
+            ahead = j
+    # cap 초과는 없는 것으로 본다
+    too_far = (nxt < 0) | (nxt - np.arange(n) > cap)
+    nxt[too_far] = -1
+    return nxt
 
-def exit_boll_up(d, i, n=20, k=2.0, cap=300):
-    c = d["close"].values; h = d["high"].values
-    _, _, ub = boll(c, n, k); N = len(c)
-    for j in range(i + 1, min(i + cap, N)):
-        if not np.isnan(ub[j]) and h[j] >= ub[j]:
-            return j
-    return min(i + cap, N - 1)
 
-def exit_bars(d, i, bars=12):
-    return min(i + bars, len(d) - 1)
+def make_exit(kind, **kw):
+    """데이터를 받아 '진입봉 → 청산봉' 배열을 돌려주는 함수를 만든다."""
+    def build(d):
+        c = d["close"].values; h = d["high"].values; n = len(c)
+        idx = np.arange(n)
+        if kind == "bars":
+            return np.minimum(idx + kw.get("bars", 12), n - 1)
+        cap = kw.get("cap", 300)
+        if kind == "rsi":
+            cond = rsi(c) >= kw.get("hi", 70)
+        elif kind == "boll_up":
+            _, _, ub = boll(c, kw.get("n", 20), kw.get("k", 2.0))
+            cond = ~np.isnan(ub) & (h >= ub)
+        else:
+            raise ValueError(kind)
+        nxt = _next_true(np.nan_to_num(cond).astype(bool), cap)
+        # 조건을 못 만나면 cap 봉에서 시간청산
+        return np.where(nxt >= 0, nxt, np.minimum(idx + cap, n - 1))
+    return build
 
 
-def backtest(d, entries, exit_fn, *, tick_delay=0, fee=0.40, stop=None):
-    """판단은 종가, 체결은 다음 봉 시가. 중복 진입 없음."""
-    o, c, h, l = (d["open"].values, d["close"].values,
-                  d["high"].values, d["low"].values)
+def backtest(d, entries, exit_build, *, tick_delay=0, fee=0.40, stop=None):
+    """판단은 종가, 체결은 다음 봉 시가. 보유 중 재진입 없음."""
+    o, c, l = d["open"].values, d["close"].values, d["low"].values
     dt = d["dt"].values; n = len(c)
-    out = []; lock = -1
+    xmap = exit_build(d)
+    # 보유 중 재진입 금지 — 청산봉을 넘긴 신호만 취한다
+    keep_i, keep_j = [], []
+    lock = -1
     for i in entries:
-        e_bar = i + 1 + tick_delay
-        if i <= lock or e_bar >= n - 1:
+        e = i + 1 + tick_delay
+        if i <= lock or e >= n - 1:
             continue
-        ep = o[e_bar]
-        j = exit_fn(d, e_bar)
-        if j <= e_bar:
-            j = min(e_bar + 1, n - 1)
-        xp = c[j]
-        mae = (l[e_bar:j + 1].min() / ep - 1) * 100
-        if stop is not None and mae <= -stop:
-            xp = ep * (1 - stop / 100)
-        gross = (xp / ep - 1) * 100
-        out.append({"dt": pd.Timestamp(dt[e_bar]), "gross": gross,
-                    "net": gross - fee, "bars": j - e_bar, "mae": mae})
+        j = max(int(xmap[e]), e + 1)
+        keep_i.append(e); keep_j.append(min(j, n - 1))
         lock = j
-    return pd.DataFrame(out)
+    if not keep_i:
+        return pd.DataFrame()
+    e = np.array(keep_i); j = np.array(keep_j)
+    ep, xp = o[e], c[j]
+    mae = np.array([(l[a:b + 1].min() / p - 1) * 100 for a, b, p in zip(e, j, ep)])
+    if stop is not None:
+        xp = np.where(mae <= -stop, ep * (1 - stop / 100), xp)
+    gross = (xp / ep - 1) * 100
+    return pd.DataFrame({"dt": pd.to_datetime(dt[e]), "gross": gross,
+                         "net": gross - fee, "bars": j - e, "mae": mae})
 
 
 def random_baseline(d, n_trades, hold_bars, fee=0.40):
@@ -175,16 +197,16 @@ def random_baseline(d, n_trades, hold_bars, fee=0.40):
 
 
 RULES = [
-    ("RSI 30 매수 → 70 매도",        r_rsi,        lambda d, i: exit_rsi(d, i)),
-    ("RSI 30 매수 → 12봉 보유",       r_rsi,        lambda d, i: exit_bars(d, i, 12)),
-    ("볼린저 하단 매수 → 상단 매도",    r_boll_low,   lambda d, i: exit_boll_up(d, i)),
-    ("볼린저 하단 매수 → 12봉",        r_boll_low,   lambda d, i: exit_bars(d, i, 12)),
-    ("볼린저 상단돌파+거래량2배 추격",   r_boll_break, lambda d, i: exit_bars(d, i, 12)),
-    ("20이평 상향돌파 매수 → 12봉",     r_ma_cross,   lambda d, i: exit_bars(d, i, 12)),
-    ("정배열 눌림목(5>20>60) → 12봉",  r_pullback,   lambda d, i: exit_bars(d, i, 12)),
-    ("정배열 눌림목 → 볼린저 상단",     r_pullback,   lambda d, i: exit_boll_up(d, i)),
-    ("MACD 골든크로스 → 12봉",        r_macd,       lambda d, i: exit_bars(d, i, 12)),
-    ("스토캐스틱RSI 20 반등 → 12봉",   r_stochrsi,   lambda d, i: exit_bars(d, i, 12)),
+    ("RSI 30 매수 → 70 매도",        r_rsi,        make_exit("rsi")),
+    ("RSI 30 매수 → 12봉 보유",       r_rsi,        make_exit("bars", bars=12)),
+    ("볼린저 하단 매수 → 상단 매도",    r_boll_low,   make_exit("boll_up")),
+    ("볼린저 하단 매수 → 12봉",        r_boll_low,   make_exit("bars", bars=12)),
+    ("볼린저 상단돌파+거래량2배 추격",   r_boll_break, make_exit("bars", bars=12)),
+    ("20이평 상향돌파 매수 → 12봉",     r_ma_cross,   make_exit("bars", bars=12)),
+    ("정배열 눌림목(5>20>60) → 12봉",  r_pullback,   make_exit("bars", bars=12)),
+    ("정배열 눌림목 → 볼린저 상단",     r_pullback,   make_exit("boll_up")),
+    ("MACD 골든크로스 → 12봉",        r_macd,       make_exit("bars", bars=12)),
+    ("스토캐스틱RSI 20 반등 → 12봉",   r_stochrsi,   make_exit("bars", bars=12)),
 ]
 
 
@@ -251,3 +273,50 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# ── 결과 (2026-09) ──────────────────────────────────────────────
+#
+# 1시간봉 6종 430,252봉 · 5분봉 6종 940,297봉 · 2017-08 ~ 2026-07
+#
+#   왕복 수수료          1시간봉 생존   5분봉 생존
+#   0.40% (테이커·실측)      0/10        0/10
+#   0.20%                  1/10         —
+#   0.10%                  5/10         —
+#   0.04% (메이커 양방향)     7/10        —
+#
+# 수수료가 전부를 결정한다. 규칙의 품질이 아니라 비용 구조의 문제다.
+#
+# 신호 자체는 정보가 있다. 5분봉에서 10개 중 7개가 무작위 진입을
+# 총수익 기준으로 이긴다(무작위 0.009%). 다만 엣지가 0.006~0.090%
+# 이고 테이커 왕복이 0.40%다 — 엣지의 4~65배다.
+#
+# 1시간봉에서 홀드아웃까지 통과하는 것은 넷이다. 전부 메이커
+# 수수료를 전제로 한다.
+#
+#   볼린저 상단돌파+거래량2배   총 0.405%  홀드아웃 순 +0.152%
+#   볼린저 하단 → 상단          총 0.129%  홀드아웃 순 +0.090%
+#   정배열 눌림목               총 0.146%  홀드아웃 순 +0.035%
+#   MACD 골든크로스            총 0.105%  홀드아웃 순 +0.024%
+#
+# 그런데 이 중 가장 센 "볼린저 상단 돌파 + 거래량 급증"은 메이커로
+# 체결할 수 없는 규칙이다. 돌파를 쫓아가는 주문이라 본질적으로
+# 테이커다. 지정가를 걸어두면 돌파가 안 온 경우에만 체결된다.
+# 즉 0.04%를 가정한 +0.365%는 실현 불가능한 숫자다.
+#
+# 나머지 셋(볼린저 하단·눌림목·MACD)은 되돌림을 기다리는 진입이라
+# 지정가가 가능하다. 대신 엣지가 0.024~0.090%로 작아서, 슬리피지가
+# 조금만 생기거나 지정가가 안 채워지는 비율이 조금만 높아도 사라진다.
+#
+# 두 가지가 더 드러났다.
+#
+# 1. 승률과 수익은 다른 축이다. RSI 30→70은 1시간봉 승률 61%로
+#    1등인데 총수익은 -0.027%로 꼴찌다. 이기면 조금 벌고 지면 크게
+#    잃는다. 평균 130봉(5.5일)을 들고 있어 단타도 아니다.
+#
+# 2. 테이커 기준 1시간봉에서 무작위 진입(-0.285%)이 10개 중 7개를
+#    이긴다. 지표를 보는 것이 안 보는 것보다 나쁘다.
+#
+# 우리 과매도 롱이 거래당 6.59%인 이유가 여기 있다. 4시간봉·20봉
+# 보유라 연 204건이고 엣지가 수수료의 16배다. 단타에서 이기려면
+# 엣지를 키우는 게 아니라 거래 횟수를 줄여야 한다.
