@@ -35,6 +35,7 @@ from ml.backtest_current_bot import (ROUND_TRIP, FUNDING_PER_8H, BAR_HOURS,
                                      pnl_pct, bb_upper, load)
 import ml.short_setups as SS
 import ml.divergence_scoped as DS
+import ml.bull_breakout as BB
 from ml.final_config import build
 
 TE = pd.Timestamp("2024-01-01")
@@ -94,6 +95,39 @@ def make_div(D, gap=8.0, hold=10):
     return out
 
 
+def make_break(D, window=BB.WINDOW, hold=BB.HOLD, regime_exit=False):
+    """상승장 신고가 돌파 롱. 시장이 200일선 위일 때만."""
+    bull = BB.bull_days(D)
+    out = []
+    for s, d in D.items():
+        o, c, l, dt = (d["open"].values, d["close"].values,
+                       d["low"].values, pd.to_datetime(d["dt"]).values)
+        n = len(c); lock = -10**9
+        for i in BB.signals(d, window):
+            if i <= lock or i + 1 + hold >= n:
+                continue
+            t = pd.Timestamp(dt[i + 1])
+            if not bool(bull.get(t, False)):
+                continue
+            # 국면 이탈 청산: 보유 중 시장이 200일선 아래로 내려가면 그날 종가로 나온다.
+            # 돌파는 상승장 엔진이다. 장이 꺾이면 자리를 비워야 과매도 롱이 들어간다.
+            j = i + hold
+            if regime_exit:
+                for k in range(i + 1, i + hold + 1):
+                    if not bool(bull.get(pd.Timestamp(dt[k]), True)):
+                        j = k
+                        break
+            e = o[i + 1]
+            out.append({"kind": "break", "sym": s, "dt": t,
+                        "exit": pd.Timestamp(dt[j]),
+                        "entry": e, "exit_px": c[j],
+                        "mae": (l[i + 1:j + 1].min() / e - 1) * 100,
+                        "deployed": 1.0,
+                        "bars_h": (j - i) * 24, "long": True})
+            lock = j
+    return out
+
+
 def simulate(trades, *, per_trade, leverage, max_gross=0.8,
              cb=0.25, cool_days=30):
     """하나의 풀. per_trade/leverage는 전략별 dict."""
@@ -101,8 +135,9 @@ def simulate(trades, *, per_trade, leverage, max_gross=0.8,
     mdd = 0.0
     open_ = []          # (exit_dt, reserved, pl)
     halted = None
-    n = {"long": 0, "short": 0, "div": 0}
-    wins = {"long": 0, "short": 0, "div": 0}
+    kinds = sorted({t["kind"] for t in trades})
+    n = {k: 0 for k in kinds}
+    wins = {k: 0 for k in kinds}
     held_syms = set()
     curve = {}
     ts = sorted(trades, key=lambda x: x["dt"])
