@@ -1,12 +1,13 @@
 /**
  * vessel-gas/Directory.gs
- * 모선명 → IMO/MMSI 조회 (구글 시트 "VesselDirectory" 탭 기반)
+ * 모선명 → IMO/MMSI (선택 기능 — 실시간 AIS 위치까지 보고 싶을 때만 필요).
+ * 등록 안 해도 봇은 정상 동작한다(터미널/선사 스케줄+수동입력 알림만으로도 충분) —
+ * AIS는 "있으면 위치까지 더 보여주는" 보너스일 뿐이다.
  *
- * 시트 컬럼: Names(콤마로 여러 별칭) | IMO | MMSI | Note
- * 예) "EVER GIVEN, 에버기븐" | 9811000 | | 예시 데이터
- *
- * AIS API는 선박명 자유검색을 지원하지 않아(IMO/MMSI만 가능) 이 매핑표가
- * 필요하다 — Python 버전(vessel/directory.py)과 같은 이유.
+ * 저장: PropertiesService 키 VESSEL_DIRECTORY, JSON 배열
+ *   [{"names": ["EVER GIVEN", "에버기븐"], "imo": "9811000", "mmsi": ""}]
+ * 등록은 관리자 명령 /directory (Setup.gs의 addDirectoryEntry 참고)이나
+ * 스크립트 편집기에서 직접 addDirectoryEntry()를 실행해서 추가한다.
  */
 
 function normalizeName_(s) {
@@ -18,17 +19,13 @@ function normalizeName_(s) {
 }
 
 function loadDirectoryEntries_() {
-  const sheet = getOrCreateSheet_('VesselDirectory', ['Names', 'IMO', 'MMSI', 'Note']);
-  const rows = sheet.getDataRange().getValues();
-  const entries = [];
-  for (let i = 1; i < rows.length; i++) {
-    const [namesCell, imo, mmsi] = rows[i];
-    if (!namesCell) continue;
-    const names = String(namesCell).split(',').map(s => s.trim()).filter(Boolean);
-    if (names.length === 0) continue;
-    entries.push({ names: names, imo: imo ? String(imo) : '', mmsi: mmsi ? String(mmsi) : '' });
-  }
-  return entries;
+  return getJson_('VESSEL_DIRECTORY', []);
+}
+
+function addDirectoryEntry(names, imo, mmsi) {
+  const entries = loadDirectoryEntries_();
+  entries.push({ names: names, imo: imo || '', mmsi: mmsi || '' });
+  setJson_('VESSEL_DIRECTORY', entries);
 }
 
 /** resolveVessel(name) -> {entry: {...}|null, candidates: [...]} */
@@ -37,14 +34,12 @@ function resolveVessel(vesselName) {
   if (!vesselName || entries.length === 0) return { entry: null, candidates: [] };
 
   const target = normalizeName_(vesselName);
-  const aliasIndex = []; // {norm, entry}
+  const aliasIndex = [];
   entries.forEach(e => e.names.forEach(alias => aliasIndex.push({ norm: normalizeName_(alias), entry: e })));
 
-  // 정확 일치
   const exact = aliasIndex.find(a => a.norm === target);
   if (exact) return { entry: exact.entry, candidates: [] };
 
-  // 부분 포함 매칭 (양방향)
   const hits = aliasIndex.filter(a => target && (target.indexOf(a.norm) !== -1 || a.norm.indexOf(target) !== -1));
   const uniqueEntries = dedupEntries_(hits.map(h => h.entry));
   if (uniqueEntries.length === 1) return { entry: uniqueEntries[0], candidates: [] };

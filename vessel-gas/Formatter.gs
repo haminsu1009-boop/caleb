@@ -64,12 +64,3 @@ function formatAmbiguous_(vesselName, candidates) {
   return lines.join('\n');
 }
 
-function formatNotFound_(vesselName) {
-  return "🚢 '" + vesselName + "'을(를) 선박 디렉터리에서 찾을 수 없어요.\n" +
-    '등록된 선박명이 아니거나 표기가 달라서 그럴 수 있어요.\n' +
-    '정확한 영문 선명으로 다시 시도하거나, VesselDirectory 시트에 등록을 요청해 주세요.';
-}
-
-function formatNoPosition_(vesselName) {
-  return "🚢 '" + vesselName + "'의 IMO/MMSI는 확인했지만, 현재 AIS 위치 데이터를 가져오지 못했어요. 잠시 후 다시 시도해 주세요.";
-}

@@ -4,20 +4,7 @@
  * (Apps Script 편집기에서 함수 선택 → ▶ 실행 버튼으로 실행)
  */
 
-/** 1) 시트 탭 초기화 — VesselDirectory, ManualOverrides 자동 생성 + 예시 데이터 1건 */
-function initSheets() {
-  getOrCreateSheet_('VesselDirectory', ['Names', 'IMO', 'MMSI', 'Note']);
-  getOrCreateSheet_('ManualOverrides', MANUAL_HEADERS_);
-
-  const dirSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('VesselDirectory');
-  if (dirSheet.getLastRow() < 2) {
-    dirSheet.appendRow(['EVER GIVEN, 에버기븐, 에버 기븐', '9811000', '',
-      '예시 데이터 — 실제 거래하는 선박으로 행을 추가/교체하세요']);
-  }
-  console.log('시트 초기화 완료: VesselDirectory, ManualOverrides 탭 생성됨.');
-}
-
-/** 2) 토큰이 유효한지 확인 (실행 로그에서 결과 확인: 보기 > 실행 로그) */
+/** 1) 토큰이 유효한지 확인 (보기 > 실행 로그에서 결과 확인) */
 function testGetMe() {
   const cfg = getConfig_();
   if (!cfg.token) { console.log('스크립트 속성에 TELEGRAM_TOKEN이 없습니다.'); return; }
@@ -27,7 +14,7 @@ function testGetMe() {
 }
 
 /**
- * 3) 웹훅 등록 — 배포(Deploy > New deployment > Web app)한 뒤 나오는 URL을
+ * 2) 웹훅 등록 — 배포(Deploy > New deployment > Web app)한 뒤 나오는 URL을
  *    스크립트 속성 WEBAPP_URL 에 먼저 저장하고 이 함수를 실행한다.
  */
 function installWebhook() {
@@ -41,10 +28,20 @@ function installWebhook() {
   console.log(resp.getContentText());
 }
 
-/** 4) 웹훅이 잘 등록됐는지 확인 */
+/** 3) 웹훅이 잘 등록됐는지 확인 */
 function getWebhookInfo() {
   const cfg = getConfig_();
   const resp = UrlFetchApp.fetch('https://api.telegram.org/bot' + cfg.token + '/getWebhookInfo',
     { muteHttpExceptions: true });
   console.log(resp.getContentText());
+}
+
+/**
+ * (선택) 실시간 AIS 위치까지 보고 싶은 선박을 등록. 등록 안 해도
+ * 봇은 정상 동작한다 — 터미널/선사 정보 + /watch 알림만으로도 충분하다.
+ * 예: addDirectoryEntry(['EVER GIVEN', '에버기븐'], '9811000', '');
+ */
+function seedExampleDirectory() {
+  addDirectoryEntry(['EVER GIVEN', '에버기븐', '에버 기븐'], '9811000', '');
+  console.log('예시 등록 완료 — VESSEL_DIRECTORY 스크립트 속성 확인');
 }
