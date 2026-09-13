@@ -32,9 +32,11 @@ import time
 MODES = ("normal", "bull")
 
 # 모드별로 어떤 계열을 켜고 끄는지. 모듈이 늘면 여기만 고친다.
+# 급락반등은 그 자체가 '상위 추세 위에서만' 발동하므로 두 모드 다 켠다.
+# 상승장 판단이 맞으면 알아서 더 자주 나가고, 틀리면 알아서 안 나간다.
 _ENABLED = {
-    "normal": {"long": True, "short": True,  "div": True},
-    "bull":   {"long": True, "short": False, "div": True},
+    "normal": {"long": True, "short": True,  "div": True, "crash": True},
+    "bull":   {"long": True, "short": False, "div": True, "crash": True},
 }
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

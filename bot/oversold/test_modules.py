@@ -173,6 +173,32 @@ def main():
         check("진행 중인 주봉으로는 발화하지 않는다", len(early) == 0,
               f"주가 닫히기 전 발화 {len(early)}일")
 
+    # ── 7c. 급락반등 신호가 백테스트와 일치하는가
+    import ml.wonyotti_patterns as WP
+    bad = tot = 0
+    for sym in S.SYMBOLS:
+        d4 = WP.load(sym, "4h")
+        if d4 is None or len(d4) < 500:
+            continue
+        f = WP.features(d4)
+        c4 = d4["close"].values
+        want = set(np.where((f["ret"] <= M.CRASH_DROP) & f["trend"])[0])
+        got = {i for i in range(1, len(c4)) if M.crash_signal(c4[:i + 1])}
+        tot += len(want)
+        if want != got:
+            bad += 1
+    check("급락반등 신호가 백테스트와 일치", bad == 0,
+          f"어긋난 종목 {bad} · 신호 {tot:,}건")
+
+    # 상위 추세가 꺾여 있으면 급락해도 발화하지 않는다 — 이 필터가 모듈의 전부다
+    down = [1.0] * 60 + [0.5]          # 계속 하락하다 -50%
+    check("추세 아래면 급락해도 안 잡는다", not M.crash_signal(down))
+    up = list(np.linspace(1.0, 2.0, 60)) + [2.0 * 0.9]   # 상승 추세 중 -10%
+    check("추세 위에서 급락하면 잡는다", M.crash_signal(up))
+    mild = list(np.linspace(1.0, 2.0, 60)) + [2.0 * 0.98]  # -2%는 문턱 미달
+    check("문턱(-5%)에 못 미치면 안 잡는다", not M.crash_signal(mild))
+    check("봉이 모자라면 안 잡는다", not M.crash_signal([1.0] * 10))
+
     # ── 8. 손절 방향
     check("숏 손절은 진입가 위", M.stop_price(100, "Sell") == 150.0,
           f"{M.stop_price(100, 'Sell'):.1f}")

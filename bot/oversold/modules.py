@@ -50,6 +50,31 @@ DIV_MAX_GAP = 120         # 두 스윙 사이 최대 봉수
 DIV_HOLD_DAYS = 10
 DIV_CONFIRM_WINDOW = 5    # 스윙 확정 후 양봉을 기다리는 봉수
 
+# ── 급락반등 (4시간봉) ───────────────────────────────────────────
+# 한 봉에 -5% 이상 빠진 직후, **상위 추세가 살아 있을 때만** 산다.
+# 익절 +10% / 손절 -5% 를 거래소에 걸어두고 48봉(8일) 안에 둘 다
+# 안 닿으면 시간청산한다.
+#
+# 과매도 롱과 방향은 같지만 잡는 순간이 다르다 — 과매도 롱은
+# '20기간선 대비 -12.26%'(누적 낙폭), 이쪽은 '한 봉에 -5%'(속도)다.
+# 실제로 두 모듈이 같은 날 같은 코인을 잡는 비율은 3%뿐이다.
+#
+# 상위 추세 필터가 이 모듈의 전부다(ml/wonyotti_patterns.py):
+#     필터 ON   3,226건  거래당 +0.623%  홀드아웃 +0.495%
+#     필터 OFF 11,452건  거래당 -0.273%  홀드아웃 -0.065%
+# 반대로 같은 필터를 과매도 롱에 걸면 망가진다 — 과매도 롱은 폭락장에서
+# 제일 많이 버는데 필터가 거기서 꺼지기 때문이다(21.52배 → 7.10배).
+# 연속형 거래에는 맞고 역추세 거래에는 독이다.
+#
+# 승률은 40%다. 익절이 손절의 2배라 기대값은 양수지만
+# (0.40 × 10 - 0.60 × 5 = +1.0%), 매년 5연패·3년에 한 번 8연패를
+# 겪는다. 계좌 낙폭은 거의 안 변한다(22.3% 대 21.6%).
+CRASH_DROP = -5.0         # 한 봉 수익률 문턱 (%)
+CRASH_TREND_MA = 48       # 상위 추세 판정 (4시간봉 48개 = 8일)
+CRASH_TP = 10.0           # 익절 (진입가 대비 %)
+CRASH_SL = 5.0            # 손절 (진입가 대비 %)
+CRASH_MAX_BARS = 48       # 시간청산 (4시간봉 48개 = 8일)
+
 CATASTROPHE_STOP = 50.0   # 진입가 대비 % (양수). 파국 대비용.
 
 # 시간봉 길이 (ms) — 보유 봉수를 세는 데 쓴다
@@ -173,6 +198,24 @@ def div_signals(d: pd.DataFrame, *, period=DIV_RSI_PERIOD, k=DIV_PIVOT_K,
         if j < end and bull_bar[j]:
             out.append(j)
     return np.array(sorted(set(out)), dtype=int)
+
+
+def crash_signal(closes: Sequence[float], drop: float = CRASH_DROP,
+                 ma: int = CRASH_TREND_MA) -> bool:
+    """마지막 **확정봉**이 급락반등 신호인가.
+
+    ① 그 봉의 수익률이 drop% 이하
+    ② 그 봉의 종가가 ma기간 이동평균 위 (상위 추세 생존)
+    """
+    c = np.asarray(closes, dtype=float)
+    # 이동평균에 ma봉이 필요하고, 봉 수익률에 그 직전 1봉이 더 필요하다.
+    # 여유를 더 두면 상장 초기의 정상 신호를 놓친다(ADA 2018 index 47).
+    if len(c) < ma:
+        return False
+    ret = (c[-1] / c[-2] - 1) * 100
+    if ret > drop:
+        return False
+    return bool(c[-1] > c[-ma:].mean())
 
 
 def stop_price(entry: float, side: str, pct: float = CATASTROPHE_STOP) -> float:

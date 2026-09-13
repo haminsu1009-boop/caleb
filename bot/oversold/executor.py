@@ -124,6 +124,10 @@ class Config:
         # ml/unified_pool.py 의 3,456조합 탐색에서 나온 값이다.
         self.per_trade_short = float(os.getenv("OS_PER_TRADE_SHORT", "0.40"))
         self.per_trade_div   = float(os.getenv("OS_PER_TRADE_DIV",   "0.40"))
+        # 급락반등(4시간봉). 5%가 낙폭이 거의 안 늘면서 수익이 2.4배가
+        # 되는 지점이다. 8%로 올리면 95배까지 가지만 1년 손실확률이
+        # 1% → 11%, 최악의 1년이 +4% → -20%가 된다(ml/liquidation_limit.py).
+        self.per_trade_crash = float(os.getenv("OS_PER_TRADE_CRASH", "0.05"))
         self.daily_loss    = float(os.getenv("OS_DAILY_LOSS",     "0.05"))
         self.max_drawdown  = float(os.getenv("OS_MAX_DRAWDOWN",   "0.20"))
         # 백테스트(ml/sim_correct.py, ml/path_to_100x.py)가 검증한 차단기는
@@ -138,7 +142,8 @@ class Config:
     def describe(self) -> str:
         return (f"배율 롱 {self.leverage:g}x·숏/다이버 1x · 거래당 "
                 f"롱 {self.per_trade*100:.1f}% / 숏 {self.per_trade_short*100:.0f}% / "
-                f"다이버 {self.per_trade_div*100:.0f}% · "
+                f"다이버 {self.per_trade_div*100:.0f}% / "
+                f"급락반등 {self.per_trade_crash*100:.0f}% · "
                 f"총노출 상한 {self.max_gross*100:.0f}%×배율 · "
                 f"일일손실 {self.daily_loss*100:.0f}% · "
                 f"낙폭차단 {self.max_drawdown*100:.0f}%({self.halt_cooldown_days:.0f}일 재개)")
@@ -360,6 +365,28 @@ class Exchange:
                  "성공" if ok else r.get("retMsg"))
         return ok
 
+    def open_bracket(self, symbol: str, qty: float, stop: float,
+                     take_profit: float) -> bool:
+        """익절·손절을 둘 다 거래소에 걸고 진입한다(급락반등).
+
+        볼린저 청산과 달리 목표가 고정이라 걸어두면 끝이다. 봇이 죽어도
+        거래소가 처리한다 — 시간청산만 봇이 살아 있어야 한다.
+        """
+        if not self.live:
+            log.info("  [모의] 급락반등 진입 %s qty=%s 손절=%.6g 익절=%.6g",
+                     symbol, qty, stop, take_profit)
+            return True
+        r = self.session.place_order(
+            category="linear", symbol=symbol, side="Buy", orderType="Market",
+            qty=str(qty), timeInForce="IOC", reduceOnly=False,
+            stopLoss=f"{stop:.10g}", slTriggerBy="LastPrice",
+            takeProfit=f"{take_profit:.10g}", tpTriggerBy="LastPrice",
+            tpOrderType="Limit", tpLimitPrice=f"{take_profit:.10g}")
+        ok = r.get("retCode") == 0
+        log.info("  급락반등 진입 %s qty=%s → %s", symbol, qty,
+                 "성공" if ok else r.get("retMsg"))
+        return ok
+
     def close_long(self, symbol: str, qty: float, reason: str) -> bool:
         if not self.live:
             log.info("  [모의] 청산 %s qty=%s (%s)", symbol, qty, reason)
@@ -572,6 +599,8 @@ class Trader:
 
             # ① 보유분 — 시간 청산
             p = mods.get(sym)
+            if p is not None and p["kind"] == "crash":
+                continue          # 급락반등은 4시간봉이라 tick()이 관리한다
             if p is not None:
                 now_bar = last_bar
                 if p["kind"] == "short":
@@ -640,6 +669,40 @@ class Trader:
 
         self.st["last_daily_scan"] = today
         save_state(self.st)
+
+    def _try_crash(self, sym: str, closes: list, bar_time: int,
+                   equity: float, gross: float, cap: float) -> bool:
+        """급락반등 진입. 익절·손절을 함께 걸어 거래소에 맡긴다."""
+        notional = equity * self.cfg.per_trade_crash      # 배율 1배
+        if gross + notional > cap:
+            log.info("  급락반등 신호 %s — 총노출 상한 초과로 건너뜀", sym)
+            return False
+        price = float(closes[-1])
+        spec = self.ex.spec(sym)
+        qty = round_qty(notional / price, spec)
+        if qty <= 0:
+            log.info("  급락반등 신호 %s — 수량이 최소주문량 미만", sym)
+            return False
+        drop = (closes[-1] / closes[-2] - 1) * 100
+        tp = price * (1 + MOD.CRASH_TP / 100)
+        sl = price * (1 - MOD.CRASH_SL / 100)
+        log.info("🔔 급락반등 %s  한 봉 %.1f%%  종가 %.6g  →  %.2f USDT (%.4g개)"
+                 "  · 목표 %.6g (+%.0f%%) · 손절 %.6g (-%.0f%%)",
+                 sym, drop, price, notional, qty, tp, MOD.CRASH_TP,
+                 sl, MOD.CRASH_SL)
+        self.ex.set_leverage(sym, 1)
+        if not self.ex.set_isolated(sym, 1):
+            log.error("  %s 격리마진 전환 실패 — 진입을 건너뜁니다", sym)
+            return False
+        if not self.ex.open_bracket(sym, qty, sl, tp):
+            return False
+        self.st.setdefault("mod_positions", {})[sym] = {
+            "kind": "crash", "side": "Buy", "qty": qty, "entry": price,
+            "stop": sl, "tp": tp, "signal_bar": bar_time,
+            "reserved": notional,
+            "opened_at": datetime.now(timezone.utc).isoformat()}
+        save_state(self.st)
+        return True
 
     def _verify_stops(self, positions: dict) -> None:
         """거래소에 손절이 실제로 걸려 있는지 매 점검마다 확인한다.
@@ -726,6 +789,21 @@ class Trader:
             # (노출은 "예약액" reserved = 1차+2차 전체 물량 기준이고,
             # 이미 tick() 맨 앞에서 현재 열린 전 종목분을 gross에 합쳐
             # 뒀다. 여기서 또 더하면 중복 계산이다 — 청산될 때만 뺀다.)
+            # 급락반등은 익절·손절이 거래소에 걸려 있다. 봇이 할 일은
+            # 시간청산뿐이고, 거래소가 이미 닫았으면 reconcile이 치운다.
+            cp = self.st.get("mod_positions", {}).get(sym)
+            if cp is not None and cp["kind"] == "crash":
+                held = (bar_time - cp["signal_bar"]) // BAR_MS
+                if held >= MOD.CRASH_MAX_BARS:
+                    if self._close_mod(sym, cp, f"{held}봉 경과"):
+                        gross -= cp["reserved"]
+                else:
+                    log.info("  보유 %s [급락반등] %d/%d봉  진입 %.6g  현재 %.6g (%.1f%%)"
+                             "  목표 %.6g  손절 %.6g",
+                             sym, held, MOD.CRASH_MAX_BARS, cp["entry"], price,
+                             (price / cp["entry"] - 1) * 100, cp["tp"], cp["stop"])
+                continue
+
             if sym in positions:
                 p = positions[sym]
                 held = (bar_time - p["entry_bar"]) // BAR_MS
@@ -756,6 +834,14 @@ class Trader:
                 continue
             sig = S.evaluate(sym, closes, bar_time)
             if sig is None:
+                # 과매도 롱 신호가 없으면 급락반등을 본다.
+                # 둘 다 4시간봉이고 방향도 같아서 한 종목에 하나만 잡는다.
+                if (REG.enabled("crash")
+                        and MOD.crash_signal(closes)
+                        and self._try_crash(sym, closes, bar_time, equity,
+                                            gross, cap=equity * self.cfg.max_gross
+                                            * self.cfg.leverage)):
+                    gross += equity * self.cfg.per_trade_crash
                 continue
             full_notional = equity * self.cfg.per_trade * self.cfg.leverage
             cap = equity * self.cfg.max_gross * self.cfg.leverage

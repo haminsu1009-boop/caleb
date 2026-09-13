@@ -110,6 +110,14 @@ class FakeExchange:
             self.orders.append(("open", symbol, qty, px, stop, self.cursor))
         return True
 
+    def open_bracket(self, symbol, qty, stop, take_profit):
+        """급락반등 — 익절·손절을 함께 건다."""
+        px = float(self.data[symbol][self.cursor][4])
+        self.pos[symbol] = {"size": qty, "entry": px, "stop": stop,
+                            "tp": take_profit}
+        self.orders.append(("crash", symbol, qty, px, stop, self.cursor))
+        return True
+
     def close_long(self, symbol, qty, reason):
         if symbol not in self.pos:
             return False
@@ -199,15 +207,19 @@ def main():
         check("데이터 로드", False, "data/*_4h_all.csv.gz 없음")
         return 1
 
-    opens = [o for o in ex.orders if o[0] == "open"]     # 1차(신규 포지션)만
+    opens = [o for o in ex.orders if o[0] == "open"]     # 과매도 롱 1차
+    crash = [o for o in ex.orders if o[0] == "crash"]     # 급락반등(괄호 진입)
     adds  = [o for o in ex.orders if o[0] == "add"]       # 2차 분할매수
     closes = [o for o in ex.orders if o[0] == "close"]
     stops = [o for o in ex.orders if o[0] == "stop"]
     check(f"거래가 실제로 발생 ({len(opens)}회 진입)", len(opens) > 0)
     check(f"분할매수 2차가 실제로 걸림 ({len(adds)}회)", len(adds) > 0)
+    check(f"급락반등도 진입한다 ({len(crash)}회)", len(crash) > 0)
+    # 급락반등은 신규 포지션이므로 진입 쪽에 함께 센다.
     check("모든 진입이 청산됨 (미결제 누락 없음)",
-          len(opens) - len(closes) - len(stops) == len(ex.pos),
-          f"진입 {len(opens)} / 시간청산 {len(closes)} / 손절 {len(stops)} / 잔여 {len(ex.pos)}")
+          len(opens) + len(crash) - len(closes) - len(stops) == len(ex.pos),
+          f"롱 {len(opens)} + 급락 {len(crash)} / 시간청산 {len(closes)}"
+          f" / 손절 {len(stops)} / 잔여 {len(ex.pos)}")
 
     # 보유 기간이 정확히 HOLD_BARS인가 (1차 진입 시점부터 — 2차는 기준점을 안 바꾼다)
     entry_bar = {}
