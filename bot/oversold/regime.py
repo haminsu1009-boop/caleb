@@ -32,11 +32,14 @@ import time
 MODES = ("normal", "bull")
 
 # 모드별로 어떤 계열을 켜고 끄는지. 모듈이 늘면 여기만 고친다.
-# 급락반등은 그 자체가 '상위 추세 위에서만' 발동하므로 두 모드 다 켠다.
-# 상승장 판단이 맞으면 알아서 더 자주 나가고, 틀리면 알아서 안 나간다.
+# 급락반등(crash)은 **꺼져 있다.** 그 모듈의 엣지가 전부 미래참조였다 —
+# ml/wonyotti_patterns.py 의 추세 필터가 신호봉이 아니라 체결봉의 종가를
+# 보고 있었다. 진입은 그 봉의 시가에 하므로 모를 값이다. 고치니
+# 거래당 +0.623% → -0.018%, 포트폴리오 51.43배 → 18.83배로 3종(21.52배)
+# 보다 나빠졌다. 코드는 남겨두되 켜지지 않게 한다.
 _ENABLED = {
-    "normal": {"long": True, "short": True,  "div": True, "crash": True},
-    "bull":   {"long": True, "short": False, "div": True, "crash": True},
+    "normal": {"long": True, "short": True,  "div": True, "crash": False},
+    "bull":   {"long": True, "short": False, "div": True, "crash": False},
 }
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

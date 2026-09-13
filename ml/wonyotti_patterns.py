@@ -152,7 +152,13 @@ def p_pullback_break(f, surge=2.0, vm=2.0, dip=(-1.5, -0.3),
 
 # ── 괄호 청산 ────────────────────────────────────────────────────
 def run_bracket(f, entries, tp, sl, max_bars, long=True, regime=None):
-    """손절·익절 괄호. 같은 봉에 둘 다 닿으면 손절이 먼저라고 본다."""
+    """손절·익절 괄호. 같은 봉에 둘 다 닿으면 손절이 먼저라고 본다.
+
+    추세 필터는 **신호봉 i**에서 판정한다. 체결봉 e=i+1 로 보면 그 봉의
+    종가를 쓰게 되는데, 진입은 그 봉의 시가에 하므로 아직 모르는 값이다
+    — 미래참조다. (처음엔 regime[e]로 짰다가 봇과 대조하다 잡았다.
+    3,226건 대 3,143건, 겹침 90.5%.)
+    """
     o, h, l, c = f["o"], f["h"], f["l"], f["c"]
     n = len(c)
     out, lock = [], -1
@@ -160,7 +166,7 @@ def run_bracket(f, entries, tp, sl, max_bars, long=True, regime=None):
         e = i + 1
         if i <= lock or e >= n - 1:
             continue
-        if regime is not None and not regime[e]:
+        if regime is not None and not regime[i]:
             continue
         ep = o[e]
         tp_px = ep * (1 + tp/100) if long else ep * (1 - tp/100)

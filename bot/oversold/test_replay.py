@@ -30,6 +30,7 @@ os.chdir(ROOT)
 
 from bot.oversold import strategy as S
 from bot.oversold import executor as E
+from bot.oversold import regime as REG
 
 FAILED = 0
 BAR_MS = E.BAR_MS
@@ -214,7 +215,12 @@ def main():
     stops = [o for o in ex.orders if o[0] == "stop"]
     check(f"거래가 실제로 발생 ({len(opens)}회 진입)", len(opens) > 0)
     check(f"분할매수 2차가 실제로 걸림 ({len(adds)}회)", len(adds) > 0)
-    check(f"급락반등도 진입한다 ({len(crash)}회)", len(crash) > 0)
+    # 급락반등은 기본으로 꺼져 있다(엣지가 미래참조였다 — regime.py 참고).
+    # 켜져 있으면 진입해야 하고, 꺼져 있으면 한 건도 없어야 한다.
+    crash_on = REG.enabled("crash")
+    check(f"급락반등: 국면 스위치가 {'켬' if crash_on else '끔'}인 대로 동작 "
+          f"({len(crash)}회 진입)",
+          (len(crash) > 0) if crash_on else (len(crash) == 0))
     # 급락반등은 신규 포지션이므로 진입 쪽에 함께 센다.
     check("모든 진입이 청산됨 (미결제 누락 없음)",
           len(opens) + len(crash) - len(closes) - len(stops) == len(ex.pos),

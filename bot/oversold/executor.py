@@ -124,10 +124,11 @@ class Config:
         # ml/unified_pool.py 의 3,456조합 탐색에서 나온 값이다.
         self.per_trade_short = float(os.getenv("OS_PER_TRADE_SHORT", "0.40"))
         self.per_trade_div   = float(os.getenv("OS_PER_TRADE_DIV",   "0.40"))
-        # 급락반등(4시간봉). 5%가 낙폭이 거의 안 늘면서 수익이 2.4배가
-        # 되는 지점이다. 8%로 올리면 95배까지 가지만 1년 손실확률이
-        # 1% → 11%, 최악의 1년이 +4% → -20%가 된다(ml/liquidation_limit.py).
-        self.per_trade_crash = float(os.getenv("OS_PER_TRADE_CRASH", "0.05"))
+        # 급락반등은 기본으로 꺼져 있다(bot/oversold/regime.py 참고).
+        # 그 모듈의 엣지가 전부 미래참조였다 — 고치니 거래당 -0.018%로
+        # 사실상 0이고, 넣으면 포트폴리오가 21.52배에서 18.83배로 나빠진다.
+        # 비중을 올려도 의미가 없으므로 0으로 둔다.
+        self.per_trade_crash = float(os.getenv("OS_PER_TRADE_CRASH", "0.0"))
         self.daily_loss    = float(os.getenv("OS_DAILY_LOSS",     "0.05"))
         self.max_drawdown  = float(os.getenv("OS_MAX_DRAWDOWN",   "0.20"))
         # 백테스트(ml/sim_correct.py, ml/path_to_100x.py)가 검증한 차단기는
@@ -142,8 +143,7 @@ class Config:
     def describe(self) -> str:
         return (f"배율 롱 {self.leverage:g}x·숏/다이버 1x · 거래당 "
                 f"롱 {self.per_trade*100:.1f}% / 숏 {self.per_trade_short*100:.0f}% / "
-                f"다이버 {self.per_trade_div*100:.0f}% / "
-                f"급락반등 {self.per_trade_crash*100:.0f}% · "
+                f"다이버 {self.per_trade_div*100:.0f}% · "
                 f"총노출 상한 {self.max_gross*100:.0f}%×배율 · "
                 f"일일손실 {self.daily_loss*100:.0f}% · "
                 f"낙폭차단 {self.max_drawdown*100:.0f}%({self.halt_cooldown_days:.0f}일 재개)")
