@@ -152,6 +152,34 @@ def main():
     check("상단이 평단 위면 그 값이 목표",
           S.take_profit_price(cc, up - 1) == up, f"목표 {up:.4f}")
 
+    # ── 봇 상수 ↔ 백테스트 인자 ─────────────────────────────────
+    # 21.52배는 백테스트가 쓴 값으로 나온 숫자다. 봇이 다른 값을 쓰면
+    # 검증한 것과 다른 것을 굴리는 셈이다. 실제로 HOLD_BARS가 봇 20 /
+    # 백테스트 60으로 갈려 있었고, 그 차이가 9.13배 대 21.52배였다
+    # (낙폭 33.6% 대 21.6%, 1년 손실확률 21% 대 1%).
+    #
+    # ml/ 쪽 호출부를 문자열로 읽어 대조한다. 백테스트를 돌리지 않고도
+    # 어긋남을 잡으려면 이 방법이 가장 싸다.
+    import re
+    mism = []
+    for path in ["ml/unified_pool.py", "ml/report.py", "ml/survivorship.py"]:
+        if not os.path.exists(path):
+            continue
+        src = open(path, encoding="utf-8").read()
+        for m in re.finditer(r"make_long\(([^)]*)\)", src):
+            args = m.group(1)
+            h = re.search(r"hold\s*=\s*(\d+)", args)
+            if h and int(h.group(1)) != S.HOLD_BARS:
+                mism.append(f"{path} hold={h.group(1)} ≠ 봇 {S.HOLD_BARS}")
+            k = re.search(r"bb_k\s*=\s*([\d.]+)", args)
+            if k and abs(float(k.group(1)) - S.BB_K) > 1e-9:
+                mism.append(f"{path} bb_k={k.group(1)} ≠ 봇 {S.BB_K}")
+            f = re.search(r"fracs\s*=\s*\[\s*([\d.]+)", args)
+            if f and abs(float(f.group(1)) - S.SCALE_IN_FIRST_FRAC) > 1e-9:
+                mism.append(f"{path} fracs[0]={f.group(1)} ≠ 봇 {S.SCALE_IN_FIRST_FRAC}")
+    check("백테스트 호출부가 봇 상수와 일치", not mism,
+          "; ".join(mism) if mism else "hold · bb_k · 1차비율 대조")
+
     print("=" * 84)
     print(f"  {'✅ 전부 통과' if FAILED == 0 else f'❌ {FAILED}건 실패'}")
     print("=" * 84)
