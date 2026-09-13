@@ -1,0 +1,164 @@
+"""
+bot/oversold/test_parity.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+실거래 신호 == 백테스트 신호 인가
+
+자동매매에서 가장 조용하게 손해를 내는 실패는 주문 오류가 아니라
+"검증한 것과 다른 규칙이 돌아가는 것"이다. 백테스트는 pandas 롤링
+평균으로, 실거래는 리스트 슬라이싱으로 이동평균을 구한다. 둘이
+한 봉이라도 어긋나면 승률 80%짜리 규칙이 아닌 것을 돌리게 된다.
+
+이 테스트는 저장된 과거 데이터를 실거래 코드에 한 봉씩 흘려 넣어
+백테스트가 뽑은 신호 집합과 정확히 같은지 대조한다.
+
+    python bot/oversold/test_parity.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+"""
+
+from __future__ import annotations
+import os, sys, glob
+import numpy as np
+import pandas as pd
+
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, ROOT)
+os.chdir(ROOT)
+from bot.oversold import strategy as S
+
+FAILED = 0
+
+
+def check(name: str, ok: bool, detail: str = ""):
+    global FAILED
+    print(f"  {'✅' if ok else '❌'} {name}" + (f"  — {detail}" if detail else ""))
+    if not ok:
+        FAILED += 1
+
+
+def main():
+    print("=" * 84)
+    print("  실거래 신호 ↔ 백테스트 신호 일치 검증")
+    print("=" * 84)
+
+    # ── 1. 이동평균 계산이 pandas와 같은가
+    rng = np.random.default_rng(0)
+    x = list(rng.normal(100, 5, 200))
+    pd_ma = pd.Series(x).rolling(S.MA_PERIOD).mean().iloc[-1]
+    check("20기간 이동평균이 pandas rolling과 일치",
+          abs(S.sma(x, S.MA_PERIOD) - pd_ma) < 1e-9,
+          f"차이 {abs(S.sma(x, S.MA_PERIOD) - pd_ma):.2e}")
+
+    # ── 2. 표본 부족 시 신호 없음
+    check("20봉 미만이면 신호를 내지 않음",
+          S.evaluate("X", [100.0] * 19, 0) is None)
+
+    # ── 3. 임계값 경계
+    # 주의: 마지막 봉도 이동평균에 들어가므로 종가를 그냥 -12.26% 내려도
+    # vs_ma20은 그만큼 안 내려간다(희석). 경계를 역산해서 만든다.
+    #   MA = (19*100 + X)/20,  X/MA - 1 = t/100   →   X = 1900t' / (20 - t')
+    #   단 t' = 1 + t/100
+    t = 1 + S.ENTRY_THRESH / 100
+    boundary = 1900 * t / (20 - t)          # 이 종가에서 vs_ma20 == 임계값
+    base = [100.0] * 19
+    s_deep = S.evaluate("X", base + [boundary * 0.99], 0)
+    s_shallow = S.evaluate("X", base + [boundary * 1.01], 0)
+    check("경계보다 깊은 하락은 신호 발생",
+          s_deep is not None,
+          f"vs_ma20={s_deep.vs_ma20:.2f}%" if s_deep else "신호 없음")
+    check("경계보다 얕은 하락은 신호 없음", s_shallow is None)
+
+    # ── 4. 실제 데이터로 백테스트와 대조 (실거래 목록 42종 전부)
+    files = sorted(glob.glob("data/*_4h_all.csv.gz"))
+    files = [f for f in files if os.path.basename(f).split("_")[0] in S.SYMBOLS]
+    if not files:
+        check("과거 데이터 존재", False, "data/*_4h_all.csv.gz 없음")
+    check(f"실거래 목록 {len(S.SYMBOLS)}종 중 데이터 존재",
+          len(files) >= len(S.SYMBOLS) - 2,   # 신규 상장 등으로 파일이 아직 없는 종목 소수는 허용
+          f"{len(files)}/{len(S.SYMBOLS)}종")
+    total_bt = total_live = total_match = 0
+    for f in files:
+        sym = os.path.basename(f).split("_")[0]
+        d = pd.read_csv(f, compression="gzip")
+        tc = "timestamp" if "timestamp" in d.columns else "datetime"
+        d[tc] = pd.to_datetime(d[tc], format="mixed", errors="coerce")
+        d = d.dropna(subset=[tc]).sort_values(tc).reset_index(drop=True)
+        d = d.tail(3000).reset_index(drop=True)
+        closes = d["close"].astype(float).tolist()
+
+        # 백테스트 방식 — 벡터 연산
+        ma = pd.Series(closes).rolling(S.MA_PERIOD).mean()
+        vs = (pd.Series(closes) / ma - 1) * 100
+        bt = set(np.where(vs <= S.ENTRY_THRESH)[0])
+
+        # 실거래 방식 — 봉을 하나씩 흘려 넣는다
+        live = set()
+        for i in range(len(closes)):
+            sig = S.evaluate(sym, closes[: i + 1], i)
+            if sig is not None:
+                live.add(i)
+
+        total_bt += len(bt); total_live += len(live); total_match += len(bt & live)
+        if bt != live:
+            check(f"{sym} 신호 일치", False,
+                  f"백테스트 {len(bt)} / 실거래 {len(live)} / 공통 {len(bt & live)}")
+
+    check(f"전 종목 신호 완전 일치 (백테스트 {total_bt:,}개)",
+          total_bt == total_live == total_match,
+          f"실거래 {total_live:,} · 공통 {total_match:,}")
+
+    # ── 5. 손절가·청산 조건
+    expect = 100.0 * (1 + S.STOP_PCT / 100)
+    check(f"손절가가 진입가(평단)의 {S.STOP_PCT}%",
+          abs(S.stop_price(100.0) - expect) < 1e-9, f"{S.stop_price(100.0):.2f}")
+    check(f"{S.HOLD_BARS - 1}봉 미만은 보유 유지", not S.should_exit(S.HOLD_BARS - 1))
+    check(f"{S.HOLD_BARS}봉 도달 시 청산", S.should_exit(S.HOLD_BARS))
+
+    # ── 6. 분할매수 헬퍼 — ml/scale_in.py의 chase_split과 같은 계산인가
+    trig = S.scale_in_trigger_price(100.0)
+    expect_trig = 100.0 * (1 + S.SCALE_IN_TRIGGER_PCT / 100)
+    check(f"2차 트리거가 1차 진입가의 {S.SCALE_IN_TRIGGER_PCT}%",
+          abs(trig - expect_trig) < 1e-9, f"{trig:.4f}")
+
+    # 1차 30개를 100원에, 2차 70개를 90원에 샀다면 평단은 수량가중평균
+    avg = S.blended_entry(100.0, 30.0, 90.0, 70.0)
+    expect_avg = (100.0 * 30.0 + 90.0 * 70.0) / 100.0
+    check("분할매수 평단이 수량가중평균과 일치",
+          abs(avg - expect_avg) < 1e-9, f"{avg:.4f} (기대 {expect_avg:.4f})")
+
+    # 2차가 아예 안 걸렸으면(qty2=0) 평단은 1차 그대로여야 한다
+    avg_no_fill = S.blended_entry(100.0, 30.0, 90.0, 0.0)
+    check("2차 미체결 시 평단은 1차 진입가 그대로",
+          abs(avg_no_fill - 100.0) < 1e-9, f"{avg_no_fill:.4f}")
+
+    # ── 볼린저 상단 목표 청산 ─────────────────────────────────────
+    # 백테스트는 pandas .std()(ddof=1)를 쓴다. 봇이 모집단 표준편차를
+    # 쓰면 상단이 낮게 잡혀 더 일찍 팔게 되고, 검증한 것과 다른 것을
+    # 굴리게 된다.
+    from ml.backtest_current_bot import bb_upper as bt_bb
+    rng2 = np.random.default_rng(3)
+    worst = 0.0
+    for _ in range(200):
+        c = list(np.cumprod(1 + rng2.normal(0, .03, 60)) * 100)
+        worst = max(worst, abs(S.bb_upper(c) / bt_bb(c, S.BB_PERIOD, S.BB_K)[-1] - 1))
+    check("볼린저 상단이 백테스트와 일치", worst < 1e-12, f"최대 오차 {worst:.2e}")
+
+    check("봉이 모자라면 상단 없음", S.bb_upper([1.0] * (S.BB_PERIOD - 1)) is None)
+
+    # 상단이 평단 아래면 목표를 걸면 안 된다 — 손실 확정 주문이 된다.
+    cc = [100.0] * 19 + [50.0]
+    up = S.bb_upper(cc)
+    check("상단이 평단 아래면 목표 없음",
+          S.take_profit_price(cc, up + 1) is None, f"상단 {up:.4f}")
+    check("상단이 평단 위면 그 값이 목표",
+          S.take_profit_price(cc, up - 1) == up, f"목표 {up:.4f}")
+
+    print("=" * 84)
+    print(f"  {'✅ 전부 통과' if FAILED == 0 else f'❌ {FAILED}건 실패'}")
+    print("=" * 84)
+    return 1 if FAILED else 0
+
+
+
+
+if __name__ == "__main__":
+    sys.exit(main())

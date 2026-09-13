@@ -1,0 +1,56 @@
+# 과매도 봇 상시 실행 (systemd)
+#
+# 설치
+#   sudo cp deploy/systemd/oversold-bot.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now oversold-bot
+#
+# 확인
+#   systemctl status oversold-bot
+#   journalctl -u oversold-bot -f
+#
+# 멈춤
+#   sudo systemctl stop oversold-bot
+#   보유 포지션은 그대로 남는다. 청산까지 하려면:
+#   python -m bot.oversold.executor --live --close-all
+#
+# ⚠️ User/WorkingDirectory/ExecStart 경로를 네 환경에 맞게 고쳐라.
+
+[Unit]
+Description=Oversold mean-reversion trading bot (Bybit)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=botuser
+WorkingDirectory=/home/botuser/caleb
+# API 키는 .env 에서만 읽는다. 이 파일에 키를 쓰지 마라 —
+# systemd 유닛 파일은 root가 아닌 사용자도 읽을 수 있다.
+Environment=PYTHONUNBUFFERED=1
+# 무인 실거래는 플래그와 이 환경변수가 둘 다 있어야만 켜진다.
+# 어느 한쪽만으로는 모의로 돈다 — 실수로 실거래가 도는 길을 막는다.
+Environment=OS_CONFIRM_LIVE=START
+ExecStart=/home/botuser/caleb/.venv/bin/python -m bot.oversold.executor --live-nonint
+
+# 죽으면 다시 띄운다. 이 규칙은 목표가가 아니라 20봉(80시간) 뒤에
+# 파는 시간 청산이라, 봇이 꺼져 있으면 청산이 안 된다. 상태 파일에서
+# 복구하므로 재시작해도 보유 봉수를 잃지 않는다.
+Restart=always
+RestartSec=30
+
+# 재시작 폭주 방지 — 5분에 5번 넘게 죽으면 멈추고 사람을 기다린다.
+# 계속 죽는 상황에서 무한 재시작하면 같은 주문을 반복해서 낼 수 있다.
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+# 최소 권한
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/botuser/caleb/bot/oversold
+ReadWritePaths=/home/botuser/caleb/data
+
+[Install]
+WantedBy=multi-user.target

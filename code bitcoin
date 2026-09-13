@@ -1,0 +1,1655 @@
+"""
+robust_backtest.py
+===========================================================
+Crypto Robust Pattern Backtester
+
+목적
+- data/ 아래의 *_1d_all.csv.gz, *_4h_all.csv.gz 자동 탐색
+- 기술적 지표 기반 롱 패턴 탐색
+- 다음 봉 시가 진입
+- 왕복 거래비용 0.20%
+- TP/SL 동시 도달 시 SL 우선
+- Train / OOS 분리
+- Wilson 95% CI
+- Profit Factor / Expectancy / MDD
+- 파라미터 안정성 검사
+- 결과를 CSV로 저장
+
+주의
+- 이것은 투자 조언이 아니라 연구용 백테스트 코드다.
+- 신호 발생 봉의 종가 이후, 다음 봉 시가에 진입한다.
+- TP/SL은 진입 후 미래 봉의 high/low를 사용한다.
+- 같은 봉에서 TP와 SL이 모두 닿으면 보수적으로 SL을 먼저 처리한다.
+"""
+
+from __future__ import annotations
+
+import argparse
+import itertools
+import math
+import os
+import re
+import warnings
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Iterable
+
+import numpy as np
+import pandas as pd
+
+warnings.filterwarnings("ignore")
+
+
+# ============================================================
+# 기본 설정
+# ============================================================
+
+ROOT = Path(__file__).resolve().parent
+DATA_DIR = ROOT / "data"
+OUTPUT_DIR = ROOT / "robust_results"
+
+ROUND_TRIP_FEE = 0.0020       # 0.20%
+MIN_TRADES = 20
+MIN_OOS_TRADES = 10
+
+TRAIN_END = "2024-12-31"
+
+# 여러 TP / SL을 검사
+TP_LIST = [
+    0.015,
+    0.020,
+    0.030,
+    0.040,
+    0.050,
+]
+
+SL_LIST = [
+    0.010,
+    0.015,
+    0.020,
+    0.030,
+]
+
+HOLD_LIST = [
+    3,
+    5,
+    7,
+    10,
+]
+
+# 파라미터 안정성 테스트용
+STABILITY_MIN_OOS_WIN_RATE = 0.55
+
+# 조합 폭
+MAX_COMBO = 2
+
+
+# ============================================================
+# 결과 구조
+# ============================================================
+
+@dataclass
+class Trade:
+    entry_time: pd.Timestamp
+    exit_time: pd.Timestamp
+    entry_price: float
+    exit_price: float
+    gross_return: float
+    net_return: float
+    win: bool
+    exit_reason: str
+
+
+# ============================================================
+# 파일 탐색
+# ============================================================
+
+def discover_data_files() -> list[Path]:
+    """
+    data/ 아래의 암호화폐 OHLCV 파일 자동 탐색.
+    예:
+        BTCUSDT_1d_all.csv.gz
+        ETHUSDT_4h_all.csv.gz
+    """
+
+    if not DATA_DIR.exists():
+        raise FileNotFoundError(f"데이터 폴더가 없습니다: {DATA_DIR}")
+
+    patterns = [
+        "*_1d_all.csv.gz",
+        "*_4h_all.csv.gz",
+        "*_1D_all.csv.gz",
+        "*_4H_all.csv.gz",
+        "*_1d.csv.gz",
+        "*_4h.csv.gz",
+        "*_1D.csv.gz",
+        "*_4H.csv.gz",
+    ]
+
+    files = set()
+
+    for pattern in patterns:
+        files.update(DATA_DIR.glob(pattern))
+
+    return sorted(files)
+
+
+def parse_file_info(path: Path):
+    """
+    파일명에서 symbol / interval 추출.
+    """
+
+    name = path.name.lower()
+
+    if "_1d" in name:
+        interval = "1d"
+    elif "_4h" in name:
+        interval = "4h"
+    else:
+        interval = "unknown"
+
+    stem = path.name
+
+    m = re.match(r"(.+?)_(?:1d|4h|1D|4H)(?:_all)?\.csv\.gz$", stem)
+
+    if m:
+        symbol = m.group(1).upper()
+    else:
+        symbol = path.stem.replace(".csv", "").upper()
+
+    return symbol, interval
+
+
+# ============================================================
+# 데이터 로딩
+# ============================================================
+
+def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
+
+    df = df.copy()
+
+    df.columns = [
+        str(c).strip().lower().replace(" ", "_")
+        for c in df.columns
+    ]
+
+    aliases = {
+        "timestamp": "date",
+        "datetime": "date",
+        "time": "date",
+        "open_time": "date",
+        "opentime": "date",
+        "o": "open",
+        "h": "high",
+        "l": "low",
+        "c": "close",
+        "v": "volume",
+    }
+
+    for old, new in aliases.items():
+        if old in df.columns and new not in df.columns:
+            df[new] = df[old]
+
+    required = ["date", "open", "high", "low", "close"]
+
+    for col in required:
+        if col not in df.columns:
+            raise ValueError(
+                f"필수 컬럼 '{col}' 없음. "
+                f"현재 컬럼={list(df.columns)}"
+            )
+
+    if "volume" not in df.columns:
+        df["volume"] = 0.0
+
+    df["date"] = pd.to_datetime(
+        df["date"],
+        errors="coerce",
+        utc=True
+    )
+
+    for col in ["open", "high", "low", "close", "volume"]:
+        df[col] = pd.to_numeric(
+            df[col],
+            errors="coerce"
+        )
+
+    df = (
+        df.dropna(subset=["date", "open", "high", "low", "close"])
+          .sort_values("date")
+          .drop_duplicates("date")
+          .reset_index(drop=True)
+    )
+
+    return df
+
+
+def load_data(path: Path) -> pd.DataFrame:
+
+    print(f"  loading: {path.name}")
+
+    df = pd.read_csv(path, compression="gzip")
+
+    df = normalize_columns(df)
+
+    if len(df) < 300:
+        raise ValueError(
+            f"데이터가 너무 적습니다: {len(df)} rows"
+        )
+
+    return df
+
+
+# ============================================================
+# 기술적 지표
+# ============================================================
+
+def rsi(series: pd.Series, period: int = 14):
+
+    delta = series.diff()
+
+    gain = delta.clip(lower=0)
+    loss = -delta.clip(upper=0)
+
+    avg_gain = gain.ewm(
+        alpha=1 / period,
+        adjust=False,
+        min_periods=period
+    ).mean()
+
+    avg_loss = loss.ewm(
+        alpha=1 / period,
+        adjust=False,
+        min_periods=period
+    ).mean()
+
+    rs = avg_gain / avg_loss.replace(0, np.nan)
+
+    return 100 - (100 / (1 + rs))
+
+
+def atr(
+    high: pd.Series,
+    low: pd.Series,
+    close: pd.Series,
+    period: int = 14
+):
+
+    prev_close = close.shift(1)
+
+    tr = pd.concat(
+        [
+            high - low,
+            (high - prev_close).abs(),
+            (low - prev_close).abs(),
+        ],
+        axis=1,
+    ).max(axis=1)
+
+    return tr.ewm(
+        alpha=1 / period,
+        adjust=False,
+        min_periods=period
+    ).mean()
+
+
+def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
+
+    df = df.copy()
+
+    close = df["close"]
+    high = df["high"]
+    low = df["low"]
+    volume = df["volume"]
+
+    # --------------------------------------------------------
+    # Moving averages
+    # --------------------------------------------------------
+
+    for p in [7, 20, 50, 100, 200]:
+
+        df[f"sma{p}"] = close.rolling(p).mean()
+
+        df[f"ema{p}"] = close.ewm(
+            span=p,
+            adjust=False
+        ).mean()
+
+    # --------------------------------------------------------
+    # RSI
+    # --------------------------------------------------------
+
+    for p in [7, 14, 21, 28]:
+
+        df[f"rsi{p}"] = rsi(close, p)
+
+    # --------------------------------------------------------
+    # MACD
+    # --------------------------------------------------------
+
+    ema12 = close.ewm(
+        span=12,
+        adjust=False
+    ).mean()
+
+    ema26 = close.ewm(
+        span=26,
+        adjust=False
+    ).mean()
+
+    df["macd"] = ema12 - ema26
+
+    df["macd_signal"] = df["macd"].ewm(
+        span=9,
+        adjust=False
+    ).mean()
+
+    df["macd_hist"] = (
+        df["macd"] -
+        df["macd_signal"]
+    )
+
+    # --------------------------------------------------------
+    # Bollinger Bands
+    # --------------------------------------------------------
+
+    bb_mid = close.rolling(20).mean()
+    bb_std = close.rolling(20).std()
+
+    df["bb_mid"] = bb_mid
+    df["bb_upper"] = bb_mid + 2 * bb_std
+    df["bb_lower"] = bb_mid - 2 * bb_std
+
+    df["bb_pctb"] = (
+        (close - df["bb_lower"]) /
+        (df["bb_upper"] - df["bb_lower"])
+    )
+
+    # --------------------------------------------------------
+    # Stochastic
+    # --------------------------------------------------------
+
+    lowest = low.rolling(14).min()
+    highest = high.rolling(14).max()
+
+    df["stoch_k"] = (
+        (close - lowest) /
+        (highest - lowest + 1e-12)
+    ) * 100
+
+    df["stoch_d"] = df["stoch_k"].rolling(3).mean()
+
+    # --------------------------------------------------------
+    # ATR
+    # --------------------------------------------------------
+
+    df["atr14"] = atr(
+        high,
+        low,
+        close,
+        14
+    )
+
+    df["atr_pct"] = (
+        df["atr14"] /
+        close
+    )
+
+    # --------------------------------------------------------
+    # ADX
+    # --------------------------------------------------------
+
+    up_move = high.diff()
+    down_move = -low.diff()
+
+    plus_dm = np.where(
+        (up_move > down_move) & (up_move > 0),
+        up_move,
+        0
+    )
+
+    minus_dm = np.where(
+        (down_move > up_move) & (down_move > 0),
+        down_move,
+        0
+    )
+
+    tr = pd.concat(
+        [
+            high - low,
+            (high - close.shift()).abs(),
+            (low - close.shift()).abs(),
+        ],
+        axis=1
+    ).max(axis=1)
+
+    atr14 = tr.rolling(14).mean()
+
+    plus_di = (
+        100 *
+        pd.Series(
+            plus_dm,
+            index=df.index
+        ).rolling(14).mean() /
+        atr14.replace(0, np.nan)
+    )
+
+    minus_di = (
+        100 *
+        pd.Series(
+            minus_dm,
+            index=df.index
+        ).rolling(14).mean() /
+        atr14.replace(0, np.nan)
+    )
+
+    dx = (
+        (plus_di - minus_di).abs() /
+        (plus_di + minus_di + 1e-12)
+    ) * 100
+
+    df["adx14"] = dx.rolling(14).mean()
+    df["plus_di14"] = plus_di
+    df["minus_di14"] = minus_di
+
+    # --------------------------------------------------------
+    # Volume
+    # --------------------------------------------------------
+
+    df["volume_sma20"] = volume.rolling(20).mean()
+
+    df["volume_ratio"] = (
+        volume /
+        df["volume_sma20"].replace(0, np.nan)
+    )
+
+    # --------------------------------------------------------
+    # Returns / momentum
+    # --------------------------------------------------------
+
+    df["return_1"] = close.pct_change(1)
+    df["return_3"] = close.pct_change(3)
+    df["return_5"] = close.pct_change(5)
+    df["return_10"] = close.pct_change(10)
+
+    return df
+
+
+# ============================================================
+# 신호 정의
+# ============================================================
+
+def define_signals(df: pd.DataFrame) -> pd.DataFrame:
+
+    s = pd.DataFrame(index=df.index)
+
+    c = df["close"]
+
+    # --------------------------------------------------------
+    # RSI
+    # --------------------------------------------------------
+
+    s["RSI14<30"] = df["rsi14"] < 30
+
+    s["RSI14<35"] = df["rsi14"] < 35
+
+    s["RSI7<25"] = df["rsi7"] < 25
+
+    s["RSI21<30"] = df["rsi21"] < 30
+
+    s["RSI14_rebound"] = (
+        (df["rsi14"] > 30) &
+        (df["rsi14"].shift(1) <= 30)
+    )
+
+    # --------------------------------------------------------
+    # MACD
+    # --------------------------------------------------------
+
+    s["MACD_cross_up"] = (
+        (df["macd"] > df["macd_signal"]) &
+        (df["macd"].shift(1) <= df["macd_signal"].shift(1))
+    )
+
+    s["MACD_hist_positive"] = (
+        df["macd_hist"] > 0
+    )
+
+    s["MACD_hist_rising"] = (
+        df["macd_hist"] >
+        df["macd_hist"].shift(1)
+    )
+
+    # --------------------------------------------------------
+    # Moving average
+    # --------------------------------------------------------
+
+    s["price_above_SMA50"] = (
+        c > df["sma50"]
+    )
+
+    s["price_above_SMA200"] = (
+        c > df["sma200"]
+    )
+
+    s["EMA20_above_EMA50"] = (
+        df["ema20"] >
+        df["ema50"]
+    )
+
+    s["EMA7_cross_EMA20"] = (
+        (df["ema7"] > df["ema20"]) &
+        (df["ema7"].shift(1) <= df["ema20"].shift(1))
+    )
+
+    s["SMA50_cross_SMA200"] = (
+        (df["sma50"] > df["sma200"]) &
+        (df["sma50"].shift(1) <= df["sma200"].shift(1))
+    )
+
+    # --------------------------------------------------------
+    # Bollinger
+    # --------------------------------------------------------
+
+    s["BB_below_lower"] = (
+        c < df["bb_lower"]
+    )
+
+    s["BB_pctb<0.2"] = (
+        df["bb_pctb"] < 0.2
+    )
+
+    s["BB_reclaim_0.2"] = (
+        (df["bb_pctb"] > 0.2) &
+        (df["bb_pctb"].shift(1) <= 0.2)
+    )
+
+    # --------------------------------------------------------
+    # Stochastic
+    # --------------------------------------------------------
+
+    s["STOCH<20"] = (
+        df["stoch_k"] < 20
+    )
+
+    s["STOCH_cross_up"] = (
+        (df["stoch_k"] > df["stoch_d"]) &
+        (df["stoch_k"].shift(1) <= df["stoch_d"].shift(1))
+    )
+
+    # --------------------------------------------------------
+    # ADX
+    # --------------------------------------------------------
+
+    s["ADX>25"] = (
+        df["adx14"] > 25
+    )
+
+    s["PLUS_DI>MINUS_DI"] = (
+        df["plus_di14"] >
+        df["minus_di14"]
+    )
+
+    # --------------------------------------------------------
+    # Volume
+    # --------------------------------------------------------
+
+    s["Volume>1.5x"] = (
+        df["volume_ratio"] > 1.5
+    )
+
+    s["Volume>2x"] = (
+        df["volume_ratio"] > 2
+    )
+
+    # --------------------------------------------------------
+    # Momentum
+    # --------------------------------------------------------
+
+    s["Return3_positive"] = (
+        df["return_3"] > 0
+    )
+
+    s["Return5_positive"] = (
+        df["return_5"] > 0
+    )
+
+    return s.fillna(False)
+
+
+# ============================================================
+# Wilson confidence interval
+# ============================================================
+
+def wilson_interval(
+    wins: int,
+    total: int,
+    confidence: float = 0.95
+):
+
+    if total <= 0:
+        return np.nan, np.nan
+
+    # 95% CI z
+    z = 1.959963984540054
+
+    p = wins / total
+
+    denominator = 1 + z**2 / total
+
+    center = (
+        p +
+        z**2 / (2 * total)
+    ) / denominator
+
+    margin = (
+        z *
+        math.sqrt(
+            (
+                p * (1 - p) / total
+            ) +
+            (
+                z**2 /
+                (4 * total**2)
+            )
+        )
+    ) / denominator
+
+    lower = max(0.0, center - margin)
+    upper = min(1.0, center + margin)
+
+    return lower, upper
+
+
+# ============================================================
+# Trade simulation
+# ============================================================
+
+def simulate_trade(
+    df: pd.DataFrame,
+    signal_index: int,
+    tp: float,
+    sl: float,
+    hold_days: int,
+):
+
+    entry_index = signal_index + 1
+
+    if entry_index >= len(df):
+        return None
+
+    entry_time = df.iloc[entry_index]["date"]
+
+    entry_price = float(
+        df.iloc[entry_index]["open"]
+    )
+
+    if not np.isfinite(entry_price) or entry_price <= 0:
+        return None
+
+    tp_price = (
+        entry_price *
+        (1 + tp)
+    )
+
+    sl_price = (
+        entry_price *
+        (1 - sl)
+    )
+
+    last_index = min(
+        entry_index + hold_days,
+        len(df) - 1
+    )
+
+    exit_index = last_index
+    exit_price = float(
+        df.iloc[last_index]["close"]
+    )
+
+    exit_reason = "TIME"
+
+    # --------------------------------------------------------
+    # 미래 봉 탐색
+    # --------------------------------------------------------
+
+    for i in range(
+        entry_index,
+        last_index + 1
+    ):
+
+        high = float(df.iloc[i]["high"])
+        low = float(df.iloc[i]["low"])
+
+        # 중요:
+        # 같은 봉에서 TP와 SL이 동시에 닿으면
+        # SL 우선 처리
+        if low <= sl_price:
+            exit_index = i
+            exit_price = sl_price
+            exit_reason = "SL"
+            break
+
+        if high >= tp_price:
+            exit_index = i
+            exit_price = tp_price
+            exit_reason = "TP"
+            break
+
+    gross_return = (
+        exit_price /
+        entry_price
+    ) - 1
+
+    # 왕복 비용 0.2%
+    net_return = (
+        (1 + gross_return) *
+        (1 - ROUND_TRIP_FEE)
+    ) - 1
+
+    win = net_return > 0
+
+    return Trade(
+        entry_time=entry_time,
+        exit_time=df.iloc[exit_index]["date"],
+        entry_price=entry_price,
+        exit_price=exit_price,
+        gross_return=gross_return,
+        net_return=net_return,
+        win=win,
+        exit_reason=exit_reason,
+    )
+
+
+# ============================================================
+# Metrics
+# ============================================================
+
+def calculate_metrics(
+    trades: list[Trade]
+):
+
+    if not trades:
+        return {}
+
+    returns = np.array(
+        [t.net_return for t in trades],
+        dtype=float
+    )
+
+    wins = returns > 0
+
+    n = len(returns)
+
+    win_count = int(wins.sum())
+
+    win_rate = (
+        win_count / n
+    )
+
+    wi_low, wi_high = wilson_interval(
+        win_count,
+        n
+    )
+
+    # --------------------------------------------------------
+    # Expectancy
+    # --------------------------------------------------------
+
+    expectancy = float(
+        np.mean(returns)
+    )
+
+    # --------------------------------------------------------
+    # Profit factor
+    # --------------------------------------------------------
+
+    gross_profit = returns[returns > 0].sum()
+
+    gross_loss = -returns[returns < 0].sum()
+
+    if gross_loss > 0:
+        profit_factor = (
+            gross_profit /
+            gross_loss
+        )
+    else:
+        profit_factor = np.inf
+
+    # --------------------------------------------------------
+    # Equity / MDD
+    # --------------------------------------------------------
+
+    equity = np.cumprod(
+        1 + returns
+    )
+
+    peak = np.maximum.accumulate(
+        equity
+    )
+
+    drawdown = (
+        equity / peak
+    ) - 1
+
+    max_drawdown = float(
+        drawdown.min()
+    )
+
+    total_return = (
+        equity[-1] - 1
+    )
+
+    avg_win = (
+        returns[returns > 0].mean()
+        if np.any(returns > 0)
+        else 0
+    )
+
+    avg_loss = (
+        returns[returns < 0].mean()
+        if np.any(returns < 0)
+        else 0
+    )
+
+    return {
+        "trades": n,
+        "wins": win_count,
+        "win_rate": win_rate,
+        "wilson95_low": wi_low,
+        "wilson95_high": wi_high,
+        "expectancy": expectancy,
+        "profit_factor": profit_factor,
+        "avg_win": avg_win,
+        "avg_loss": avg_loss,
+        "total_return": total_return,
+        "max_drawdown": max_drawdown,
+        "tp_count": sum(
+            t.exit_reason == "TP"
+            for t in trades
+        ),
+        "sl_count": sum(
+            t.exit_reason == "SL"
+            for t in trades
+        ),
+        "time_count": sum(
+            t.exit_reason == "TIME"
+            for t in trades
+        ),
+    }
+
+
+# ============================================================
+# Backtest one signal
+# ============================================================
+
+def run_signal_backtest(
+    df: pd.DataFrame,
+    signal: pd.Series,
+    tp: float,
+    sl: float,
+    hold_days: int,
+):
+
+    signal_indices = np.where(
+        signal.values
+    )[0]
+
+    trades = []
+
+    # 포지션 중복 방지
+    next_available_index = -1
+
+    for idx in signal_indices:
+
+        if idx < next_available_index:
+            continue
+
+        trade = simulate_trade(
+            df=df,
+            signal_index=int(idx),
+            tp=tp,
+            sl=sl,
+            hold_days=hold_days,
+        )
+
+        if trade is None:
+            continue
+
+        trades.append(trade)
+
+        # 진입 이후 종료까지 새로운 포지션 금지
+        exit_positions = df.index[
+            df["date"] == trade.exit_time
+        ]
+
+        if len(exit_positions):
+            next_available_index = (
+                int(exit_positions[0]) + 1
+            )
+
+    return trades
+
+
+# ============================================================
+# Train / OOS split
+# ============================================================
+
+def split_trades(
+    trades: list[Trade],
+    train_end: str
+):
+
+    train_end_ts = pd.Timestamp(
+        train_end,
+        tz="UTC"
+    )
+
+    train = [
+        t for t in trades
+        if t.entry_time <= train_end_ts
+    ]
+
+    oos = [
+        t for t in trades
+        if t.entry_time > train_end_ts
+    ]
+
+    return train, oos
+
+
+# ============================================================
+# Parameter stability
+# ============================================================
+
+def stability_test(
+    df: pd.DataFrame,
+    signal: pd.Series,
+    best_tp: float,
+    best_sl: float,
+    best_hold: int,
+):
+
+    # 중심값 주변의 파라미터를 테스트
+    tp_candidates = sorted(set([
+        max(0.005, best_tp - 0.005),
+        best_tp,
+        best_tp + 0.005,
+    ]))
+
+    sl_candidates = sorted(set([
+        max(0.005, best_sl - 0.005),
+        best_sl,
+        best_sl + 0.005,
+    ]))
+
+    hold_candidates = sorted(set([
+        max(1, best_hold - 2),
+        best_hold,
+        best_hold + 2,
+    ]))
+
+    rows = []
+
+    for tp, sl, hold in itertools.product(
+        tp_candidates,
+        sl_candidates,
+        hold_candidates
+    ):
+
+        trades = run_signal_backtest(
+            df,
+            signal,
+            tp,
+            sl,
+            hold
+        )
+
+        if len(trades) < MIN_TRADES:
+            continue
+
+        _, oos = split_trades(
+            trades,
+            TRAIN_END
+        )
+
+        if len(oos) < MIN_OOS_TRADES:
+            continue
+
+        m = calculate_metrics(oos)
+
+        rows.append({
+            "tp": tp,
+            "sl": sl,
+            "hold": hold,
+            "oos_trades": m["trades"],
+            "oos_win_rate": m["win_rate"],
+            "oos_expectancy": m["expectancy"],
+            "oos_pf": m["profit_factor"],
+        })
+
+    if not rows:
+        return {
+            "stable": False,
+            "stability_pass_count": 0,
+            "stability_total_count": 0,
+        }
+
+    stable_count = sum(
+        r["oos_win_rate"] >=
+        STABILITY_MIN_OOS_WIN_RATE
+        for r in rows
+    )
+
+    stable_ratio = (
+        stable_count /
+        len(rows)
+    )
+
+    return {
+        "stable": stable_ratio >= 0.50,
+        "stability_pass_count": stable_count,
+        "stability_total_count": len(rows),
+        "stability_ratio": stable_ratio,
+    }
+
+
+# ============================================================
+# Main pattern search
+# ============================================================
+
+def evaluate_combination(
+    df: pd.DataFrame,
+    signal_df: pd.DataFrame,
+    combo: tuple[str, ...],
+    symbol: str,
+    interval: str,
+):
+
+    combined = (
+        signal_df[list(combo)]
+        .all(axis=1)
+    )
+
+    all_rows = []
+
+    for tp, sl, hold in itertools.product(
+        TP_LIST,
+        SL_LIST,
+        HOLD_LIST
+    ):
+
+        trades = run_signal_backtest(
+            df,
+            combined,
+            tp,
+            sl,
+            hold
+        )
+
+        if len(trades) < MIN_TRADES:
+            continue
+
+        train, oos = split_trades(
+            trades,
+            TRAIN_END
+        )
+
+        if len(train) < MIN_TRADES:
+            continue
+
+        if len(oos) < MIN_OOS_TRADES:
+            continue
+
+        train_m = calculate_metrics(
+            train
+        )
+
+        oos_m = calculate_metrics(
+            oos
+        )
+
+        # ----------------------------------------------------
+        # OOS 승률이 50% 미만이면 일단 제외
+        # ----------------------------------------------------
+
+        if oos_m["win_rate"] < 0.50:
+            continue
+
+        # ----------------------------------------------------
+        # 파라미터 안정성
+        # ----------------------------------------------------
+
+        stability = stability_test(
+            df,
+            combined,
+            tp,
+            sl,
+            hold
+        )
+
+        row = {
+            "symbol": symbol,
+            "interval": interval,
+            "pattern": " + ".join(combo),
+            "signal_count": len(combo),
+
+            "tp": tp,
+            "sl": sl,
+            "hold_days": hold,
+
+            # Train
+            "train_trades": train_m["trades"],
+            "train_win_rate": train_m["win_rate"],
+            "train_wilson_low": train_m["wilson95_low"],
+            "train_wilson_high": train_m["wilson95_high"],
+            "train_expectancy": train_m["expectancy"],
+            "train_profit_factor": train_m["profit_factor"],
+            "train_total_return": train_m["total_return"],
+            "train_mdd": train_m["max_drawdown"],
+
+            # OOS
+            "oos_trades": oos_m["trades"],
+            "oos_win_rate": oos_m["win_rate"],
+            "oos_wilson_low": oos_m["wilson95_low"],
+            "oos_wilson_high": oos_m["wilson95_high"],
+            "oos_expectancy": oos_m["expectancy"],
+            "oos_profit_factor": oos_m["profit_factor"],
+            "oos_total_return": oos_m["total_return"],
+            "oos_mdd": oos_m["max_drawdown"],
+
+            # Exit
+            "oos_tp_count": oos_m["tp_count"],
+            "oos_sl_count": oos_m["sl_count"],
+            "oos_time_count": oos_m["time_count"],
+
+            # Stability
+            **stability,
+        }
+
+        # ----------------------------------------------------
+        # 핵심 최종 필터
+        # ----------------------------------------------------
+
+        row["qualified"] = (
+            row["oos_trades"] >= MIN_OOS_TRADES
+            and
+            row["oos_win_rate"] >= 0.70
+            and
+            row["oos_wilson_low"] >= 0.50
+            and
+            row["oos_expectancy"] > 0
+            and
+            row["oos_profit_factor"] > 1.20
+            and
+            row["stable"]
+        )
+
+        all_rows.append(row)
+
+    return all_rows
+
+
+# ============================================================
+# Process one file
+# ============================================================
+
+def process_file(
+    path: Path,
+    max_combo: int = MAX_COMBO
+):
+
+    symbol, interval = parse_file_info(
+        path
+    )
+
+    print()
+    print("=" * 70)
+    print(
+        f"[{symbol} / {interval}]"
+    )
+    print("=" * 70)
+
+    try:
+        df = load_data(path)
+
+    except Exception as e:
+        print(
+            f"  ERROR loading: {e}"
+        )
+        return []
+
+    print(
+        f"  rows={len(df):,}"
+    )
+
+    print(
+        f"  period="
+        f"{df['date'].min()} ~ "
+        f"{df['date'].max()}"
+    )
+
+    # --------------------------------------------------------
+    # Indicators
+    # --------------------------------------------------------
+
+    df = add_indicators(df)
+
+    # --------------------------------------------------------
+    # Signals
+    # --------------------------------------------------------
+
+    signals = define_signals(df)
+
+    signal_cols = list(
+        signals.columns
+    )
+
+    print(
+        f"  signals={len(signal_cols)}"
+    )
+
+    results = []
+
+    # --------------------------------------------------------
+    # 단일 신호
+    # --------------------------------------------------------
+
+    for combo_size in range(
+        1,
+        max_combo + 1
+    ):
+
+        combos = itertools.combinations(
+            signal_cols,
+            combo_size
+        )
+
+        for n, combo in enumerate(
+            combos,
+            start=1
+        ):
+
+            rows = evaluate_combination(
+                df,
+                signals,
+                combo,
+                symbol,
+                interval
+            )
+
+            results.extend(rows)
+
+            if n % 50 == 0:
+                print(
+                    f"    combo size "
+                    f"{combo_size}: "
+                    f"{n} tested"
+                )
+
+    print(
+        f"  valid results="
+        f"{len(results):,}"
+    )
+
+    return results
+
+
+# ============================================================
+# Ranking
+# ============================================================
+
+def rank_results(
+    df: pd.DataFrame
+) -> pd.DataFrame:
+
+    if df.empty:
+        return df
+
+    # OOS 중심 점수
+    #
+    # 승률 자체만 높으면 과최적화 가능성이 있음.
+    # Wilson 하한과 PF, 거래횟수를 함께 반영한다.
+
+    df = df.copy()
+
+    df["score"] = (
+        df["oos_wilson_low"] * 0.40
+        +
+        np.minimum(
+            df["oos_profit_factor"],
+            5
+        ) / 5 * 0.25
+        +
+        np.clip(
+            df["oos_expectancy"] * 20,
+            -1,
+            1
+        ) * 0.15
+        +
+        df["stability_ratio"].fillna(0)
+        * 0.20
+    )
+
+    df = df.sort_values(
+        [
+            "qualified",
+            "score",
+            "oos_win_rate",
+            "oos_wilson_low",
+            "oos_profit_factor",
+            "oos_trades",
+        ],
+        ascending=[
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+        ],
+    ).reset_index(drop=True)
+
+    return df
+
+
+# ============================================================
+# Save
+# ============================================================
+
+def save_results(
+    results: pd.DataFrame
+):
+
+    OUTPUT_DIR.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    all_path = (
+        OUTPUT_DIR /
+        "robust_results_all.csv"
+    )
+
+    qualified_path = (
+        OUTPUT_DIR /
+        "robust_results_qualified.csv"
+    )
+
+    results.to_csv(
+        all_path,
+        index=False,
+        encoding="utf-8-sig"
+    )
+
+    qualified = results[
+        results["qualified"] == True
+    ].copy()
+
+    qualified.to_csv(
+        qualified_path,
+        index=False,
+        encoding="utf-8-sig"
+    )
+
+    return all_path, qualified_path
+
+
+# ============================================================
+# Console summary
+# ============================================================
+
+def print_summary(
+    results: pd.DataFrame
+):
+
+    print()
+    print("=" * 90)
+    print("ROBUST BACKTEST SUMMARY")
+    print("=" * 90)
+
+    if results.empty:
+        print(
+            "조건을 만족하는 결과가 없습니다."
+        )
+        return
+
+    qualified = results[
+        results["qualified"] == True
+    ]
+
+    print(
+        f"전체 유효 결과: "
+        f"{len(results):,}"
+    )
+
+    print(
+        f"최종 통과 전략: "
+        f"{len(qualified):,}"
+    )
+
+    if qualified.empty:
+        print()
+        print(
+            "현재 기준으로 OOS + Wilson + "
+            "PF + 안정성을 모두 통과한 "
+            "전략이 없습니다."
+        )
+
+        print()
+        print(
+            "상위 OOS 후보:"
+        )
+
+        display_cols = [
+            "symbol",
+            "interval",
+            "pattern",
+            "tp",
+            "sl",
+            "hold_days",
+            "oos_trades",
+            "oos_win_rate",
+            "oos_wilson_low",
+            "oos_expectancy",
+            "oos_profit_factor",
+            "stable",
+        ]
+
+        print(
+            results[
+                display_cols
+            ].head(10).to_string(
+                index=False
+            )
+        )
+
+        return
+
+    display_cols = [
+        "symbol",
+        "interval",
+        "pattern",
+        "tp",
+        "sl",
+        "hold_days",
+        "oos_trades",
+        "oos_win_rate",
+        "oos_wilson_low",
+        "oos_wilson_high",
+        "oos_expectancy",
+        "oos_profit_factor",
+        "oos_mdd",
+        "stability_ratio",
+    ]
+
+    print()
+    print(
+        qualified[
+            display_cols
+        ].head(30).to_string(
+            index=False
+        )
+    )
+
+
+# ============================================================
+# Main
+# ============================================================
+
+def main():
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        "--data-dir",
+        default=str(DATA_DIR)
+    )
+
+    parser.add_argument(
+        "--max-combo",
+        type=int,
+        default=MAX_COMBO
+    )
+
+    parser.add_argument(
+        "--min-trades",
+        type=int,
+        default=MIN_TRADES
+    )
+
+    parser.add_argument(
+        "--train-end",
+        default=TRAIN_END
+    )
+
+    args = parser.parse_args()
+
+    global DATA_DIR
+    global MIN_TRADES
+    global TRAIN_END
+
+    DATA_DIR = Path(
+        args.data_dir
+    )
+
+    MIN_TRADES = args.min_trades
+
+    TRAIN_END = args.train_end
+
+    print()
+    print("=" * 90)
+    print("ROBUST CRYPTO PATTERN BACKTESTER")
+    print("=" * 90)
+
+    print(
+        f"Data directory : {DATA_DIR}"
+    )
+
+    print(
+        f"Round-trip fee : "
+        f"{ROUND_TRIP_FEE * 100:.2f}%"
+    )
+
+    print(
+        f"Train end      : {TRAIN_END}"
+    )
+
+    print(
+        f"Min trades     : {MIN_TRADES}"
+    )
+
+    # --------------------------------------------------------
+    # 데이터 탐색
+    # --------------------------------------------------------
+
+    files = discover_data_files()
+
+    if not files:
+        raise FileNotFoundError(
+            "data/ 아래에서 "
+            "*_1d_all.csv.gz 또는 "
+            "*_4h_all.csv.gz 파일을 "
+            "찾지 못했습니다."
+        )
+
+    print()
+    print(
+        f"발견된 데이터: "
+        f"{len(files)}개"
+    )
+
+    for f in files:
+        symbol, interval = parse_file_info(f)
+
+        print(
+            f"  - {symbol:15s} "
+            f"{interval:3s} "
+            f"{f.name}"
+        )
+
+    # --------------------------------------------------------
+    # 전체 데이터 실행
+    # --------------------------------------------------------
+
+    all_results = []
+
+    for path in files:
+
+        rows = process_file(
+            path,
+            max_combo=args.max_combo
+        )
+
+        all_results.extend(rows)
+
+    # --------------------------------------------------------
+    # 결과
+    # --------------------------------------------------------
+
+    if not all_results:
+
+        print()
+        print(
+            "유효한 백테스트 결과가 없습니다."
+        )
+
+        return
+
+    results = pd.DataFrame(
+        all_results
+    )
+
+    results = rank_results(
+        results
+    )
+
+    all_path, qualified_path = (
+        save_results(results)
+    )
+
+    print_summary(
+        results
+    )
+
+    print()
+    print("=" * 90)
+    print("파일 저장 완료")
+    print("=" * 90)
+
+    print(
+        f"전체 결과 : {all_path}"
+    )
+
+    print(
+        f"통과 결과 : {qualified_path}"
+    )
+
+    print()
+    print(
+        "백테스트 종료."
+    )
+
+
+if __name__ == "__main__":
+    main()

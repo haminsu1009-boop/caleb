@@ -1,0 +1,72 @@
+name: 📊 백테스트 (저장된 모델)
+
+on:
+  workflow_dispatch:
+    inputs:
+      symbol:
+        description: "심볼 — 하나만 입력하거나 all (예: BTCUSDT, ETHUSDT, all)"
+        required: false
+        default: "BTCUSDT"
+      interval:
+        description: "봉 단위 — 하나만 입력하거나 all (예: 1h, 4h, 1d, all)"
+        required: false
+        default: "all"
+      from_year:
+        description: "백테스트 시작 연도 (기본 2024, 아웃오브샘플)"
+        required: false
+        default: "2024"
+
+permissions:
+  contents: write
+
+jobs:
+  backtest:
+    name: "📊 백테스트 (${{ github.event.inputs.symbol }} / ${{ github.event.inputs.interval }})"
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/quant-trading-bot-tkjtd
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+
+      - name: 패키지 설치
+        run: |
+          pip install pandas numpy scikit-learn xgboost lightgbm matplotlib
+
+      - name: 백테스트 실행
+        run: |
+          python ml/backtest.py \
+            --symbol "${{ github.event.inputs.symbol }}" \
+            --interval "${{ github.event.inputs.interval }}" \
+            --from_year ${{ github.event.inputs.from_year }}
+
+      - name: 결과 저장 (차트 + CSV)
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add charts/backtest_*.png ml/saved_models/bt_trades_*.csv 2>/dev/null || true
+          git diff --staged --quiet && echo "변경 없음" && exit 0
+          git commit -m "📊 백테스트 완료 — ${{ github.event.inputs.symbol }} ${{ github.event.inputs.interval }} (from ${{ github.event.inputs.from_year }})"
+          for i in 1 2 3 4 5 6; do
+            sleep $((RANDOM % 15 + i * 3))
+            git fetch origin claude/quant-trading-bot-tkjtd
+            git rebase origin/claude/quant-trading-bot-tkjtd || { git rebase --abort; continue; }
+            git push origin claude/quant-trading-bot-tkjtd && break || true
+          done
+
+      - name: 결과 요약
+        if: always()
+        run: |
+          echo "================================================"
+          echo "  백테스트 차트:"
+          ls -lh charts/backtest_*.png 2>/dev/null || echo "  없음"
+          echo ""
+          echo "  거래 CSV:"
+          ls -lh ml/saved_models/bt_trades_*.csv 2>/dev/null || echo "  없음"
+          echo "================================================"
