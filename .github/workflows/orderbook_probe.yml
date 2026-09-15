@@ -1,0 +1,28 @@
+name: 🔎 호가창 아카이브 경로 탐색
+
+# 왜:
+#   collect_orderbook의 첫 실행이 30일 전부 404였다. 경로를 추측해서
+#   짠 탓이다. 이 워크플로는 추측 대신 실제 목록을 조회해서 무엇이
+#   어디에 있는지 확인한다. 파일이 바뀌면 자동으로 돈다.
+
+on:
+  push:
+    paths: ["scripts/orderbook_probe.py", ".github/workflows/orderbook_probe.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/quant-trading-bot-tkjtd
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install requests
+      - run: python -u scripts/orderbook_probe.py | tee -a "$GITHUB_STEP_SUMMARY"
