@@ -53,12 +53,36 @@ python ml/verify_live.py paper.log
 
 ## 결론부터
 
-| 방법 | 가능? | 이유 |
-|---|---|---|
-| 이 Claude 세션 | ❌ | 컨테이너가 일시적이고, 프록시가 바이빗을 차단한다 |
-| GitHub Actions | ❌ | **미국 IP라서 바이빗이 403으로 막는다** (실측 확인) |
-| VPS (해외 서버) | ✅ | 가장 현실적. 월 $4~6 |
-| 집 PC / 라즈베리파이 | ✅ | 무료. 24시간 켜둬야 한다 |
+| 방법 | 비용 | 가능? | 이유 |
+|---|---|---|---|
+| **오라클 클라우드 Always Free** | **0원** | ✅ | 서울 리전이면 바이빗도 열린다. 무료로 할 거면 이것 |
+| **집 PC / 라즈베리파이** | 전기값 | ✅ | 진짜 공짜. 24시간 켜둬야 한다 |
+| 유료 VPS | 월 $4~6 | ✅ | 손 덜 가고 안정적 |
+| GitHub Actions | 0원 | ❌ | **미국 IP라서 바이빗이 403으로 막는다** (실측) |
+| 이 Claude 세션 | — | ❌ | 컨테이너가 일시적이고 프록시가 거래소를 전부 막는다 |
+
+### 무료로 하려면 — 오라클 클라우드
+
+Always Free 등급에 ARM(Ampere) 인스턴스가 **평생 무료**로 들어 있다.
+카드 등록은 필요하지만 무료 등급 안에서는 청구되지 않는다.
+
+  · **리전을 서울(또는 춘천·일본)로 고른다.** 미국 리전을 고르면
+    GitHub Actions와 같은 이유로 바이빗이 403을 준다.
+  · ARM 인스턴스는 인기가 많아 "용량 부족(Out of capacity)"으로 생성이
+    자주 막힌다. 다른 가용 도메인으로 바꾸거나 시간을 두고 재시도해야
+    할 수 있다.
+  · 우분투를 고르면 이 문서의 setup.sh 가 그대로 돈다.
+  · 무료 등급 조건은 바뀔 수 있으니 가입 시점에 직접 확인해라.
+
+### 집 PC로도 충분하다
+
+특히 0단계(모의)는 신호만 모으는 단계라 몇 시간 꺼져 있어도 된다.
+`ml/verify_live.py` 의 일치율이 그만큼 낮게 나올 뿐이고, 꺼져 있던
+시간을 감안해서 읽으면 된다.
+
+실거래로 넘어가면 얘기가 다르다 — **익절(볼린저 상단)은 거래소에
+지정가로 걸려 있어 봇이 꺼져도 체결되지만, 시간청산(60봉)과 2차
+분할매수는 봇이 살아 있어야 한다.** 노트북을 덮으면 그것들이 멈춘다.
 
 ### 거래소별 실측 (GitHub Actions 러너, 미국 IP)
 
@@ -209,3 +233,52 @@ VPS와 같지만 두 가지를 조심해야 한다.
 .venv/bin/python -m bot.oversold.executor --once --dump-candles
 # data/bybit_candles/ 에 저장된다
 ```
+
+---
+
+## 집 PC에서 돌리기 — 가장 빠른 시작
+
+VPS 없이 0단계(모의)를 오늘 시작할 수 있다. 윈도우면 WSL이나
+파워셸 어느 쪽이든 된다.
+
+```bash
+git clone -b claude/quant-trading-bot-tkjtd https://github.com/haminsu1009-boop/caleb.git
+cd caleb
+python3 -m venv .venv
+.venv/bin/pip install -q pybit pandas numpy
+```
+
+`.env` 파일을 만들어 **읽기 전용** 키를 넣는다:
+
+```
+BYBIT_API_KEY=여기
+BYBIT_API_SECRET=여기
+```
+
+`.env` 는 `.gitignore` 에 있다. 절대 커밋하지 마라.
+
+모의로 띄운다 — 주문 경로를 아예 타지 않는다:
+
+```bash
+.venv/bin/python -m bot.oversold.executor 2>&1 | tee -a paper.log
+```
+
+`--live` 도 `OS_CONFIRM_LIVE` 도 없으므로 "지금 샀을 것"만 로그에 남는다.
+컴퓨터를 계속 켜두고, 4~6주 뒤에 대조한다:
+
+```bash
+python ml/verify_live.py paper.log
+```
+
+### 백그라운드로 돌리고 싶으면
+
+리눅스·맥:
+
+```bash
+nohup .venv/bin/python -m bot.oversold.executor >> paper.log 2>&1 &
+tail -f paper.log          # 보기
+pkill -f bot.oversold      # 멈추기
+```
+
+재부팅하면 꺼진다. 오래 돌릴 거면 systemd(리눅스) 나 오라클 무료
+인스턴스로 옮기는 게 편하다.
