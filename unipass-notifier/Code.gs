@@ -7,7 +7,7 @@ var CONFIG = {
   TELEGRAM_BOT_TOKEN: '8901206831:AAF2cPkHwSVjaqFyNqvO-ke5B-ubXFLYveg',
   KAKAO_REST_API_KEY: '3785705a2781022b8a44c6475b0176a1',
   BL_YEAR: '2026',
-  DEFAULT_INTERVAL: 5, // 기본 체크 주기 (분)
+  DEFAULT_INTERVAL: 5,
 };
 
 var UNIPASS_URL = 'https://unipass.customs.go.kr:38010/ext/rest/cargCsclPrgsInfoQry/retrieveCargCsclPrgsInfo';
@@ -19,11 +19,9 @@ function getInviteCodes_() {
   var raw = PropertiesService.getScriptProperties().getProperty('INVITE_CODES');
   return raw ? JSON.parse(raw) : {};
 }
-
 function saveInviteCodes_(codes) {
   PropertiesService.getScriptProperties().setProperty('INVITE_CODES', JSON.stringify(codes));
 }
-
 function issueInviteCode(code, label) {
   if (!code) return;
   var codes = getInviteCodes_();
@@ -31,7 +29,6 @@ function issueInviteCode(code, label) {
   saveInviteCodes_(codes);
   Logger.log('발급 완료: ' + code + ' (' + (label || '') + ')');
 }
-
 function verifyAndUseInviteCode(code, userId) {
   if (!code) return { success: false, message: '초대 코드를 입력하세요.' };
   var codes = getInviteCodes_();
@@ -44,8 +41,6 @@ function verifyAndUseInviteCode(code, userId) {
   saveInviteCodes_(codes);
   return { success: true };
 }
-
-// 초대 코드 목록 조회 (관리자용)
 function listInviteCodes() {
   var codes = getInviteCodes_();
   var result = [];
@@ -55,8 +50,6 @@ function listInviteCodes() {
   Logger.log(JSON.stringify(result, null, 2));
   return result;
 }
-
-// 초대 코드 일괄 발급 (Apps Script 에디터에서 직접 실행)
 function 코드발급() {
   issueInviteCode('HAMIN2026', '하민수');
   issueInviteCode('EUNJAE2026', '김은재');
@@ -66,15 +59,49 @@ function 코드발급() {
 }
 
 // =====================================================================
+// 관리자 함수 (Apps Script 에디터에서 직접 실행)
+// =====================================================================
+function 유저목록() {
+  var users = getAllUsers_();
+  var result = [];
+  users.forEach(function(userId) {
+    var data = getUserData_(userId);
+    result.push({
+      userId: userId,
+      카카오닉네임: data.kakaoNickname || '-',
+      텔레그램ID: data.telegramChatId || '-',
+      BL개수: (data.bls || []).length,
+      차단여부: data.banned || false
+    });
+  });
+  Logger.log(JSON.stringify(result, null, 2));
+  return result;
+}
+
+function 유저차단(userId) {
+  var data = getUserData_(userId);
+  data.banned = true;
+  saveUserData_(userId, data);
+  Logger.log('차단 완료: ' + userId + ' (' + (data.kakaoNickname || data.telegramChatId || '-') + ')');
+}
+
+function 유저차단해제(userId) {
+  var data = getUserData_(userId);
+  data.banned = false;
+  saveUserData_(userId, data);
+  Logger.log('차단 해제: ' + userId);
+}
+
+// =====================================================================
 // 웹앱 진입점
 // =====================================================================
 function doGet(e) {
-  // 카카오 OAuth 리다이렉트 처리 - localStorage에 코드 저장 후 창 닫기
   if (e && e.parameter && e.parameter.code) {
     var code = e.parameter.code;
-    var html = '<!DOCTYPE html><html><body><p>로그인 완료! 잠시 기다리세요...</p>'
+    // 팝업창에 아무것도 안 보이게, 바로 localStorage 저장 후 닫기
+    var html = '<!DOCTYPE html><html><head><style>body{margin:0;background:#000;}</style></head><body>'
       + '<script>try{localStorage.setItem("kakaoCode","' + code + '");}catch(ex){}'
-      + 'setTimeout(function(){window.close();},500);</script></body></html>';
+      + 'window.close();</script></body></html>';
     return HtmlService.createHtmlOutput(html);
   }
   return HtmlService.createHtmlOutputFromFile('Index')
@@ -96,11 +123,11 @@ function doPost(e) {
     if (text.startsWith('/start')) {
       registerUser_(chatId);
       sendTelegram_(chatId, '👋 유니패스 통관 알림 봇입니다.\n\n'
-        + '/add BL번호 - BL 추가 (추가 즉시 추적 시작)\n'
+        + '/add BL번호 - BL 추가\n'
         + '/remove BL번호 - BL 삭제\n'
         + '/list - BL 목록\n'
         + '/status - 현재 상태 조회\n'
-        + '/interval BL번호 분 - 알림 주기 변경 (예: /interval ABC123 10)\n'
+        + '/interval BL번호 분 - 알림 주기 변경\n'
         + '/clear - BL 전체 삭제');
     } else if (text.startsWith('/add ')) {
       var blNo = text.replace('/add ', '').trim().toUpperCase();
@@ -147,26 +174,21 @@ function setWebhook() {
 
 // =====================================================================
 // 사용자 데이터 관리
-// bls 구조: [{ blNo: 'ABC', interval: 5 }, ...]
 // =====================================================================
 function getUserData_(chatId) {
   var raw = PropertiesService.getScriptProperties().getProperty('USER_' + chatId);
   return raw ? JSON.parse(raw) : { bls: [], kakaoToken: null };
 }
-
 function saveUserData_(chatId, data) {
   PropertiesService.getScriptProperties().setProperty('USER_' + chatId, JSON.stringify(data));
 }
-
 function getAllUsers_() {
   var raw = PropertiesService.getScriptProperties().getProperty('ALL_USERS');
   return raw ? JSON.parse(raw) : [];
 }
-
 function saveAllUsers_(users) {
   PropertiesService.getScriptProperties().setProperty('ALL_USERS', JSON.stringify(users));
 }
-
 function registerUser_(chatId) {
   var users = getAllUsers_();
   if (users.indexOf(chatId) === -1) { users.push(chatId); saveAllUsers_(users); }
@@ -182,6 +204,10 @@ function getUserInfo(chatId) {
   chatId = String(chatId);
   registerUser_(chatId);
   var data = getUserData_(chatId);
+
+  // 차단된 유저
+  if (data.banned) return { banned: true };
+
   return {
     chatId: chatId,
     bls: data.bls || [],
@@ -190,7 +216,6 @@ function getUserInfo(chatId) {
   };
 }
 
-// BL 추가 (interval 기본값: DEFAULT_INTERVAL)
 function addBL(chatId, blNo, interval) {
   chatId = String(chatId);
   blNo = blNo.trim().toUpperCase();
@@ -206,29 +231,24 @@ function addBL(chatId, blNo, interval) {
   data.bls.push({ blNo: blNo, interval: interval });
   saveUserData_(chatId, data);
 
-  // 현재 상태 저장 (기준점)
-  // 추가 즉시 현재 상태 조회 & 알림
   try {
     var records = fetchCargoProgress_(blNo, CONFIG.BL_YEAR);
     if (records.length > 0) {
       var latest = pickLatest_(records);
       var sl = summaryLine_(latest);
       PropertiesService.getScriptProperties().setProperty('STATE_' + chatId + '_' + blNo, JSON.stringify({ summaryLine: sl }));
-      // 현재 상태 즉시 알림
       var msg = formatMessage_(blNo, true, null, latest);
-      sendTelegram_(chatId, msg);
       var userData2 = getUserData_(chatId);
-      if (userData2.kakaoToken) { try { sendKakao_(userData2.kakaoToken, msg.replace(/<[^>]+>/g, '')); } catch(e) {} }
+      var telegramId = userData2.telegramChatId || (isNaN(String(chatId).replace('-','')) ? null : chatId);
+      if (telegramId) { try { sendTelegram_(telegramId, msg); } catch(e) {} }
+      if (userData2.kakaoToken) { try { sendKakao_(chatId, msg.replace(/<[^>]+>/g, '')); } catch(e) {} }
     }
   } catch(e) {}
 
-  // 트리거 항상 켜기 (1분마다 실행, BL별 interval은 내부에서 체크)
   ensureTrigger_();
-
   return { success: true, message: '✅ ' + blNo + ' 추가! ' + interval + '분마다 자동 추적 시작', bls: data.bls };
 }
 
-// BL 삭제
 function removeBL(chatId, blNo) {
   chatId = String(chatId);
   blNo = blNo.trim().toUpperCase();
@@ -242,7 +262,6 @@ function removeBL(chatId, blNo) {
   return { success: true, message: '🗑 ' + blNo + ' 삭제 완료!', bls: data.bls };
 }
 
-// BL 여러 개 삭제
 function removeBLs(chatId, blNos) {
   chatId = String(chatId);
   var results = [];
@@ -253,7 +272,6 @@ function removeBLs(chatId, blNos) {
   return { success: true, message: results.join('\n'), bls: getUserData_(chatId).bls };
 }
 
-// BL 전체 삭제
 function clearAllBL(chatId) {
   chatId = String(chatId);
   var data = getUserData_(chatId);
@@ -267,7 +285,6 @@ function clearAllBL(chatId) {
   return { success: true, message: '🗑 BL 전체 삭제 완료!', bls: [] };
 }
 
-// BL별 알림 주기 변경
 function setBlInterval(chatId, blNo, interval) {
   chatId = String(chatId);
   blNo = blNo.trim().toUpperCase();
@@ -285,7 +302,7 @@ function setBlInterval(chatId, blNo, interval) {
 }
 
 // =====================================================================
-// 트리거 관리 (항상 1분마다 실행, BL별 interval은 내부 로직으로 처리)
+// 트리거 관리
 // =====================================================================
 function ensureTrigger_() {
   var triggers = ScriptApp.getProjectTriggers();
@@ -294,23 +311,19 @@ function ensureTrigger_() {
     ScriptApp.newTrigger('run').timeBased().everyMinutes(1).create();
   }
 }
-
 function stopTrigger() {
   ScriptApp.getProjectTriggers().forEach(function(t) { ScriptApp.deleteTrigger(t); });
 }
-
 function deleteAllTriggers() {
   ScriptApp.getProjectTriggers().forEach(function(t) { ScriptApp.deleteTrigger(t); });
 }
-
 function getTriggerStatus() {
   var active = ScriptApp.getProjectTriggers().some(function(t) { return t.getHandlerFunction() === 'run'; });
   return { active: active };
 }
 
 // =====================================================================
-// 자동 체크 실행 (1분마다 트리거로 호출)
-// BL별 interval에 따라 마지막 체크 시간 비교 후 조회 여부 결정
+// 자동 체크 (1분마다 트리거)
 // =====================================================================
 function run() {
   var users = getAllUsers_();
@@ -319,16 +332,16 @@ function run() {
 
   users.forEach(function(chatId) {
     var data = getUserData_(chatId);
+    if (data.banned) return; // 차단된 유저 스킵
     (data.bls || []).forEach(function(blObj) {
       var blNo = blObj.blNo;
       var interval = blObj.interval || CONFIG.DEFAULT_INTERVAL;
       var lastCheckKey = 'LASTCHECK_' + chatId + '_' + blNo;
       var lastCheck = parseInt(props.getProperty(lastCheckKey) || '0', 10);
       var minutesPassed = (now - lastCheck) / 60000;
-
       if (minutesPassed >= interval) {
         props.setProperty(lastCheckKey, String(now));
-        checkBL_(chatId, blNo, data.kakaoToken);
+        checkBL_(chatId, blNo);
       }
     });
   });
@@ -337,11 +350,11 @@ function run() {
 function checkAndNotifyUser_(chatId, forceNotify) {
   var data = getUserData_(chatId);
   (data.bls || []).forEach(function(blObj) {
-    checkBL_(chatId, blObj.blNo, data.kakaoToken, forceNotify);
+    checkBL_(chatId, blObj.blNo, forceNotify);
   });
 }
 
-function checkBL_(chatId, blNo, kakaoToken, forceNotify) {
+function checkBL_(chatId, blNo, forceNotify) {
   var stateKey = 'STATE_' + chatId + '_' + blNo;
   var props = PropertiesService.getScriptProperties();
   var records;
@@ -356,13 +369,10 @@ function checkBL_(chatId, blNo, kakaoToken, forceNotify) {
 
   if (changed || forceNotify) {
     var msg = formatMessage_(blNo, !prev && !forceNotify, forceNotify ? null : (prev ? prev.summaryLine : null), latest);
-    // 텔레그램: data.telegramChatId 또는 chatId 자체(구형 텔레그램 기반 사용자)
     var data = getUserData_(chatId);
     var telegramId = data.telegramChatId || (isNaN(String(chatId).replace('-','')) ? null : chatId);
     if (telegramId) { try { sendTelegram_(telegramId, msg); } catch(e) {} }
-    // 카카오
-    var token = kakaoToken || data.kakaoToken;
-    if (token) { try { sendKakao_(token, msg.replace(/<[^>]+>/g, '')); } catch(e) {} }
+    if (data.kakaoToken) { try { sendKakao_(chatId, msg.replace(/<[^>]+>/g, '')); } catch(e) {} }
   }
   props.setProperty(stateKey, JSON.stringify({ summaryLine: sl }));
 }
@@ -446,7 +456,64 @@ function sendTelegram_(chatId, text) {
 }
 
 // =====================================================================
-// 카카오 나에게 보내기
+// 카카오 나에게 보내기 (토큰 자동 갱신)
+// =====================================================================
+function refreshKakaoToken_(userId) {
+  var data = getUserData_(userId);
+  if (!data.kakaoRefreshToken) return null;
+  var resp = UrlFetchApp.fetch('https://kauth.kakao.com/oauth/token', {
+    method: 'post',
+    payload: {
+      grant_type: 'refresh_token',
+      client_id: CONFIG.KAKAO_REST_API_KEY,
+      refresh_token: data.kakaoRefreshToken
+    },
+    muteHttpExceptions: true
+  });
+  var newToken = JSON.parse(resp.getContentText());
+  if (newToken.access_token) {
+    data.kakaoToken = newToken.access_token;
+    if (newToken.refresh_token) data.kakaoRefreshToken = newToken.refresh_token;
+    saveUserData_(userId, data);
+    return newToken.access_token;
+  }
+  return null;
+}
+
+function sendKakao_(userId, text) {
+  var data = getUserData_(userId);
+  if (!data.kakaoToken) return;
+
+  var payload = { template_object: JSON.stringify({
+    object_type: 'text', text: text,
+    link: { web_url: 'https://unipass.customs.go.kr', mobile_web_url: 'https://unipass.customs.go.kr' }
+  })};
+
+  var resp = UrlFetchApp.fetch('https://kapi.kakao.com/v2/api/talk/memo/default/send', {
+    method: 'post',
+    headers: { Authorization: 'Bearer ' + data.kakaoToken },
+    payload: payload,
+    muteHttpExceptions: true,
+  });
+
+  var result = JSON.parse(resp.getContentText());
+
+  // 토큰 만료(-401)면 refresh 후 재시도
+  if (result.code === -401) {
+    var newToken = refreshKakaoToken_(userId);
+    if (newToken) {
+      UrlFetchApp.fetch('https://kapi.kakao.com/v2/api/talk/memo/default/send', {
+        method: 'post',
+        headers: { Authorization: 'Bearer ' + newToken },
+        payload: payload,
+        muteHttpExceptions: true,
+      });
+    }
+  }
+}
+
+// =====================================================================
+// 카카오 OAuth
 // =====================================================================
 function getKakaoOAuthUrl() {
   var redirectUri = ScriptApp.getService().getUrl();
@@ -456,12 +523,10 @@ function getKakaoOAuthUrl() {
     + '&response_type=code&scope=talk_message';
 }
 
-// 처음 카카오로 로그인 (설정 화면) - 카카오 ID를 userId로 사용
 function loginWithKakao(code) {
   return linkKakaoToUser('', code);
 }
 
-// 기존 userId에 카카오 연결 (또는 신규 카카오 로그인)
 function linkKakaoToUser(existingUserId, code) {
   var redirectUri = ScriptApp.getService().getUrl();
   var resp = UrlFetchApp.fetch('https://kauth.kakao.com/oauth/token', {
@@ -485,43 +550,23 @@ function linkKakaoToUser(existingUserId, code) {
   if (!me.id) return { success: false, message: '사용자 정보 가져오기 실패' };
 
   var nickname = (me.kakao_account && me.kakao_account.profile && me.kakao_account.profile.nickname) || '';
-  // userId 결정: 기존 유저면 기존 ID 유지, 신규면 K{kakaoId}
   var userId = existingUserId ? String(existingUserId) : ('K' + me.id);
   var data = getUserData_(userId);
   data.kakaoToken = token.access_token;
   if (token.refresh_token) data.kakaoRefreshToken = token.refresh_token;
   data.kakaoNickname = nickname;
   saveUserData_(userId, data);
+  registerUser_(userId);
   ensureTrigger_();
   return { success: true, userId: userId, nickname: nickname };
 }
 
-// 텔레그램 Chat ID 연결/해제
 function setTelegramChatId(userId, telegramChatId) {
   userId = String(userId);
   var data = getUserData_(userId);
   data.telegramChatId = telegramChatId ? String(telegramChatId) : null;
   saveUserData_(userId, data);
   return { success: true };
-}
-
-function linkKakaoWithCode(chatId, code) {
-  chatId = String(chatId);
-  var resp = UrlFetchApp.fetch('https://kauth.kakao.com/oauth/token', {
-    method: 'post',
-    payload: { grant_type: 'authorization_code', client_id: CONFIG.KAKAO_REST_API_KEY,
-      redirect_uri: 'https://example.com', code: code },
-    muteHttpExceptions: true,
-  });
-  var result = JSON.parse(resp.getContentText());
-  if (result.access_token) {
-    var data = getUserData_(chatId);
-    data.kakaoToken = result.access_token;
-    if (result.refresh_token) data.kakaoRefreshToken = result.refresh_token;
-    saveUserData_(chatId, data);
-    return { success: true, message: '✅ 카카오 연동 완료!' };
-  }
-  return { success: false, message: '❌ 카카오 연동 실패: ' + (result.error_description || result.error || '') };
 }
 
 function unlinkKakao(chatId) {
@@ -531,16 +576,4 @@ function unlinkKakao(chatId) {
   data.kakaoRefreshToken = null;
   saveUserData_(chatId, data);
   return { success: true };
-}
-
-function sendKakao_(accessToken, text) {
-  UrlFetchApp.fetch('https://kapi.kakao.com/v2/api/talk/memo/default/send', {
-    method: 'post',
-    headers: { Authorization: 'Bearer ' + accessToken },
-    payload: { template_object: JSON.stringify({
-      object_type: 'text', text: text,
-      link: { web_url: 'https://unipass.customs.go.kr', mobile_web_url: 'https://unipass.customs.go.kr' }
-    })},
-    muteHttpExceptions: true,
-  });
 }

@@ -399,15 +399,9 @@ select { cursor: pointer; }
   <div class="setup-box">
     <div class="logo">📦</div>
     <h2>유니패스 통관 알림</h2>
-    <p>시작하려면 초대 코드와 알림 방법을 선택하세요.</p>
+    <p>알림 방법을 선택하여 시작하세요.</p>
 
-    <!-- 초대 코드 -->
-    <div class="field">
-      <label class="field-label">🔑 초대 코드</label>
-      <input type="text" id="inviteCodeInput" placeholder="초대 코드 입력 (예: HAMIN2026)" style="text-transform:uppercase;letter-spacing:0.05em;">
-    </div>
-
-    <div style="margin-top:16px;">
+    <div id="loginView">
       <!-- 카카오로 시작 -->
       <button class="btn btn-kakao btn-full" style="font-size:0.88rem;padding:11px;" onclick="startKakaoLogin()">
         💬 카카오로 시작
@@ -595,12 +589,6 @@ function init() {
   }, 500);
 }
 
-function getInviteCode() {
-  var el = document.getElementById('inviteCodeInput');
-  if (!el) return '';
-  return el.value.trim().toUpperCase();
-}
-
 function showSetupError(msg) {
   var el = document.getElementById('setupError');
   if (!el) return;
@@ -610,9 +598,6 @@ function showSetupError(msg) {
 
 function startKakaoLogin() {
   showSetupError('');
-  var code = getInviteCode();
-  if (!code) { showSetupError('초대 코드를 입력하세요.'); return; }
-
   if (!kakaoAuthUrl) {
     showSetupError('잠시 후 다시 시도하세요.');
     google.script.run
@@ -625,7 +610,7 @@ function startKakaoLogin() {
 }
 
 function startKakaoLink() {
-  // 메인화면에서 카카오 추가 연결 (초대 코드 불필요)
+  // 메인화면에서 카카오 추가 연결
   if (!kakaoAuthUrl) {
     google.script.run
       .withSuccessHandler(function(url) { kakaoAuthUrl = url; window.open(url, 'kakaoLogin', 'width=500,height=600'); })
@@ -636,59 +621,34 @@ function startKakaoLink() {
 }
 
 function handleKakaoCode(code) {
-  var isSetup = !localStorage.getItem('invited'); // 아직 입장 안 한 상태
+  var isSetup = !localStorage.getItem('invited');
   var loadingEl = document.getElementById('setupLoading');
   if (loadingEl) loadingEl.style.display = 'block';
   showSetupError('');
 
   if (isSetup) {
-    // 설정 화면: 초대 코드 확인 후 카카오 로그인
-    var inviteCode = getInviteCode();
-    if (!inviteCode) {
-      if (loadingEl) loadingEl.style.display = 'none';
-      showSetupError('초대 코드를 먼저 입력하세요.');
-      return;
-    }
-    // 1. 초대 코드 검증 (임시 userId로 KAKAO_PENDING 사용)
+    // 설정 화면: 초대 코드 없이 바로 카카오 연결
     google.script.run
-      .withSuccessHandler(function(vResult) {
-        if (!vResult.success) {
-          if (loadingEl) loadingEl.style.display = 'none';
-          showSetupError(vResult.message || '초대 코드 오류');
-          return;
+      .withSuccessHandler(function(r) {
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (r.success) {
+          userId = r.userId;
+          localStorage.setItem('userId', userId);
+          localStorage.setItem('invited', '1');
+          localStorage.setItem('kakaoNickname', r.nickname || '');
+          // 시작하기 버튼 표시
+          document.getElementById('kakaoWelcome').textContent = (r.nickname ? r.nickname + '님, ' : '') + '카카오 연결 완료!';
+          document.getElementById('loginView').style.display = 'none';
+          document.getElementById('kakaoSuccess').style.display = 'block';
+        } else {
+          showSetupError('카카오 연결 실패: ' + (r.message || ''));
         }
-        // 2. 카카오 연결 (userId 없이 넘기면 서버가 K{kakaoId}로 생성)
-        google.script.run
-          .withSuccessHandler(function(r) {
-            if (loadingEl) loadingEl.style.display = 'none';
-            if (r.success) {
-              userId = r.userId;
-              localStorage.setItem('userId', userId);
-              localStorage.setItem('invited', '1');
-              localStorage.setItem('kakaoNickname', r.nickname || '');
-              // 시작 버튼 표시
-              document.getElementById('kakaoWelcome').textContent = (r.nickname ? r.nickname + '님, ' : '') + '카카오 연결 완료!';
-              document.getElementById('kakaoSuccess').style.display = 'block';
-              document.getElementById('inviteCodeInput').closest('.field').style.display = 'none';
-              document.querySelector('.btn-kakao.btn-full').style.display = 'none';
-              document.querySelector('.or-divider').style.display = 'none';
-              document.getElementById('setupChatId').closest('.field').style.display = 'none';
-              document.querySelector('.btn-primary.btn-full').style.display = 'none';
-            } else {
-              showSetupError('카카오 연결 실패: ' + (r.message || ''));
-            }
-          })
-          .withFailureHandler(function(e) {
-            if (loadingEl) loadingEl.style.display = 'none';
-            showSetupError('오류: ' + (e.message || e));
-          })
-          .linkKakaoToUser('', code);
       })
       .withFailureHandler(function(e) {
         if (loadingEl) loadingEl.style.display = 'none';
         showSetupError('오류: ' + (e.message || e));
       })
-      .verifyAndUseInviteCode(inviteCode, 'KAKAO_PENDING');
+      .linkKakaoToUser('', code);
   } else {
     // 메인화면: 기존 계정에 카카오 추가 연결
     google.script.run
@@ -711,42 +671,26 @@ function handleKakaoCode(code) {
 
 function setupWithTelegram() {
   showSetupError('');
-  var inviteCode = getInviteCode();
-  if (!inviteCode) { showSetupError('초대 코드를 입력하세요.'); return; }
   var chatId = document.getElementById('setupChatId').value.trim();
   if (!chatId || isNaN(chatId)) { showSetupError('올바른 Chat ID를 입력하세요.'); return; }
 
   document.getElementById('setupLoading').style.display = 'block';
+  userId = chatId;
 
   google.script.run
-    .withSuccessHandler(function(vResult) {
-      if (!vResult.success) {
-        document.getElementById('setupLoading').style.display = 'none';
-        showSetupError(vResult.message || '초대 코드 오류');
-        return;
-      }
-      userId = chatId;
-      google.script.run
-        .withSuccessHandler(function() {
-          localStorage.setItem('userId', userId);
-          localStorage.setItem('invited', '1');
-          document.getElementById('setupLoading').style.display = 'none';
-          showMain();
-        })
-        .withFailureHandler(function() {
-          // 실패해도 로컬은 저장
-          localStorage.setItem('userId', userId);
-          localStorage.setItem('invited', '1');
-          document.getElementById('setupLoading').style.display = 'none';
-          showMain();
-        })
-        .setTelegramChatId(chatId, chatId);
-    })
-    .withFailureHandler(function(e) {
+    .withSuccessHandler(function() {
+      localStorage.setItem('userId', userId);
+      localStorage.setItem('invited', '1');
       document.getElementById('setupLoading').style.display = 'none';
-      showSetupError('오류: ' + (e.message || e));
+      showMain();
     })
-    .verifyAndUseInviteCode(inviteCode, chatId);
+    .withFailureHandler(function() {
+      localStorage.setItem('userId', userId);
+      localStorage.setItem('invited', '1');
+      document.getElementById('setupLoading').style.display = 'none';
+      showMain();
+    })
+    .setTelegramChatId(chatId, chatId);
 }
 
 function proceedToMain() {
@@ -758,7 +702,6 @@ function showMain() {
   document.getElementById('mainScreen').style.display = 'grid';
   var nickname = localStorage.getItem('kakaoNickname') || userId;
   document.getElementById('nicknameDisplay').textContent = nickname;
-  // 카카오 OAuth URL 미리 로드 (메인화면에서 연결할 때 사용)
   if (!kakaoAuthUrl) {
     google.script.run
       .withSuccessHandler(function(url) { kakaoAuthUrl = url; })
@@ -770,6 +713,11 @@ function showMain() {
 function loadUserInfo() {
   google.script.run
     .withSuccessHandler(function(info) {
+      if (info.banned) {
+        alert('사용이 중단된 계정입니다. 관리자에게 문의하세요.');
+        logout();
+        return;
+      }
       renderBLList(info.bls);
       renderKakao(info.kakaoLinked);
       renderTelegram(info.telegramChatId);
