@@ -26,11 +26,13 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=botuser
-WorkingDirectory=/home/botuser/caleb
+# 계정명은 이미지에 따라 다르다 — 우분투 ubuntu · Oracle Linux opc.
+# 오라클 콘솔의 인스턴스 상세 화면 "Username" 줄에 적혀 있다.
+User=opc
+WorkingDirectory=/home/opc/caleb
 Environment=PYTHONUNBUFFERED=1
 # --live 도 OS_CONFIRM_LIVE 도 없다. 주문 경로를 아예 타지 않는다.
-ExecStart=/home/botuser/caleb/.venv/bin/python -m bot.oversold.executor
+ExecStart=/home/opc/caleb/.venv/bin/python -m bot.oversold.executor
 
 Restart=always
 RestartSec=30
@@ -41,9 +43,9 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=/home/botuser/caleb/bot/oversold
-ReadWritePaths=/home/botuser/caleb/data
-ReadWritePaths=/home/botuser/caleb/state
+ReadWritePaths=/home/opc/caleb/bot/oversold
+ReadWritePaths=/home/opc/caleb/data
+ReadWritePaths=/home/opc/caleb/state
 
 [Install]
 WantedBy=multi-user.target

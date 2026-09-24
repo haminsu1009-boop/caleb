@@ -24,10 +24,18 @@ warn() { printf "\033[1;33m  ⚠ %s\033[0m\n" "$*"; }
 
 say "1/5  시스템 패키지"
 if command -v apt-get >/dev/null; then
+  # 우분투·데비안
   sudo apt-get update -qq
   sudo apt-get install -y -qq python3 python3-venv python3-pip git curl
+elif command -v dnf >/dev/null; then
+  # Oracle Linux · RHEL · Rocky · AlmaLinux
+  # (오라클 클라우드 기본 이미지가 Oracle Linux다. venv는 python3에
+  #  포함돼 있어서 따로 설치할 패키지가 없다.)
+  sudo dnf install -y -q python3 python3-pip git curl
+elif command -v yum >/dev/null; then
+  sudo yum install -y -q python3 python3-pip git curl
 else
-  warn "apt 계열이 아니다. python3·git·curl을 직접 설치해라."
+  warn "apt·dnf·yum 어느 것도 없다. python3·git·curl을 직접 설치해라."
 fi
 
 say "2/5  저장소"
