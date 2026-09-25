@@ -52,6 +52,7 @@ sys.path.insert(0, ROOT)
 os.chdir(ROOT)
 
 from bot.oversold import strategy as S
+from bot.oversold.executor import Config
 
 # 0.20 → 0.40. ml/fill_timing.py 로 실측한 결과다.
 # 백테스트는 다음 봉 시가에 체결된다고 가정하지만, 실거래 봇은 5분마다
@@ -324,13 +325,21 @@ def simulate(trades, leverage, per_trade, max_gross, cb, cool_days, min_equity,
             "wr": wins / max(n_trades, 1) * 100, "liq": liqs, "halts": halts, "bust": bust}
 
 
-def main():
+def build_parser() -> argparse.ArgumentParser:
+    """main()에서 떼어냈다 — test_parity.py가 기본값을 대조할 수 있게."""
     ap = argparse.ArgumentParser()
-    ap.add_argument("--leverage", type=float, default=float(os.getenv("OS_LEVERAGE", "2")))
-    ap.add_argument("--per-trade", type=float, default=float(os.getenv("OS_PER_TRADE", "0.05")))
-    ap.add_argument("--max-gross", type=float, default=float(os.getenv("OS_MAX_GROSS", "0.8")))
-    ap.add_argument("--cb", type=float, default=float(os.getenv("OS_MAX_DRAWDOWN", "0.25")))
-    ap.add_argument("--cool-days", type=float, default=float(os.getenv("OS_HALT_COOLDOWN_DAYS", "30")))
+    # 기본값을 여기 숫자로 적으면 안 된다. 적혀 있었고, 갈라졌다 —
+    # 이 스크립트는 5%/80%/25%, 봇은 1.5%/60%/20%였다. 인자 없이
+    # 돌리면 0.71배(손실), 봇 설정으로 돌리면 1.71배가 나왔다.
+    # 같은 전략을 두고 결론이 정반대였다는 뜻이다.
+    # HOLD_BARS 20 vs 60과 같은 종류의 버그다. 봇의 Config를 그대로
+    # 읽어서 갈라질 자리를 없앤다 (환경변수도 Config가 이미 본다).
+    _c = Config()
+    ap.add_argument("--leverage", type=float, default=_c.leverage)
+    ap.add_argument("--per-trade", type=float, default=_c.per_trade)
+    ap.add_argument("--max-gross", type=float, default=_c.max_gross)
+    ap.add_argument("--cb", type=float, default=_c.max_drawdown)
+    ap.add_argument("--cool-days", type=float, default=_c.halt_cooldown_days)
     # 실거래 봇은 executor.py:420에서
     #     full_notional = equity * per_trade * leverage
     # 즉 *현재* 자본 기준으로 베팅한다. 이 스크립트의 존재 이유가
@@ -338,7 +347,26 @@ def main():
     # --fixed는 이 세션 초반 결과(초기자본 고정)를 재현할 때만 쓴다.
     ap.add_argument("--fixed", action="store_true",
                     help="베팅을 초기자본 고정으로 (구버전 재현용, 봇과 불일치)")
-    a = ap.parse_args()
+    # 소액 계좌에서는 1차 진입액이 거래소 최소주문량에 못 미쳐 일부
+    # 종목이 통째로 빠진다. executor.py의 capital_check()이 그 목록을
+    # 찍어주는데, 그게 곧 "내가 실제로 굴릴 종목 집합"이다.
+    # 21.52배는 42종 전부에서 나온 숫자다 — 종목이 빠지면 다른 것을
+    # 굴리는 것이므로, 빠지는 목록 그대로 넣고 다시 재봐야 한다.
+    ap.add_argument("--exclude", default="",
+                    help="제외할 종목 (쉼표 구분). 예: BTCUSDT,ETHUSDT")
+    return ap
+
+
+def main():
+    a = build_parser().parse_args()
+
+    if a.exclude:
+        drop = {x.strip().upper() for x in a.exclude.split(",") if x.strip()}
+        unknown = drop - set(S.SYMBOLS)
+        if unknown:
+            raise SystemExit(f"S.SYMBOLS에 없는 종목: {', '.join(sorted(unknown))}")
+        S.SYMBOLS = [x for x in S.SYMBOLS if x not in drop]
+        print(f"\n  ⚠️ 제외 {len(drop)}종: {', '.join(sorted(drop))}")
     compound = not a.fixed
     mode_label = "복리(봇과 동일)" if compound else "고정(구버전)"
 

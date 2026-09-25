@@ -180,6 +180,27 @@ def main():
     check("백테스트 호출부가 봇 상수와 일치", not mism,
           "; ".join(mism) if mism else "hold · bb_k · 1차비율 대조")
 
+    # ── 백테스트 CLI 기본값 ↔ 봇 Config ─────────────────────────
+    # 위 검사는 make_long() 호출 인자만 본다. 자본배분(진입당 비율,
+    # 총노출 상한, 차단기)은 거기 안 들어가는데, 바로 그쪽이 갈려
+    # 있었다 — 스크립트 5%/80%/25% 대 봇 1.5%/60%/20%. 인자 없이
+    # ml/backtest_current_bot.py를 돌리면 0.71배(손실)가, 봇 설정으로
+    # 돌리면 1.71배가 나왔다. 같은 전략을 두고 결론이 뒤집힌다.
+    from bot.oversold.executor import Config
+    import importlib
+    bc = importlib.import_module("ml.backtest_current_bot")
+    defaults = {a.dest: a.default for a in bc.build_parser()._actions}
+    cfg = Config()
+    pairs = [("per_trade", cfg.per_trade), ("max_gross", cfg.max_gross),
+             ("cb", cfg.max_drawdown), ("leverage", cfg.leverage),
+             ("cool_days", cfg.halt_cooldown_days)]
+    drift = [f"--{d.replace('_','-')} {defaults[d]} ≠ 봇 {v}"
+             for d, v in pairs if abs(defaults[d] - v) > 1e-9]
+    check("백테스트 CLI 기본값이 봇 Config와 일치", not drift,
+          "; ".join(drift) if drift else
+          f"진입당 {cfg.per_trade*100:.1f}% · 총노출 {cfg.max_gross*100:.0f}% · "
+          f"차단기 {cfg.max_drawdown*100:.0f}%")
+
     print("=" * 84)
     print(f"  {'✅ 전부 통과' if FAILED == 0 else f'❌ {FAILED}건 실패'}")
     print("=" * 84)
