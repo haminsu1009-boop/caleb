@@ -969,6 +969,125 @@ def capital_table(ex, cfg, symbols, levels=None):
     return dict(need=need, err=err, frac=frac, rows=rows, n=len(need))
 
 
+def smoke_test(ex, cfg, symbols) -> int:
+    """주문 경로가 실제로 동작하는지 최소 금액으로 확인한다.
+
+    모의로 몇 주를 돌린 뒤에 "주문이 안 나가네"를 발견하는 것이 가장
+    나쁜 순서다. 신호를 기다릴 필요 없이 지금 확인한다.
+
+    신호와 무관하게, 최소 주문 단위가 가장 싼 종목 하나를 골라
+    사고 → 포지션을 읽고 → 손절·목표를 걸고 → 바로 닫는다. 실거래에서
+    쓰는 함수를 그대로 탄다. 왕복 수수료는 명목가의 0.11% 남짓이다
+    (5 USDT 주문이면 약 0.006달러).
+
+    여기서 확인되는 것
+      · API 키에 주문 권한이 있는가 (읽기 전용이면 여기서 막힌다)
+      · IP 제한이 이 서버를 막고 있지 않은가
+      · 최소 수량·금액 계산이 거래소와 맞는가
+      · 주문이 체결되고 포지션으로 읽히는가
+      · 손절·목표 주문이 실제로 걸리는가 (조용히 무시되는 경우가 있다)
+      · 청산이 되는가
+
+    포지션을 열고 못 닫는 것이 유일한 실질 위험이므로, 닫기는 실패해도
+    세 번 다시 시도하고 그래도 안 되면 크게 경고한다.
+    """
+    print("\n" + "=" * 72)
+    print("  주문 경로 점검 — 최소 금액으로 사고 바로 닫는다")
+    print("=" * 72)
+
+    # 1) 가장 싸게 살 수 있는 종목 찾기
+    best = None
+    for sym in symbols:
+        try:
+            spec = ex.spec(sym)
+            price = float(ex.klines(sym, limit=2)[-1][4])
+        except Exception:
+            continue
+        need = max(spec["min"] * price, spec.get("min_notional", 0) or 0)
+        if best is None or need < best[1]:
+            best = (sym, need, spec, price)
+    if best is None:
+        print("  ❌ 종목 정보를 하나도 조회하지 못했습니다 — 연결을 확인하세요")
+        return 1
+    sym, need, spec, price = best
+    qty = round_qty(need * 1.05 / price, spec, price)
+    if qty <= 0:
+        print(f"  ❌ {sym} 최소 수량을 만들지 못했습니다 (필요 {need:.2f} USDT)")
+        return 1
+    notional = qty * price
+    eq = ex.equity()
+    print(f"\n  종목 {sym} · 현재가 {price:.6g} · 수량 {qty:g} · 명목가 {notional:.2f} USDT")
+    print(f"  계좌 자본 {eq:,.2f} USDT · 예상 왕복 수수료 약 {notional * 0.0011:.3f} USDT")
+    if not ex.live:
+        print("\n  🟢 모의 모드입니다 — 주문은 나가지 않습니다.")
+        print("     실제로 확인하려면 --live 와 OS_CONFIRM_LIVE=START 가 함께 필요합니다.")
+    if ex.live and notional > eq * 0.5:
+        print(f"\n  ❌ 최소 주문({notional:.2f})이 자본({eq:.2f})의 절반을 넘습니다. 중단합니다.")
+        return 1
+
+    steps = []
+
+    def step(name, fn):
+        try:
+            ok = fn()
+        except Exception as e:
+            steps.append((name, False, f"{type(e).__name__}: {e}"))
+            return False
+        steps.append((name, bool(ok), "" if ok else "실패 반환"))
+        return bool(ok)
+
+    # 2) 진입 — 손절은 멀리, 목표는 걸지 않는다 (바로 닫을 것이므로)
+    stop = price * 0.5
+    opened = step("① 진입 주문", lambda: ex.open_long(sym, qty, stop))
+
+    # 3) 포지션 조회
+    pos = {}
+    if opened:
+        def read():
+            nonlocal pos
+            pos = ex.positions()
+            return sym in pos or not ex.live
+        step("② 포지션 조회", read)
+        if ex.live and sym in pos:
+            p = pos[sym]
+            print(f"\n  체결가 {p['entry']:.6g} · 수량 {p['size']:g} · "
+                  f"거래소 손절 {p['stop'] or '없음'}")
+
+    # 4) 손절·목표 재설정
+    if opened:
+        entry = pos.get(sym, {}).get("entry", price)
+        step("③ 손절·목표 설정",
+             lambda: ex.set_stop(sym, entry * 0.5, entry * 1.5))
+
+    # 5) 청산 — 실패해도 세 번 다시
+    if opened:
+        def close():
+            for i in range(3):
+                q = ex.positions().get(sym, {}).get("size", qty) if ex.live else qty
+                q = round_qty(q, spec)      # 감소 주문에는 금액 하한이 없다
+                if q <= 0:
+                    return True
+                if ex.close_long(sym, q, "주문 경로 점검"):
+                    return True
+                log.warning("  청산 실패 — 재시도 %d/3", i + 2)
+                time.sleep(2)
+            return False
+        if not step("④ 청산", close):
+            print("\n  🚨 포지션을 닫지 못했습니다. 거래소 앱에서 직접 닫으세요:")
+            print(f"     {sym} 롱 {qty:g}")
+
+    print(f"\n  {'단계':<20s}{'결과':>8s}")
+    print("  " + "-" * 50)
+    for name, ok, why in steps:
+        print(f"  {name:<20s}{'✅ 통과' if ok else '❌ 실패':>8s}"
+              + (f"   {why}" if why else ""))
+    bad = [n for n, ok, _ in steps if not ok]
+    print("\n  " + ("✅ 주문 경로 정상입니다." if not bad
+                    else f"❌ {len(bad)}단계 실패 — 위 메시지를 확인하세요."))
+    print("=" * 72)
+    return 1 if bad else 0
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--live", action="store_true", help="실거래 (기본은 모의)")
@@ -981,6 +1100,8 @@ def main():
     ap.add_argument("--once", action="store_true", help="1회만 점검하고 종료")
     ap.add_argument("--capital-table", action="store_true",
                     help="자본이 얼마면 몇 종목을 거래할 수 있는지 표로 보고 종료")
+    ap.add_argument("--smoke-test", action="store_true",
+                    help="최소 금액으로 사고 바로 닫아 주문 경로만 확인하고 종료")
     ap.add_argument("--dump-candles", action="store_true", help="조회한 캔들 저장")
     ap.add_argument("--close-all", action="store_true", help="전량 청산하고 종료")
     ap.add_argument("--regime", choices=REG.MODES,
@@ -1033,6 +1154,9 @@ def main():
         log.warning("무인 실거래로 시작합니다 (OS_CONFIRM_LIVE 확인됨)")
 
     ex = Exchange(live=a.live)
+
+    if a.smoke_test:
+        raise SystemExit(smoke_test(ex, cfg, S.SYMBOLS))
 
     if a.capital_table:
         t = capital_table(ex, cfg, S.SYMBOLS)
