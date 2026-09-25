@@ -16,6 +16,7 @@
 ### 모의 서비스로 띄운다
 
 ```bash
+mkdir -p ~/caleb/state ~/caleb/data
 sudo cp deploy/systemd/oversold-paper.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now oversold-paper
@@ -24,6 +25,73 @@ journalctl -u oversold-paper -f
 
 `--live` 도 `OS_CONFIRM_LIVE` 도 없으므로 주문 경로를 아예 타지 않는다.
 "지금 샀을 것"만 로그에 남는다.
+
+#### `status=203/EXEC` 가 뜨면 — SELinux (Oracle Linux)
+
+Oracle Linux는 SELinux가 `Enforcing` 으로 켜져 있다. 홈 디렉터리 아래
+파일은 `user_home_t` 로 라벨이 붙고, systemd 서비스는 그 라벨이 붙은
+실행파일을 **열어보지도 못한다**. 손으로 돌리면 멀쩡한데 서비스로만
+죽는 이유가 이것이다.
+
+```
+Failed to locate executable /home/opc/caleb/.venv/bin/python: Permission denied
+Main process exited, code=exited, status=203/EXEC
+```
+
+진단 — `setenforce 0` 은 메모리에만 적용돼서 재부팅하면 원복된다.
+이 상태로 서비스가 뜨면 범인은 SELinux다.
+
+```bash
+sudo setenforce 0 && sudo systemctl start oversold-paper
+systemctl status oversold-paper --no-pager | head -6
+sudo setenforce 1
+```
+
+고치기 — 앱 디렉터리 전체에 `bin_t` 를 붙인다. 한 번 등록해두면
+`git pull` 로 새로 생긴 파일도 부모 디렉터리 라벨을 물려받는다.
+
+```bash
+sudo dnf install -y policycoreutils-python-utils
+sudo semanage fcontext -a -t bin_t "/home/opc/caleb(/.*)?"
+sudo restorecon -R /home/opc/caleb          # 1~2분, 출력 없음
+ls -Z /home/opc/caleb/.venv/bin/python      # ...:bin_t:s0 이어야 한다
+sudo systemctl restart oversold-paper
+```
+
+`setenforce 0` 인 채로 두지 마라. 재부팅하면 다시 켜지고 봇이 조용히
+죽는다. `getenforce` 가 `Enforcing` 인 상태에서 `active (running)` 이
+떠야 끝난 것이다.
+
+라벨을 붙여도 계속 막히면(`/home/opc` 자체가 `drwx------`) 시스템
+서비스를 포기하고 사용자 서비스로 돌린다. `opc` 본인 권한으로 돌아서
+충돌이 사라진다.
+
+```bash
+sudo systemctl disable --now oversold-paper
+mkdir -p ~/.config/systemd/user
+sed '/^User=/d; /^ProtectHome=/d; /^ProtectSystem=/d; /^ReadWritePaths=/d; \
+     s/^WantedBy=.*/WantedBy=default.target/' \
+    ~/caleb/deploy/systemd/oversold-paper.service \
+    > ~/.config/systemd/user/oversold-paper.service
+sudo loginctl enable-linger opc             # 로그아웃/재부팅해도 계속 돈다
+systemctl --user daemon-reload
+systemctl --user enable --now oversold-paper
+```
+
+이쪽으로 가면 로그도 `journalctl --user -u oversold-paper -f` 로 바뀐다.
+
+#### 재부팅으로 확인한다
+
+서비스가 떴다는 것과 재부팅을 견딘다는 것은 다른 이야기다.
+
+```bash
+sudo reboot
+# 2~3분 뒤 다시 접속
+systemctl status oversold-paper --no-pager | head -6
+```
+
+공인 IP가 예약(reserved)이 아니면 재부팅 때 바뀐다. 접속이 안 되면
+오라클 콘솔에서 새 IP를 확인하라.
 
 ### 4~6주 뒤 대조한다
 
