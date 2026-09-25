@@ -112,10 +112,54 @@ def run_one(trades, lev, pt, gross, cb=0.20):
                 worst1y=float(yr.min()) if len(yr) else float("nan"))
 
 
+def matched(data, target_mdd=24.0):
+    """낙폭을 맞춰놓고 비교한다.
+
+    "청산 0건" 제약은 공정하지 않았다. 지금 봇은 거래가 1,815건이라
+    -49.5%를 스치는 것이 10건 나오고, 재튜닝은 375건뿐이라 0건이다.
+    거래가 적어서 0건인 것을 "더 안전하다"로 읽으면 안 된다. 진입당
+    1.5%짜리 포지션이 청산되면 자본의 1.5%를 잃는 것이지 파산이
+    아니다.
+
+    실제로 비교해야 할 것은 **같은 고통을 감수했을 때 누가 더 버는가**다.
+    그래서 각 규칙마다 장중 낙폭이 목표치에 가장 가까운 배분을 찾아
+    그 지점에서 맞붙인다. 신호를 몇 건이나 실제로 잡았는지도 같이
+    적는다 — 총노출 상한에 막혀 버려진 신호가 많으면 그 규칙은
+    '선착순'에 기대는 것이다.
+    """
+    print("\n" + "=" * 112)
+    print(f"  낙폭을 {target_mdd:.0f}% 근처로 맞춰놓고 비교 — 같은 고통에 누가 더 버는가")
+    print("  (배율 2배 · 차단기 20% · 청산은 허용하되 비용으로 계산)")
+    print("=" * 112)
+    print(f"\n  {'규칙':<16s}{'진입당':>7s}{'노출':>6s}{'신호':>7s}{'체결':>7s}{'체결률':>7s}"
+          f"{'승률':>7s}{'최종':>9s}{'연복리':>7s}{'낙폭':>7s}{'청산':>6s}"
+          f"{'홀드':>8s}{'1년손실':>8s}{'최악1년':>8s}")
+    print("  " + "-" * 110)
+    for lab, cfg in CANDIDATES:
+        tr = trades_for(data, cfg)
+        cands = []
+        for gross in [0.4, 0.6, 0.8, 1.0, 1.5]:
+            for pt in [0.015, 0.02, 0.03, 0.05, 0.08, 0.12, 0.20, 0.30]:
+                r = run_one(tr, 2.0, pt, gross)
+                cands.append((abs(r["mdd"] - target_mdd), r, pt, gross))
+        cands.sort(key=lambda x: x[0])
+        _, r, pt, gross = cands[0]
+        print(f"  {lab:<16s}{pt*100:>6.1f}%{gross*100:>5.0f}%{len(tr):>7,}{r['n']:>7,}"
+              f"{r['n']/len(tr)*100:>6.0f}%{r['wr']:>6.1f}%{r['final']:>8.2f}배"
+              f"{r['cagr']:>6.0f}%{r['mdd']:>6.1f}%{r['liq']:>6}{r['ho']:>7.2f}배"
+              f"{r['loss1y']:>7.0f}%{r['worst1y']:>7.2f}배")
+    print("=" * 112)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--stops", action="store_true", help="손절·배율 맞교환만")
+    ap.add_argument("--matched", action="store_true", help="낙폭을 맞춰놓고 비교")
     a = ap.parse_args()
+
+    if a.matched:
+        matched(load_all())
+        return
 
     data = load_all()
     print("=" * 112)
