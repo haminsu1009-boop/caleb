@@ -228,8 +228,13 @@ class Exchange:
             return self._spec[symbol]
         r = self.session.get_instruments_info(category="linear", symbol=symbol)
         lot = r["result"]["list"][0]["lotSizeFilter"]
+        # 바이빗 무기한은 수량 하한(minOrderQty)과 **별개로** 주문 금액
+        # 하한(minNotionalValue, 보통 5 USDT)을 건다. 수량만 보고 주문을
+        # 내면 소액 계좌에서 거래소가 조용히 거절한다 — 봇 입장에서는
+        # "신호는 떴는데 포지션이 없는" 상태가 된다.
         self._spec[symbol] = {"step": float(lot["qtyStep"]),
-                              "min": float(lot["minOrderQty"])}
+                              "min": float(lot["minOrderQty"]),
+                              "min_notional": float(lot.get("minNotionalValue") or 0)}
         return self._spec[symbol]
 
     def equity(self) -> float:
@@ -400,11 +405,23 @@ class Exchange:
         return ok
 
 
-def round_qty(qty: float, spec: dict) -> float:
+def round_qty(qty: float, spec: dict, price: float | None = None) -> float:
+    """수량 단위로 내림. 하한에 못 미치면 0을 돌려준다(= 주문하지 않는다).
+
+    price를 주면 금액 하한(min_notional)도 본다. 안 주면 수량 하한만
+    본다 — 청산처럼 "있는 물량을 그대로 넘기는" 자리에서는 금액 하한을
+    적용하면 안 된다. 하한 미만으로 남은 포지션도 닫을 수 있어야 한다
+    (거래소는 감소 주문에는 하한을 걸지 않는다).
+    """
     step = spec["step"]
     q = int(qty / step) * step
     q = round(q, 10)
-    return q if q >= spec["min"] else 0.0
+    if q < spec["min"]:
+        return 0.0
+    mn = spec.get("min_notional", 0) or 0
+    if price is not None and mn and q * price < mn:
+        return 0.0
+    return q
 
 
 def dump_candles(symbol: str, rows: list):
@@ -518,7 +535,7 @@ class Trader:
             return
         notional2 = p["full_notional"] * (1 - S.SCALE_IN_FIRST_FRAC)
         spec = self.ex.spec(sym)
-        qty2 = round_qty(notional2 / price, spec)
+        qty2 = round_qty(notional2 / price, spec, price)
         if qty2 <= 0:
             return
         new_entry = S.blended_entry(p["entry"], p["qty"], price, qty2)
@@ -645,7 +662,7 @@ class Trader:
                 continue
             px = float(d["close"].iloc[-1])
             spec = self.ex.spec(sym)
-            qty = round_qty(notional / px, spec)
+            qty = round_qty(notional / px, spec, px)
             if qty <= 0:
                 log.info("  %s 신호 %s — 수량이 최소주문량 미만", sig.kind, sym)
                 continue
@@ -679,7 +696,7 @@ class Trader:
             return False
         price = float(closes[-1])
         spec = self.ex.spec(sym)
-        qty = round_qty(notional / price, spec)
+        qty = round_qty(notional / price, spec, price)
         if qty <= 0:
             log.info("  급락반등 신호 %s — 수량이 최소주문량 미만", sym)
             return False
@@ -850,7 +867,7 @@ class Trader:
                 continue
             notional1 = full_notional * S.SCALE_IN_FIRST_FRAC
             spec = self.ex.spec(sym)
-            qty1 = round_qty(notional1 / price, spec)
+            qty1 = round_qty(notional1 / price, spec, price)
             if qty1 <= 0:
                 log.info("  신호 %s — 1차 수량이 최소주문량 미만", sym)
                 continue
@@ -903,8 +920,9 @@ def capital_check(ex, cfg, symbols) -> dict:
             # 잠깐 끊겼을 때 "0/42종 거래 가능"이라는 거짓 경보가 뜬다.
             err.append(sym)
             continue
-        min_notional = spec["min"] * price
-        if round_qty(notional1 / price, spec) > 0:
+        min_notional = max(spec["min"] * price,
+                           float(spec.get("min_notional", 0) or 0))
+        if round_qty(notional1 / price, spec, price) > 0:
             ok.append(sym)
         else:
             bad.append(sym)
@@ -917,6 +935,40 @@ def capital_check(ex, cfg, symbols) -> dict:
                             if need else 0.0)}
 
 
+def capital_table(ex, cfg, symbols, levels=None):
+    """자본이 얼마면 몇 종목을 실제로 거래할 수 있는가.
+
+    소액 계좌에서 가장 먼저 부딪히는 벽이다. 1차 진입액이 거래소
+    최소주문량에 못 미치면 신호가 떠도 그냥 건너뛴다. 백테스트는
+    42종 전부에서 신호를 받았으므로, 종목이 빠지면 검증한 것과
+    다른 것을 굴리게 된다.
+
+    한 번 조회한 종목 정보를 여러 자본 수준에 재사용한다 — 42종을
+    자본마다 다시 조회하면 레이트리밋에 걸린다.
+    """
+    need = {}
+    err = []
+    for sym in symbols:
+        try:
+            spec = ex.spec(sym)
+            price = float(ex.klines(sym, limit=2)[-1][4])
+        except Exception:
+            err.append(sym)
+            continue
+        # round_qty가 0을 내지 않는 최소 명목가. 거래소가 minNotional을
+        # 따로 두는 경우가 있어 spec 쪽 값도 같이 본다.
+        need[sym] = max(spec["min"] * price, float(spec.get("min_notional", 0) or 0))
+    if not need:
+        return None
+    frac = cfg.per_trade * cfg.leverage * S.SCALE_IN_FIRST_FRAC
+    vals = sorted(need.values())
+    if levels is None:
+        levels = [100, 200, 300, 500, 700, 1000, 2000, 3000, 5000, 10000]
+    rows = [(cap, cap * frac, sum(1 for v in vals if v <= cap * frac))
+            for cap in levels]
+    return dict(need=need, err=err, frac=frac, rows=rows, n=len(need))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--live", action="store_true", help="실거래 (기본은 모의)")
@@ -927,6 +979,8 @@ def main():
     ap.add_argument("--live-nonint", action="store_true",
                     help="실거래 (무인). OS_CONFIRM_LIVE=START 도 함께 필요")
     ap.add_argument("--once", action="store_true", help="1회만 점검하고 종료")
+    ap.add_argument("--capital-table", action="store_true",
+                    help="자본이 얼마면 몇 종목을 거래할 수 있는지 표로 보고 종료")
     ap.add_argument("--dump-candles", action="store_true", help="조회한 캔들 저장")
     ap.add_argument("--close-all", action="store_true", help="전량 청산하고 종료")
     ap.add_argument("--regime", choices=REG.MODES,
@@ -979,6 +1033,26 @@ def main():
         log.warning("무인 실거래로 시작합니다 (OS_CONFIRM_LIVE 확인됨)")
 
     ex = Exchange(live=a.live)
+
+    if a.capital_table:
+        t = capital_table(ex, cfg, S.SYMBOLS)
+        if t is None:
+            raise SystemExit("종목 정보를 하나도 조회하지 못했습니다 — 연결을 확인하세요")
+        print(f"\n  1차 진입액 = 자본 × {cfg.per_trade*100:.1f}% × {cfg.leverage:.0f}배"
+              f" × {S.SCALE_IN_FIRST_FRAC*100:.0f}% = 자본의 {t['frac']*100:.2f}%")
+        print(f"  조회된 종목 {t['n']}종"
+              + (f" (실패 {len(t['err'])}종)" if t["err"] else ""))
+        print(f"\n  {'자본':>9s}{'1차 진입액':>12s}{'거래 가능':>11s}")
+        print("  " + "-" * 34)
+        for cap, n1, k in t["rows"]:
+            bar = "" if k else "   ← 한 종목도 못 산다"
+            print(f"  {cap:>8,}${n1:>11.2f}${k:>8}/{t['n']}종{bar}")
+        cheap = sorted(t["need"].items(), key=lambda x: x[1])[:5]
+        print(f"\n  가장 싼 5종 (최소주문액):")
+        for sym, v in cheap:
+            print(f"    {sym:12s}{v:>8.2f}$  → 자본 {v/t['frac']:>9,.0f}$ 필요")
+        print(f"\n  전 종목을 거래하려면 자본 {max(t['need'].values())/t['frac']:,.0f}$ 필요")
+        return
 
     try:
         cc = capital_check(ex, cfg, S.SYMBOLS)

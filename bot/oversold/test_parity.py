@@ -213,6 +213,38 @@ def main():
           "; ".join(bb_drift) if bb_drift else
           f"볼린저 {S.BB_PERIOD}봉·{S.BB_K}σ 목표청산 켜짐")
 
+    # ── 거래소 최소 주문 ──────────────────────────────────────
+    # 바이빗 무기한은 수량 하한(minOrderQty)과 별개로 금액 하한
+    # (minNotionalValue, 보통 5 USDT)을 건다. 수량만 보고 주문을 내면
+    # 소액 계좌에서 거래소가 조용히 거절하고, 봇은 "신호는 떴는데
+    # 포지션이 없는" 상태가 된다. 백테스트에는 그런 거절이 없으므로
+    # 이것도 봇↔백테스트가 갈라지는 자리다.
+    from bot.oversold.executor import round_qty
+    sp = {"step": 0.001, "min": 0.001, "min_notional": 5.0}
+    checks = [
+        ("금액 충분하면 주문", round_qty(0.002, sp, 100_000.0) == 0.002),
+        ("금액 하한 미달이면 0", round_qty(0.002, sp, 1_000.0) == 0.0),
+        # 청산은 price를 넘기지 않는다 — 하한 미만으로 남은 포지션도
+        # 닫을 수 있어야 한다. 거래소는 감소 주문에 하한을 걸지 않는다.
+        ("가격 없으면 수량 하한만", round_qty(0.002, sp) == 0.002),
+        ("수량 하한 미달이면 0", round_qty(0.0005, sp, 100_000.0) == 0.0),
+    ]
+    bad = [n for n, ok in checks if not ok]
+    check("최소 주문 판정이 수량·금액 둘 다 본다", not bad,
+          "; ".join(bad) if bad else f"{len(checks)}가지 경우 확인")
+
+    # 진입 경로가 실제로 price를 넘기는가. 넘기지 않으면 위 로직이
+    # 있어도 무의미하다.
+    import inspect
+    src = inspect.getsource(bc_exec_module := __import__(
+        "bot.oversold.executor", fromlist=["x"]))
+    import re
+    entries = re.findall(r"qty\d?\s*=\s*round_qty\(([^)]*)\)", src)
+    entries += re.findall(r"if round_qty\(([^)]*)\)\s*>", src)
+    no_px = [e for e in entries if e.count(",") < 2]
+    check("진입 경로가 round_qty에 가격을 넘긴다", not no_px,
+          "; ".join(no_px) if no_px else f"진입 {len(entries)}곳 전부")
+
     # ── 재진입 잠금 ────────────────────────────────────────────
     # 봇은 executor.py의 `if sym in positions` 하나로만 재진입을 막는다.
     # 포지션이 닫히는 순간 그 종목은 다시 열린다. 백테스트가
