@@ -213,6 +213,27 @@ def main():
           "; ".join(bb_drift) if bb_drift else
           f"볼린저 {S.BB_PERIOD}봉·{S.BB_K}σ 목표청산 켜짐")
 
+    # ── 재진입 잠금 ────────────────────────────────────────────
+    # 봇은 executor.py의 `if sym in positions` 하나로만 재진입을 막는다.
+    # 포지션이 닫히는 순간 그 종목은 다시 열린다. 백테스트가
+    # lock = i + hold로 두면 목표청산으로 일찍 나간 거래도 보유기간을
+    # 꽉 채울 때까지 막아, 봇이 잡을 신호를 버린다(1,592건 대 1,815건).
+    #
+    # 실제 거래 목록에서 "같은 종목이 보유기간 안에 다시 진입한" 사례가
+    # 하나라도 있어야 한다. lock을 되돌리면 0건이 되어 여기서 잡힌다.
+    tr_all, _, _ = bc.build_all()
+    by_sym = {}
+    for t in tr_all:
+        by_sym.setdefault(t["sym"], []).append(t)
+    early = 0
+    for ts in by_sym.values():
+        ts.sort(key=lambda t: t["entry_bar"])
+        for p, q in zip(ts, ts[1:]):
+            if q["entry_bar"] < p["entry_bar"] + S.HOLD_BARS:
+                early += 1
+    check("재진입 잠금이 '청산 시점'까지다 (봇과 동일)", early > 0,
+          f"보유기간 안 재진입 {early}건 / 전체 {len(tr_all):,}건")
+
     check("백테스트 CLI 기본값이 봇 Config와 일치", not drift,
           "; ".join(drift) if drift else
           f"진입당 {cfg.per_trade*100:.1f}% · 총노출 {cfg.max_gross*100:.0f}% · "

@@ -199,7 +199,15 @@ def build_all(*, hold_bars=None, trigger_pct=None, first_frac=None,
                                bb_exit=bb, bb_k=bb_k)
             if tr is None:
                 continue
-            lock = i + hold
+            # 재진입 잠금은 "보유 기간"이 아니라 "실제 청산 시점"까지다.
+            # 봇은 executor.py에서 `if sym in positions` 하나로만 막는다 —
+            # 포지션이 닫히는 순간 그 종목은 다시 열린다.
+            #
+            # lock = i + hold로 두면 목표청산으로 20봉 만에 나간 거래도
+            # 60봉을 꽉 채울 때까지 재진입을 막는다. 목표청산이 꺼져
+            # 있을 때는 거의 모든 거래가 시간청산이라 차이가 없었지만,
+            # 켜고 나니 갈라졌다 — 신호 1,592건 대 1,815건.
+            lock = tr["exit_bar"]
             trades.append(tr)
     return sorted(trades, key=lambda t: t["dt"]), have, missing
 
