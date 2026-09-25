@@ -25,15 +25,19 @@ warn() { printf "\033[1;33m  ⚠ %s\033[0m\n" "$*"; }
 say "1/5  시스템 패키지"
 if command -v apt-get >/dev/null; then
   # 우분투·데비안
-  sudo apt-get update -qq
-  sudo apt-get install -y -qq python3 python3-venv python3-pip git curl
+  # -q 를 쓰지 않는다. 조용히 돌리면 "다른 프로세스가 잠금을 쥐고 있어
+  # 기다리는 중"이라는 메시지가 안 보여서, 멈춘 것처럼 보인다.
+  # (첫 부팅 직후엔 자동 업데이트가 잠금을 쥐고 있는 일이 흔하다.)
+  sudo apt-get update
+  sudo apt-get install -y python3 python3-venv python3-pip git curl
 elif command -v dnf >/dev/null; then
   # Oracle Linux · RHEL · Rocky · AlmaLinux
   # (오라클 클라우드 기본 이미지가 Oracle Linux다. venv는 python3에
   #  포함돼 있어서 따로 설치할 패키지가 없다.)
-  sudo dnf install -y -q python3 python3-pip git curl
+  # -q 를 쓰지 않는 이유는 위 apt 분기의 주석과 같다.
+  sudo dnf install -y python3 python3-pip git curl
 elif command -v yum >/dev/null; then
-  sudo yum install -y -q python3 python3-pip git curl
+  sudo yum install -y python3 python3-pip git curl
 else
   warn "apt·dnf·yum 어느 것도 없다. python3·git·curl을 직접 설치해라."
 fi
