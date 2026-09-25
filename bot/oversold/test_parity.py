@@ -196,6 +196,23 @@ def main():
              ("cool_days", cfg.halt_cooldown_days)]
     drift = [f"--{d.replace('_','-')} {defaults[d]} ≠ 봇 {v}"
              for d, v in pairs if abs(defaults[d] - v) > 1e-9]
+    # build_all()의 기본값도 본다. bb_exit=False, bb_k=2.0으로 박혀
+    # 있었다 — 봇은 볼린저 1.5σ 목표청산을 실제로 거는데, "봇 그대로"를
+    # 표방하는 백테스트가 그 청산을 통째로 빼고 돌리고 있었다.
+    # 2.92배·승률 83.2%가 1.71배·승률 64.6%로 나왔다.
+    import inspect
+    d = {k: v.default for k, v in
+         inspect.signature(bc.build_all).parameters.items()}
+    bb_drift = []
+    if d.get("bb_exit") is not True:
+        bb_drift.append(f"bb_exit={d.get('bb_exit')} — 봇은 목표청산을 건다")
+    # bb_k=None이면 함수 안에서 S.BB_K를 쓴다. 숫자가 박혀 있으면 갈라진다.
+    if d.get("bb_k") is not None and abs(float(d["bb_k"]) - S.BB_K) > 1e-9:
+        bb_drift.append(f"bb_k={d['bb_k']} ≠ 봇 {S.BB_K}")
+    check("백테스트 청산 규칙이 봇과 일치", not bb_drift,
+          "; ".join(bb_drift) if bb_drift else
+          f"볼린저 {S.BB_PERIOD}봉·{S.BB_K}σ 목표청산 켜짐")
+
     check("백테스트 CLI 기본값이 봇 Config와 일치", not drift,
           "; ".join(drift) if drift else
           f"진입당 {cfg.per_trade*100:.1f}% · 총노출 {cfg.max_gross*100:.0f}% · "

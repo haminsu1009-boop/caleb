@@ -118,7 +118,11 @@ def resolve_trade(sym, o, h, l, c, dt, i, n, *, hold_bars=None,
             break
         # 볼린저 상단 목표 청산. bb_exit가 주어지면 상단에 닿는 순간 판다.
         # 시간청산은 그때까지 안 닿았을 때의 한도로만 남는다.
-        if bb_exit is not None and not np.isnan(bb_exit[bar]) and h[bar] >= bb_exit[bar]:
+        # 평단 위일 때만 목표를 건다. 봇의 S.take_profit_price()가
+        # up <= entry면 None을 돌려준다 — 평단 아래에 목표를 걸면
+        # 손실을 확정하는 주문이 되기 때문이다. 여기도 같아야 한다.
+        if (bb_exit is not None and not np.isnan(bb_exit[bar])
+                and h[bar] >= bb_exit[bar] and bb_exit[bar] > entry_avg):
             exit_bar, exit_px, reason = bar, bb_exit[bar], "bb"
             break
         if tranche == 1 and c[bar] <= trigger and bar + 1 < n:
@@ -148,8 +152,26 @@ def resolve_trade(sym, o, h, l, c, dt, i, n, *, hold_bars=None,
 
 
 def build_all(*, hold_bars=None, trigger_pct=None, first_frac=None,
-              entry_thresh=None, bb_exit=False, bb_k=2.0):
-    """기본 호출(인자 없음)은 실거래 봇과 정확히 같은 신호 집합을 낸다."""
+              entry_thresh=None, bb_exit=True, bb_k=None):
+    """기본 호출(인자 없음)은 실거래 봇과 정확히 같은 신호 집합을 낸다.
+
+    기본값이 bb_exit=False, bb_k=2.0이었다. 봇은 볼린저 상단
+    (20봉·1.5σ) 목표청산을 실제로 건다(executor.py의 _sync_tp가
+    S.take_profit_price를 주문에 싣는다). 즉 이 파일은 "봇 그대로"를
+    표방하면서 봇의 청산 규칙을 통째로 빼고 돌리고 있었다 — 모든
+    거래를 60봉 시간청산까지 끌고 간 셈이다.
+
+    그 차이가 작지 않았다. 배율 2배·진입당 1.5%·총노출 60%·차단기
+    20% 기준으로
+
+        목표청산 없음(옛 기본값)   1.71배 · 승률 64.6%
+        볼린저 1.5σ(봇 동작)       3.16배 · 승률 83.0%
+
+    bb_k 기본값도 봇의 S.BB_K를 따라간다. 여기 숫자를 적어두면
+    또 갈라진다.
+    """
+    if bb_k is None:
+        bb_k = S.BB_K
     thresh = S.ENTRY_THRESH if entry_thresh is None else entry_thresh
     hold = S.HOLD_BARS if hold_bars is None else hold_bars
     trades = []
