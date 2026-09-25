@@ -43,7 +43,7 @@ TRAIN_END = np.datetime64("2024-01-01")
 
 # ── 코인 하나 · 규칙 하나 ────────────────────────────────────────────
 def sim(o, h, l, c, dt, ma_p, thresh, hold, fracs, outs, stop_pct, sym="",
-        entries=None):
+        entries=None, step=5.0):
     """판단은 종가, 체결은 다음 봉 시가. 기존 build()와 같은 규약이다.
 
     outs: [(비중, 볼린저k), ...] — 분할매도. 높은 k가 뒤에 온다.
@@ -90,7 +90,10 @@ def sim(o, h, l, c, dt, ma_p, thresh, hold, fracs, outs, stop_pct, sym="",
                     sold.append((take, up)); left -= take
             if left <= 1e-9:
                 ex_bar, reason = bar, "tp"; break
-            while filled < nt and c[bar] <= e1 * (1 - 5.0 * filled / 100) and bar + 1 < n:
+            # step은 1차 진입가 대비 몇 %마다 다음 조각을 넣는지다.
+            # 20~30단 사다리를 시험하려면 간격을 좁혀야 한다 —
+            # 5%씩 20단이면 -95%까지 내려가야 다 채워진다.
+            while filled < nt and c[bar] <= e1 * (1 - step * filled / 100) and bar + 1 < n:
                 px.append(o[bar + 1]); w.append(fracs[filled]); filled += 1
                 avg = float(np.average(px, weights=w))
                 stop = avg * (1 + stop_pct / 100)
