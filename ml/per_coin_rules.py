@@ -42,7 +42,8 @@ TRAIN_END = np.datetime64("2024-01-01")
 
 
 # ── 코인 하나 · 규칙 하나 ────────────────────────────────────────────
-def sim(o, h, l, c, dt, ma_p, thresh, hold, fracs, outs, stop_pct, sym=""):
+def sim(o, h, l, c, dt, ma_p, thresh, hold, fracs, outs, stop_pct, sym="",
+        entries=None):
     """판단은 종가, 체결은 다음 봉 시가. 기존 build()와 같은 규약이다.
 
     outs: [(비중, 볼린저k), ...] — 분할매도. 높은 k가 뒤에 온다.
@@ -59,7 +60,10 @@ def sim(o, h, l, c, dt, ma_p, thresh, hold, fracs, outs, stop_pct, sym=""):
     nt = len(fracs)
     trades = []
     lock = -10**9
-    sig = np.where(vs <= thresh)[0]
+    # entries를 주면 임계값 대신 그 봉에서 진입한다 — 국면 통제
+    # 기준선용이다. "같은 코인, 같은 시기, 같은 청산 규칙, 진입
+    # 시점만 무작위"로 돌려서 규칙이 국면 이상의 것을 보는지 잰다.
+    sig = np.where(vs <= thresh)[0] if entries is None else np.asarray(entries)
     for i in sig:
         if i <= lock or i + 1 + hold >= n:
             continue
