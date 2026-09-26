@@ -1,0 +1,115 @@
+name: 📊 바이낸스 선물 지표 수집 (펀딩비 + OI + 롱숏비율)
+
+# 왜 워크플로인가:
+#   data.binance.vision은 세션 프록시에서 403으로 막힌다(정책상 차단).
+#   시세 데이터도 전부 Actions 러너가 받아왔다. 지표도 같은 경로다.
+#
+# 무엇을 받는가:
+#   · 펀딩비 — 월별 아카이브, 2019~. 종목 12→42종으로 확장.
+#     기존 12종만으로는 신호 1,923건 중 394건밖에 대조가 안 됐다.
+#   · 선물 메트릭 — 일별 아카이브, 2023~. 미결제약정(OI),
+#     상위 트레이더 롱숏비율(고래), 전체 계좌 롱숏비율(개미),
+#     시장가 매수/매도 체결량 비율.
+#
+# 둘 다 증분 수집이다. 첫 실행만 오래 걸리고(메트릭은 종목당
+# 1,000일 가까이 받는다) 그 뒤로는 하루치만 받는다.
+
+on:
+  workflow_dispatch:
+    inputs:
+      what:
+        description: "수집 대상"
+        type: choice
+        default: both
+        options: [both, funding, metrics]
+  schedule:
+    # 매일 → 매주 일요일. 이 지표들(펀딩비·미결제약정·고래/개미 롱숏)이
+    # 규칙을 전혀 개선하지 못한다는 것이 검증으로 확정됐다:
+    #   ml/funding_backtest.py    8개 필터 전부 자본곡선 악화
+    #   ml/whale_backtest.py      10개 필터 전부 악화, 상관 ±0.13 이내
+    #   ml/indicator_backtest.py  63개 필터 중 학습·홀드아웃 통과 0
+    # 기록 삼아 계속 모으되 매일 43개 잡을 돌릴 이유는 없다.
+    # (비공개 저장소로 전환하면 Actions 분이 과금 대상이 되는데,
+    #  이 워크플로 하나가 하루 86분을 쓴다 — 월 2,580분으로 무료
+    #  한도 2,000분을 혼자 넘긴다.)
+    - cron: "40 3 * * 0"    # 매주 일요일 03:40 UTC
+
+permissions:
+  contents: write
+
+concurrency:
+  group: collect-binance-metrics
+  cancel-in-progress: false
+
+jobs:
+  funding:
+    if: ${{ github.event_name == 'schedule' || inputs.what == 'both' || inputs.what == 'funding' }}
+    name: 펀딩비 42종
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/quant-trading-bot-tkjtd
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install pandas requests
+      - name: 수집
+        run: python -u bybit/collect_funding.py --all
+      - name: 커밋 & 푸시
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/funding/ 2>/dev/null || true
+          git diff --staged --quiet && { echo "변경 없음"; exit 0; }
+          git commit -m "data: 바이낸스 펀딩비 갱신"
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin claude/quant-trading-bot-tkjtd && \
+            git push origin HEAD:claude/quant-trading-bot-tkjtd && break || sleep $((i*6))
+          done
+
+  metrics:
+    if: ${{ github.event_name == 'schedule' || inputs.what == 'both' || inputs.what == 'metrics' }}
+    # 종목별 잡으로 쪼갠다. 첫 실행은 종목당 1,000일 가까이 받아야
+    # 해서 한 잡에 42종을 몰면 6시간 제한에 걸린다.
+    name: "메트릭 ${{ matrix.symbol }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 6          # 아카이브 CDN에 과하게 붙지 않도록
+      matrix:
+        symbol:
+          [BTCUSDT, ETHUSDT, BNBUSDT, SOLUSDT, XRPUSDT, ADAUSDT,
+           DOGEUSDT, AVAXUSDT, DOTUSDT, LINKUSDT, LTCUSDT, UNIUSDT,
+           ATOMUSDT, NEARUSDT, FILUSDT, ETCUSDT, TRXUSDT, APTUSDT,
+           ARBUSDT, OPUSDT, INJUSDT, SUIUSDT, SEIUSDT, TIAUSDT,
+           ALGOUSDT, VETUSDT, ICPUSDT, HBARUSDT, AAVEUSDT, GRTUSDT,
+           SANDUSDT, MANAUSDT, AXSUSDT, THETAUSDT, XLMUSDT, IOTAUSDT,
+           NEOUSDT, QNTUSDT, RUNEUSDT, EGLDUSDT, FLOWUSDT, CHZUSDT]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/quant-trading-bot-tkjtd
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install pandas requests
+      - name: 수집
+        run: python -u bybit/collect_metrics.py --symbol ${{ matrix.symbol }}
+      - name: 커밋 & 푸시
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "data/metrics/${{ matrix.symbol }}_metrics_4h.csv.gz" 2>/dev/null || true
+          git diff --staged --quiet && { echo "변경 없음"; exit 0; }
+          git commit -m "data: ${{ matrix.symbol }} 선물 메트릭 갱신"
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin claude/quant-trading-bot-tkjtd && \
+            git push origin HEAD:claude/quant-trading-bot-tkjtd && break || sleep $((i*6))
+          done

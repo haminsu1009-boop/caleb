@@ -1,0 +1,51 @@
+# 과매도 봇 — **모의 실행** (1단계: 신호 검증)
+#
+# 실거래 전에 이걸로 4~6주 돌린다. 주문을 내지 않고 "지금 샀을 것"만
+# 로그에 남긴다. 그 로그를 백테스트 신호와 대조해서 봇이 검증한 것과
+# 같은 것을 하는지 확인하는 단계다.
+#
+# 이 저장소에서 지금까지 잡은 버그 6개 중 상당수가 '봇과 백테스트가
+# 다른 것을 한다'였다. 그 종류는 실행 로그를 봐야 드러난다.
+#
+# 설치
+#   sudo cp deploy/systemd/oversold-paper.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now oversold-paper
+#
+# 로그 보기
+#   journalctl -u oversold-paper -f
+#   journalctl -u oversold-paper --since "1 week ago" | grep "🔔"   # 신호만
+#
+# ⚠️ API 키는 **읽기 전용**으로 만들어라. 이 단계에서는 주문 권한이
+#    필요 없고, 키가 새도 손실이 없다.
+
+[Unit]
+Description=Oversold bot (PAPER — no orders)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# 계정명은 이미지에 따라 다르다 — 우분투 ubuntu · Oracle Linux opc.
+# 오라클 콘솔의 인스턴스 상세 화면 "Username" 줄에 적혀 있다.
+User=opc
+WorkingDirectory=/home/opc/caleb
+Environment=PYTHONUNBUFFERED=1
+# --live 도 OS_CONFIRM_LIVE 도 없다. 주문 경로를 아예 타지 않는다.
+ExecStart=/home/opc/caleb/.venv/bin/python -m bot.oversold.executor
+
+Restart=always
+RestartSec=30
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/opc/caleb/bot/oversold
+ReadWritePaths=/home/opc/caleb/data
+ReadWritePaths=/home/opc/caleb/state
+
+[Install]
+WantedBy=multi-user.target
