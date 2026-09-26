@@ -233,6 +233,29 @@ def main():
     check("최소 주문 판정이 수량·금액 둘 다 본다", not bad,
           "; ".join(bad) if bad else f"{len(checks)}가지 경우 확인")
 
+    # 최소 주문 수량이 수량 단위(step)까지 본다. 앞서 이 계산을
+    # max(min*price, min_notional)로 해서 단위가 굵은 종목(AAVE 0.1개
+    # 단위)에서 "5 USDT면 된다"고 답해놓고 주문을 만들면 반올림에서
+    # 0이 됐다. 실제 최소는 0.1 × 가격 = 20 USDT다.
+    from bot.oversold.executor import min_order_qty
+    mo = [
+        # (step, min, min_notional, price, 기대 수량)
+        ((0.1, 0.1, 5.0, 200.0), 0.1),      # 단위가 구속 → 20 USDT
+        ((0.001, 0.001, 5.0, 86_000.0), 0.001),
+        ((1.0, 1.0, 5.0, 0.5), 10.0),       # 최소금액이 구속 → 10개
+        ((0.01, 0.05, 0.0, 100.0), 0.05),   # 최소금액 없음
+    ]
+    bad_mo = []
+    for (st, mn, mnv, px), want in mo:
+        got = min_order_qty({"step": st, "min": mn, "min_notional": mnv}, px)
+        if abs(got - want) > 1e-9:
+            bad_mo.append(f"step={st} px={px} → {got} (기대 {want})")
+        # 만든 수량이 round_qty를 반드시 통과해야 한다
+        if round_qty(got, {"step": st, "min": mn, "min_notional": mnv}, px) <= 0:
+            bad_mo.append(f"step={st} px={px} → round_qty가 0을 돌려줌")
+    check("최소 주문 수량이 수량 단위까지 본다", not bad_mo,
+          "; ".join(bad_mo) if bad_mo else f"{len(mo)}가지 경우 확인")
+
     # 진입 경로가 실제로 price를 넘기는가. 넘기지 않으면 위 로직이
     # 있어도 무의미하다.
     import inspect

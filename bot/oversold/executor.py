@@ -74,6 +74,7 @@ import csv
 import gzip
 import json
 import logging
+import math
 import os
 import sys
 import time
@@ -403,6 +404,29 @@ class Exchange:
         log.info("  청산 %s qty=%s (%s) → %s", symbol, qty, reason,
                  "성공" if ok else r.get("retMsg"))
         return ok
+
+
+def min_order_qty(spec: dict, price: float) -> float:
+    """실제로 낼 수 있는 최소 수량.
+
+    세 조건을 **동시에** 만족해야 한다.
+      · 수량 단위(qtyStep)의 배수
+      · 최소 수량(minOrderQty) 이상
+      · 주문 금액이 최소 금액(minNotionalValue) 이상
+
+    앞서 이 계산을 max(min*price, min_notional)로 했는데 수량 단위를
+    빼먹었다. 단위가 굵은 종목(AAVE 0.1개 단위)은 5 USDT어치를 수량
+    으로 표현할 수 없어, "5 USDT면 된다"고 답해놓고 주문을 만들면
+    반올림에서 0이 된다. 실제 최소는 0.1 × 가격이다.
+    """
+    step = spec["step"]
+    q = spec["min"]
+    mn = spec.get("min_notional", 0) or 0
+    if mn and price > 0 and q * price < mn:
+        q = mn / price
+    # 수량 단위의 배수로 **올림**. 내리면 하한 아래로 떨어진다.
+    k = math.ceil(round(q / step, 9))
+    return round(k * step, 10)
 
 
 def round_qty(qty: float, spec: dict, price: float | None = None) -> float:
@@ -920,8 +944,7 @@ def capital_check(ex, cfg, symbols) -> dict:
             # 잠깐 끊겼을 때 "0/42종 거래 가능"이라는 거짓 경보가 뜬다.
             err.append(sym)
             continue
-        min_notional = max(spec["min"] * price,
-                           float(spec.get("min_notional", 0) or 0))
+        min_notional = min_order_qty(spec, price) * price
         if round_qty(notional1 / price, spec, price) > 0:
             ok.append(sym)
         else:
@@ -957,7 +980,7 @@ def capital_table(ex, cfg, symbols, levels=None):
             continue
         # round_qty가 0을 내지 않는 최소 명목가. 거래소가 minNotional을
         # 따로 두는 경우가 있어 spec 쪽 값도 같이 본다.
-        need[sym] = max(spec["min"] * price, float(spec.get("min_notional", 0) or 0))
+        need[sym] = min_order_qty(spec, price) * price
     if not need:
         return None
     frac = cfg.per_trade * cfg.leverage * S.SCALE_IN_FIRST_FRAC
@@ -1003,14 +1026,14 @@ def smoke_test(ex, cfg, symbols) -> int:
             price = float(ex.klines(sym, limit=2)[-1][4])
         except Exception:
             continue
-        need = max(spec["min"] * price, spec.get("min_notional", 0) or 0)
+        need = min_order_qty(spec, price) * price
         if best is None or need < best[1]:
             best = (sym, need, spec, price)
     if best is None:
         print("  ❌ 종목 정보를 하나도 조회하지 못했습니다 — 연결을 확인하세요")
         return 1
     sym, need, spec, price = best
-    qty = round_qty(need * 1.05 / price, spec, price)
+    qty = min_order_qty(spec, price)
     if qty <= 0:
         print(f"  ❌ {sym} 최소 수량을 만들지 못했습니다 (필요 {need:.2f} USDT)")
         return 1
