@@ -238,6 +238,33 @@ class Exchange:
                               "min_notional": float(lot.get("minNotionalValue") or 0)}
         return self._spec[symbol]
 
+    def position_mode(self) -> str:
+        """계정의 포지션 모드. 'one-way' 여야 한다.
+
+        바이빗은 같은 종목에 롱·숏을 동시에 드는 **헤지 모드**를 지원한다.
+        그 모드에서는 주문마다 positionIdx로 어느 쪽인지 지정해야 하고,
+        0(단방향)을 보내면 거절된다 — ErrCode 10001,
+        "position idx not match position mode".
+
+        이 봇은 단방향을 전제로 한다. 백테스트가 종목당 포지션 하나를
+        가정하고, executor도 `if sym in positions` 하나로 중복 진입을
+        막는다. 헤지 모드에서는 그 가정이 깨진다.
+
+        주문을 내다가 실패하는 대신 시작할 때 막으려고 따로 뒀다.
+        """
+        if not self.live:
+            return "one-way"
+        try:
+            r = self.session.get_positions(category="linear", settleCoin="USDT")
+            rows = r["result"]["list"]
+        except Exception:
+            return "unknown"
+        if not rows:
+            return "unknown"
+        # positionIdx 0 = 단방향, 1/2 = 헤지(롱/숏)
+        return "one-way" if all(int(x.get("positionIdx", 0)) == 0
+                                for x in rows) else "hedge"
+
     def equity(self) -> float:
         if not self.live:
             return float(os.getenv("OS_PAPER_EQUITY", "1000"))
@@ -339,7 +366,7 @@ class Exchange:
             kw = {"takeProfit": f"{take_profit:.10g}", "tpTriggerBy": "LastPrice",
                   "tpOrderType": "Limit", "tpLimitPrice": f"{take_profit:.10g}"}
         r = self.session.place_order(
-            category="linear", symbol=symbol, side="Buy", orderType="Market",
+            category="linear", positionIdx=0, symbol=symbol, side="Buy", orderType="Market",
             qty=str(qty), stopLoss=f"{stop:.10g}", slTriggerBy="LastPrice",
             timeInForce="IOC", reduceOnly=False, **kw)
         ok = r.get("retCode") == 0
@@ -351,7 +378,7 @@ class Exchange:
             log.info("  [모의] 숏 진입 %s qty=%s 손절=%.6f", symbol, qty, stop)
             return True
         r = self.session.place_order(
-            category="linear", symbol=symbol, side="Sell", orderType="Market",
+            category="linear", positionIdx=0, symbol=symbol, side="Sell", orderType="Market",
             qty=str(qty), stopLoss=f"{stop:.10g}", slTriggerBy="LastPrice",
             timeInForce="IOC", reduceOnly=False)
         ok = r.get("retCode") == 0
@@ -364,7 +391,7 @@ class Exchange:
             log.info("  [모의] 숏 청산 %s qty=%s (%s)", symbol, qty, reason)
             return True
         r = self.session.place_order(
-            category="linear", symbol=symbol, side="Buy", orderType="Market",
+            category="linear", positionIdx=0, symbol=symbol, side="Buy", orderType="Market",
             qty=str(qty), reduceOnly=True, timeInForce="IOC")
         ok = r.get("retCode") == 0
         log.info("  숏 청산 %s qty=%s (%s) → %s", symbol, qty, reason,
@@ -383,7 +410,7 @@ class Exchange:
                      symbol, qty, stop, take_profit)
             return True
         r = self.session.place_order(
-            category="linear", symbol=symbol, side="Buy", orderType="Market",
+            category="linear", positionIdx=0, symbol=symbol, side="Buy", orderType="Market",
             qty=str(qty), timeInForce="IOC", reduceOnly=False,
             stopLoss=f"{stop:.10g}", slTriggerBy="LastPrice",
             takeProfit=f"{take_profit:.10g}", tpTriggerBy="LastPrice",
@@ -398,7 +425,7 @@ class Exchange:
             log.info("  [모의] 청산 %s qty=%s (%s)", symbol, qty, reason)
             return True
         r = self.session.place_order(
-            category="linear", symbol=symbol, side="Sell", orderType="Market",
+            category="linear", positionIdx=0, symbol=symbol, side="Sell", orderType="Market",
             qty=str(qty), reduceOnly=True, timeInForce="IOC")
         ok = r.get("retCode") == 0
         log.info("  청산 %s qty=%s (%s) → %s", symbol, qty, reason,
@@ -1048,6 +1075,19 @@ def smoke_test(ex, cfg, symbols) -> int:
         print(f"\n  ❌ 최소 주문({notional:.2f})이 자본({eq:.2f})의 절반을 넘습니다. 중단합니다.")
         return 1
 
+    # 포지션 모드 — 주문을 내기 전에 막는다
+    mode = ex.position_mode()
+    if mode == "hedge":
+        print("\n  ❌ 계정이 **헤지 모드**입니다. 이 봇은 단방향(One-Way) 전용입니다.")
+        print("     헤지 모드에서는 주문마다 어느 쪽 포지션인지 지정해야 하고,")
+        print("     단방향용 주문은 ErrCode 10001로 거절됩니다.")
+        print("\n     바이빗 앱 → 파생상품(USDT 무기한) → 설정 → 포지션 모드")
+        print("     → '단방향(One-Way)' 로 바꾸세요. (열린 포지션이 있으면 못 바꿉니다)")
+        return 1
+    if mode == "unknown" and ex.live:
+        print("\n  ⚠️  포지션 모드를 확인하지 못했습니다(열린 포지션이 없으면 알 수 없습니다).")
+        print("     단방향(One-Way)인지 앱에서 확인하세요. 헤지 모드면 주문이 거절됩니다.")
+
     steps = []
 
     def step(name, fn):
@@ -1180,6 +1220,12 @@ def main():
 
     if a.smoke_test:
         raise SystemExit(smoke_test(ex, cfg, S.SYMBOLS))
+
+    if (a.live or a.live_nonint) and ex.position_mode() == "hedge":
+        raise SystemExit(
+            "계정이 헤지 모드입니다. 이 봇은 단방향(One-Way) 전용입니다 — "
+            "단방향용 주문은 ErrCode 10001로 거절됩니다. 바이빗 앱에서 "
+            "파생상품 → 설정 → 포지션 모드 → 단방향 으로 바꾸세요.")
 
     if a.capital_table:
         t = capital_table(ex, cfg, S.SYMBOLS)
