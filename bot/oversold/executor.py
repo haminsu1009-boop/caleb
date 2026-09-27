@@ -75,6 +75,7 @@ import gzip
 import json
 import logging
 import math
+from decimal import Decimal
 import os
 import sys
 import time
@@ -530,8 +531,12 @@ def round_qty(qty: float, spec: dict, price: float | None = None) -> float:
     (거래소는 감소 주문에는 하한을 걸지 않는다).
     """
     step = spec["step"]
-    q = int(qty / step) * step
-    q = round(q, 10)
+    # 10진수로 나눈다. float로 98.3 / 0.1 을 하면 982.9999999999999가 나와
+    # 내림하면 98.2가 된다. 첫 실거래 점검에서 IOTAUSDT 98.3개를 청산하려다
+    # 98.2개만 팔고 0.1개가 남았다 — 봇은 "청산 성공"을 찍었다. 수량 단위가
+    # 소수인 종목마다 청산 때 찌꺼기가 남는 버그였다.
+    d_step = Decimal(str(step))
+    q = float((Decimal(str(qty)) // d_step) * d_step)
     if q < spec["min"]:
         return 0.0
     mn = spec.get("min_notional", 0) or 0
@@ -1258,6 +1263,16 @@ def smoke_test(ex, cfg, symbols) -> int:
                 if q <= 0:
                     return True
                 if ex.close_long(sym, q, "주문 경로 점검"):
+                    if not ex.live:
+                        return True
+                    # "성공"을 믿지 않고 다시 읽는다. 찌꺼기가 남으면 실패다 —
+                    # 봇은 닫았다고 기록하는데 거래소엔 포지션이 남는 상태가
+                    # 가장 위험하다.
+                    time.sleep(1)
+                    left = ex.positions().get(sym, {}).get("size", 0)
+                    if left and left > 0:
+                        log.warning("  청산 뒤 %s %g개가 남았습니다 — 다시 닫습니다", sym, left)
+                        continue
                     return True
                 log.warning("  청산 실패 — 재시도 %d/3", i + 2)
                 time.sleep(2)

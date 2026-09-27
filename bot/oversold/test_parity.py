@@ -268,6 +268,17 @@ def main():
     check("진입 경로가 round_qty에 가격을 넘긴다", not no_px,
           "; ".join(no_px) if no_px else f"진입 {len(entries)}곳 전부")
 
+    # ── 수량 내림이 부동소수점에 먹히지 않는다 ─────────────────
+    # float로 98.3/0.1 = 982.9999999999999 → 내림하면 98.2. 첫 실거래
+    # 점검에서 IOTAUSDT 98.3개 중 98.2개만 청산되고 0.1개가 남았다.
+    cases_rq = [(0.1, 98.3, 98.3), (0.1, 0.3, 0.3), (0.1, 0.7, 0.7),
+                (0.001, 0.007, 0.007), (0.01, 0.29, 0.29), (1.0, 23.9, 23.0)]
+    bad_rq = [f"step={st} {q}→{round_qty(q, {'step': st, 'min': st, 'min_notional': 0})}"
+              for st, q, want in cases_rq
+              if abs(round_qty(q, {"step": st, "min": st, "min_notional": 0}) - want) > 1e-12]
+    check("수량 내림이 부동소수점 오차에 먹히지 않는다", not bad_rq,
+          "; ".join(bad_rq) if bad_rq else f"{len(cases_rq)}가지 경우 확인")
+
     # ── 손절·목표 주문 형태 ───────────────────────────────────
     # 첫 실거래 점검에서 ③이 거절됐다: "TP/SL order type only support
     # Market when tpSlMode is Full" (ErrCode 10001). 목표를 지정가로 걸고
