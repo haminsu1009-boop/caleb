@@ -1099,9 +1099,22 @@ def smoke_test(ex, cfg, symbols) -> int:
         steps.append((name, bool(ok), "" if ok else "실패 반환"))
         return bool(ok)
 
+    # 1) 격리마진 — 실제 진입 경로와 똑같이 배율과 격리를 먼저 건다.
+    # 통합거래계정(UTA)에서는 종목별 격리 전환이 거절될 수 있는데, 그러면
+    # 실거래 봇은 "격리마진 전환 실패 — 진입을 건너뜁니다"로 모든 신호를
+    # 버린다. 손해는 없지만 아무것도 안 하는 봇이 된다. 여기서 먼저 본다.
+    def iso():
+        ex.set_leverage(sym, cfg.leverage)
+        return ex.set_isolated(sym, cfg.leverage)
+    if not step("⓪ 배율·격리마진 설정", iso):
+        print("\n  ❌ 격리마진으로 바꾸지 못했습니다. 이 상태로는 봇이 모든 진입을 건너뜁니다.")
+        print("     바이빗 앱 → 파생상품 → 주문창의 마진 모드를 'Isolated'로 바꾸거나,")
+        print("     계정 설정에서 마진 모드를 '격리(Isolated Margin)'로 바꾸세요.")
+
     # 2) 진입 — 손절은 멀리, 목표는 걸지 않는다 (바로 닫을 것이므로)
     stop = price * 0.5
-    opened = step("① 진입 주문", lambda: ex.open_long(sym, qty, stop))
+    opened = step("① 진입 주문", lambda: ex.open_long(sym, qty, stop)) \
+        if steps[-1][1] else False
 
     # 3) 포지션 조회
     pos = {}
