@@ -268,6 +268,38 @@ def main():
     check("진입 경로가 round_qty에 가격을 넘긴다", not no_px,
           "; ".join(no_px) if no_px else f"진입 {len(entries)}곳 전부")
 
+    # ── 손절·목표 주문 형태 ───────────────────────────────────
+    # 첫 실거래 점검에서 ③이 거절됐다: "TP/SL order type only support
+    # Market when tpSlMode is Full" (ErrCode 10001). 목표를 지정가로 걸고
+    # 있었고, 손절과 한 호출에 묶여 있어 손절까지 같이 안 걸렸다. 진입
+    # 주문도 같은 형태라 실제 봇은 첫 신호부터 진입이 실패했을 것이다.
+    from bot.oversold.executor import Exchange
+    class _S:
+        def __init__(self): self.calls = []
+        def set_trading_stop(self, **k):
+            self.calls.append(k)
+            if k.get("tpslMode") == "Full" and k.get("tpOrderType") == "Limit":
+                raise Exception("ErrCode 10001")
+            if "takeProfit" in k and getattr(self, "reject_tp", False):
+                raise Exception("tp rejected")
+            return {"retCode": 0}
+    e1 = Exchange.__new__(Exchange); e1.live = True; e1.session = _S()
+    ok1 = e1.set_stop("X", 1.0, 2.0)
+    e2 = Exchange.__new__(Exchange); e2.live = True; e2.session = _S()
+    e2.session.reject_tp = True
+    e2.set_stop("X", 1.0, 2.0)
+    sl_alone = any("stopLoss" in c and "takeProfit" not in c for c in e2.session.calls)
+    src_ex = open("bot/oversold/executor.py", encoding="utf-8").read()
+    bad_tp = []
+    if not ok1: bad_tp.append("Full 모드에서 목표 설정이 거절됨")
+    if not sl_alone: bad_tp.append("목표가 거절되면 손절도 안 걸림")
+    if '"Limit"' in src_ex and "tpOrderType" in src_ex and 'tpOrderType="Limit"' in src_ex:
+        bad_tp.append("지정가 목표가 남아 있음")
+    if '"tpOrderType": "Limit"' in src_ex:
+        bad_tp.append("지정가 목표가 남아 있음")
+    check("손절은 따로 먼저 걸리고, 목표는 Full+시장가", not bad_tp,
+          "; ".join(bad_tp) if bad_tp else "목표 거절돼도 손절 유지")
+
     # ── 재진입 잠금 ────────────────────────────────────────────
     # 봇은 executor.py의 `if sym in positions` 하나로만 재진입을 막는다.
     # 포지션이 닫히는 순간 그 종목은 다시 열린다. 백테스트가

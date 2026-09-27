@@ -381,22 +381,41 @@ class Exchange:
             log.info("  [모의] 손절 재설정 %s → %.6g%s", symbol, stop,
                      f" · 익절 {take_profit:.6g}" if take_profit else "")
             return True
+        # 손절을 **먼저, 따로** 건다. 목표와 한 호출에 묶으면 목표가 거절될
+        # 때 손절도 같이 안 걸린다 — 첫 실거래 점검에서 정확히 그렇게 됐다
+        # (ErrCode 10001, 아래 참고). 손절 복구 경로가 이 함수를 쓰므로,
+        # 묶여 있으면 "손절이 빠졌다 → 다시 건다"가 매번 실패한다.
+        ok_sl = self._trading_stop(symbol, stopLoss=f"{stop:.10g}",
+                                   slTriggerBy="LastPrice", tpslMode="Full")
+        if not ok_sl:
+            log.error("  %s 손절 설정 실패", symbol)
+        if take_profit is None:
+            return ok_sl
+        # 목표는 시장가 트리거로 건다. 지정가로 걸면 바이빗이 거절한다:
+        #   "TP/SL order type only support Market when tpSlMode is Full"
+        # 지정가 목표는 Partial 모드(수량 지정)에서만 되는데, 분할매수로
+        # 수량이 바뀔 때마다 다시 맞춰야 한다. Full + 시장가는 포지션 전체에
+        # 붙어 2차 매수 뒤에도 그대로 유효하다.
+        # 백테스트는 상단 가격에 정확히 체결된다고 가정한다. 시장가 트리거는
+        # 그 근처에서 체결된다 — 수수료 모델(왕복 0.40%)이 이미 테이커 기준
+        # 이라 비용 가정은 그대로다.
+        ok_tp = self._trading_stop(symbol, takeProfit=f"{take_profit:.10g}",
+                                   tpTriggerBy="LastPrice", tpslMode="Full",
+                                   tpOrderType="Market")
+        if not ok_tp:
+            log.error("  %s 목표 설정 실패 (손절은 %s)", symbol,
+                      "걸려 있음" if ok_sl else "없음")
+        return ok_sl and ok_tp
+
+    def _trading_stop(self, symbol: str, **kw) -> bool:
         try:
-            kw = {}
-            if take_profit is not None:
-                # 볼린저 상단에 지정가로 걸어둔다. 시장가로 받으면
-                # 백테스트가 가정한 체결가(상단 가격)와 어긋난다.
-                kw = {"takeProfit": f"{take_profit:.10g}",
-                      "tpTriggerBy": "LastPrice", "tpslMode": "Full",
-                      "tpOrderType": "Limit", "tpLimitPrice": f"{take_profit:.10g}"}
-            self.session.set_trading_stop(
-                category="linear", symbol=symbol, positionIdx=0,
-                stopLoss=f"{stop:.10g}", slTriggerBy="LastPrice", **kw)
+            self.session.set_trading_stop(category="linear", symbol=symbol,
+                                          positionIdx=0, **kw)
             return True
         except Exception as e:
             if "34040" in str(e):        # 바꿀 내용이 없음 = 이미 같은 값
                 return True
-            log.error("  %s 손절 설정 실패: %s", symbol, e)
+            log.error("  %s set_trading_stop 실패: %s", symbol, e)
             return False
 
     def open_long(self, symbol: str, qty: float, stop: float,
@@ -407,8 +426,10 @@ class Exchange:
             return True
         kw = {}
         if take_profit is not None:
+            # 시장가 트리거. 지정가(tpOrderType=Limit)는 Full 모드에서 거절돼
+            # 진입 주문 전체가 실패한다 — set_stop 주석 참고.
             kw = {"takeProfit": f"{take_profit:.10g}", "tpTriggerBy": "LastPrice",
-                  "tpOrderType": "Limit", "tpLimitPrice": f"{take_profit:.10g}"}
+                  "tpslMode": "Full", "tpOrderType": "Market"}
         r = self.session.place_order(
             category="linear", positionIdx=0, symbol=symbol, side="Buy", orderType="Market",
             qty=str(qty), stopLoss=f"{stop:.10g}", slTriggerBy="LastPrice",
@@ -458,7 +479,7 @@ class Exchange:
             qty=str(qty), timeInForce="IOC", reduceOnly=False,
             stopLoss=f"{stop:.10g}", slTriggerBy="LastPrice",
             takeProfit=f"{take_profit:.10g}", tpTriggerBy="LastPrice",
-            tpOrderType="Limit", tpLimitPrice=f"{take_profit:.10g}")
+            tpslMode="Full", tpOrderType="Market")
         ok = r.get("retCode") == 0
         log.info("  급락반등 진입 %s qty=%s → %s", symbol, qty,
                  "성공" if ok else r.get("retMsg"))
@@ -1203,7 +1224,10 @@ def smoke_test(ex, cfg, symbols) -> int:
 
     # 2) 진입 — 손절은 멀리, 목표는 걸지 않는다 (바로 닫을 것이므로)
     stop = price * 0.5
-    opened = step("① 진입 주문", lambda: ex.open_long(sym, qty, stop)) \
+    # 실제 봇은 진입 주문에 목표가를 실어 보낸다. 점검도 똑같이 해야
+    # 그 경로가 거절되는지 알 수 있다(목표 없이 진입하면 통과해버린다).
+    opened = step("① 진입 주문", lambda: ex.open_long(sym, qty, stop,
+                                                    take_profit=price * 1.5)) \
         if steps[-1][1] else False
 
     # 3) 포지션 조회
