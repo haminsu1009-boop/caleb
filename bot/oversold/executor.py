@@ -1019,6 +1019,52 @@ def capital_table(ex, cfg, symbols, levels=None):
     return dict(need=need, err=err, frac=frac, rows=rows, n=len(need))
 
 
+def whoami(ex) -> int:
+    """이 API 키가 어느 계정의 것이고, 그 계정 어느 지갑에 돈이 있는가.
+
+    서브계정을 쓰기 시작하면 "키는 A 계정 것인데 돈은 B 계정에 있다",
+    "돈이 펀딩 지갑에 있어 봇에게 0으로 보인다" 같은 어긋남이 생긴다.
+    봇은 통합거래(UNIFIED) 지갑만 읽는다. 키와 지갑을 한 화면에 찍어
+    어긋남을 바로 보이게 한다. 키 문자열 자체는 찍지 않는다.
+    """
+    print("\n" + "=" * 64)
+    print("  이 API 키는 누구인가")
+    print("=" * 64)
+    if not ex.live:
+        print("  --live 와 함께 실행해야 거래소에 물어봅니다.")
+        return 1
+    try:
+        r = ex.session.get_api_key_information()["result"]
+        perms = r.get("permissions", {}) or {}
+        on = [k for k, v in perms.items() if v]
+        print(f"  계정 UID        {r.get('userID')}")
+        print(f"  키 메모         {r.get('note') or '-'}")
+        print(f"  읽기 전용       {'예' if str(r.get('readOnly')) in ('1','True','true') else '아니오'}")
+        print(f"  IP 제한         {', '.join(r.get('ips') or []) or '없음'}")
+        print(f"  권한            {', '.join(on) or '-'}")
+        w = perms.get("Wallet") or []
+        if any("Withdraw" in x for x in w):
+            print("  ⚠️  출금 권한이 켜져 있습니다. 끄세요.")
+    except Exception as e:
+        print(f"  키 정보 조회 실패: {e}")
+    try:
+        u = ex.session.get_wallet_balance(accountType="UNIFIED")["result"]["list"][0]
+        usdt = next((c for c in u.get("coin", []) if c.get("coin") == "USDT"), {})
+        print(f"\n  통합거래 지갑   총자산 {float(u.get('totalEquity') or 0):,.2f} USD"
+              f" · USDT {float(usdt.get('walletBalance') or 0):,.4f}   ← 봇이 읽는 곳")
+    except Exception as e:
+        print(f"\n  통합거래 지갑 조회 실패: {e}")
+    try:
+        f = ex.session.get_coins_balance(accountType="FUND", coin="USDT")["result"]["balance"]
+        fb = float(f[0].get("walletBalance") or 0) if f else 0.0
+        print(f"  펀딩 지갑       USDT {fb:,.4f}"
+              + ("   ← 여기 있으면 봇은 못 씀. 통합거래로 옮기세요" if fb > 0 else ""))
+    except Exception as e:
+        print(f"  펀딩 지갑 조회 실패: {e}")
+    print("=" * 64)
+    return 0
+
+
 def smoke_test(ex, cfg, symbols) -> int:
     """주문 경로가 실제로 동작하는지 최소 금액으로 확인한다.
 
@@ -1176,6 +1222,8 @@ def main():
     ap.add_argument("--once", action="store_true", help="1회만 점검하고 종료")
     ap.add_argument("--capital-table", action="store_true",
                     help="자본이 얼마면 몇 종목을 거래할 수 있는지 표로 보고 종료")
+    ap.add_argument("--whoami", action="store_true",
+                    help="이 API 키의 계정 UID·권한과 지갑별 잔고를 보고 종료")
     ap.add_argument("--smoke-test", action="store_true",
                     help="최소 금액으로 사고 바로 닫아 주문 경로만 확인하고 종료")
     ap.add_argument("--dump-candles", action="store_true", help="조회한 캔들 저장")
@@ -1194,6 +1242,12 @@ def main():
 
     load_env()
     cfg = Config()
+
+    # --whoami 는 읽기만 한다. 주문을 내지 않으므로 START 확인 없이
+    # 실거래 세션으로 바로 물어본다.
+    if a.whoami:
+        load_env()
+        raise SystemExit(whoami(Exchange(live=True)))
 
     if a.live_nonint:
         if os.getenv("OS_CONFIRM_LIVE") != "START":
@@ -1230,6 +1284,9 @@ def main():
         log.warning("무인 실거래로 시작합니다 (OS_CONFIRM_LIVE 확인됨)")
 
     ex = Exchange(live=a.live)
+
+    if a.whoami:
+        raise SystemExit(whoami(ex))
 
     if a.smoke_test:
         raise SystemExit(smoke_test(ex, cfg, S.SYMBOLS))
