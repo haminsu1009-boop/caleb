@@ -268,6 +268,21 @@ def main():
     check("진입 경로가 round_qty에 가격을 넘긴다", not no_px,
           "; ".join(no_px) if no_px else f"진입 {len(entries)}곳 전부")
 
+    # ── 국면 bear: 롱 계열 전부 끄고 주봉 숏만 ─────────────────
+    # 3배는 폭락장에 롱을 끈다는 전제로만 검증됐다. bear에서 롱이
+    # 하나라도 열리면 그 전제가 깨진다.
+    from bot.oversold import regime as REG
+    bad_rg = []
+    if "bear" not in REG.MODES: bad_rg.append("bear 모드 없음")
+    else:
+        if REG.enabled("long", "bear"): bad_rg.append("bear에서 과매도 롱이 켜짐")
+        if REG.enabled("div", "bear"): bad_rg.append("bear에서 다이버전스(롱)가 켜짐")
+        if not REG.enabled("short", "bear"): bad_rg.append("bear에서 주봉 숏이 꺼짐")
+    if 'if not REG.enabled("long"):' not in open("bot/oversold/executor.py", encoding="utf-8").read():
+        bad_rg.append("executor 롱 진입이 국면을 안 봄")
+    check("국면 bear는 롱을 끄고 주봉 숏만 남긴다", not bad_rg,
+          "; ".join(bad_rg) if bad_rg else "롱·다이버 꺼짐 · 주봉 숏 켜짐")
+
     # ── 수량 내림이 부동소수점에 먹히지 않는다 ─────────────────
     # float로 98.3/0.1 = 982.9999999999999 → 내림하면 98.2. 첫 실거래
     # 점검에서 IOTAUSDT 98.3개 중 98.2개만 청산되고 0.1개가 남았다.
