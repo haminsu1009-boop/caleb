@@ -10,7 +10,7 @@ bot/oversold/regime.py
 모드는 셋이다.
   normal  기본. 롱·숏·다이버전스가 각자 규칙대로 판단한다.
   bull    상승장. 숏 계열을 끈다.
-  bear    폭락장. 롱 계열(과매도 롱·상승 다이버전스)을 끄고 주봉 숏만 남긴다.
+  bear    폭락장. 과매도 롱만 끈다. 주봉 숏·상승 다이버전스는 그대로 둔다.
 
 bear를 둔 이유 (ml/leverage_filters.py 뒤 실측):
   롱의 청산은 여러 코인이 한날한시에 무너지는 폭락장에 몰린다. 그 구간에
@@ -29,6 +29,11 @@ bear를 둔 이유 (ml/leverage_filters.py 뒤 실측):
   폭락장에 새 숏 규칙을 넣지 않은 이유: "20기간선 대비 +N% 이상이면 숏"
   (과매도의 거울상)은 15가지 조건 전부 손실이었고 최악 역행 -708%였다.
   주봉 숏은 원래 하락장에서만 신호가 뜨고 이미 검증돼 있다.
+
+  다이버전스를 켜두는 이유 (ml/per_coin_portfolio.py 앞 실측, 롱+숏+다이버
+  한 지갑): 폭락장에 롱만 끈 쪽이 롱·다이버를 같이 끈 쪽보다 대부분 나았다.
+  4배에서 46~63배 대 20~58배, 결과 범위도 더 좁았다. 다이버전스는 1배라
+  폭락장에서도 청산 위험이 작고 반등을 잘 잡는다.
 
   bear는 **새 진입만** 막는다. 이미 들고 있는 롱은 손절·목표·시간청산
   규칙대로 정리된다. 당장 닫고 싶으면 --close-all.
@@ -60,7 +65,7 @@ MODES = ("normal", "bull", "bear")
 _ENABLED = {
     "normal": {"long": True, "short": True,  "div": True, "crash": False},
     "bull":   {"long": True, "short": False, "div": True, "crash": False},
-    "bear":   {"long": False, "short": True, "div": False, "crash": False},
+    "bear":   {"long": False, "short": True, "div": True, "crash": False},
 }
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
