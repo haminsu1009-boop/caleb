@@ -201,13 +201,50 @@ class Exchange:
         else:
             self.session = HTTP(testnet=False)      # 공개 조회만
 
+    # 요청 사이 최소 간격(초). 42종을 쉬지 않고 연달아 조회하다가 바이빗
+    # 요청 한도(ErrCode 10006)에 걸려, 한 점검에서 DOGE·UNI 등 여러 종목을
+    # 건너뛰었다. 모의에선 손해가 없지만 실거래에서 하필 그 종목에 신호가
+    # 뜨면 놓친다. 42종 × 0.15초 ≈ 6초라 5분 주기에 부담이 없다.
+    MIN_GAP = 0.15
+    RETRIES = 4
+
+    def _throttle(self):
+        last = getattr(self, "_last_req", 0.0)
+        wait = self.MIN_GAP - (time.time() - last)
+        if wait > 0:
+            time.sleep(wait)
+        self._last_req = time.time()
+
     def klines(self, symbol: str, limit: int = 200, interval: str = None) -> list:
-        r = self.session.get_kline(category="linear", symbol=symbol,
-                                   interval=interval or S.INTERVAL, limit=limit)
-        if r.get("retCode") != 0:
-            raise RuntimeError(f"{symbol} kline 실패: {r.get('retMsg')}")
-        rows = r["result"]["list"]
-        return sorted(rows, key=lambda x: int(x[0]))     # 오래된 순
+        """한도에 걸리면 1·2·4·8초 쉬고 다시 묻는다.
+
+        pybit는 한도 초과 때 응답 헤더 x-bapi-limit-reset-timestamp로
+        기다릴 시간을 계산하는데, 바이빗이 그 헤더를 안 보내면 KeyError를
+        내고 포기한다(13:15 로그의 "조회 실패: 'x-bapi-limit-reset-
+        timestamp'"). 그 경우도 한도 초과로 보고 직접 기다린다.
+        """
+        last_err = None
+        for k in range(self.RETRIES):
+            self._throttle()
+            try:
+                r = self.session.get_kline(category="linear", symbol=symbol,
+                                           interval=interval or S.INTERVAL, limit=limit)
+            except Exception as e:
+                msg = str(e)
+                if "10006" in msg or "x-bapi-limit" in msg or "Too many" in msg:
+                    last_err = e
+                    time.sleep(2 ** k)
+                    continue
+                raise
+            if r.get("retCode") == 10006:
+                last_err = RuntimeError(r.get("retMsg"))
+                time.sleep(2 ** k)
+                continue
+            if r.get("retCode") != 0:
+                raise RuntimeError(f"{symbol} kline 실패: {r.get('retMsg')}")
+            rows = r["result"]["list"]
+            return sorted(rows, key=lambda x: int(x[0]))     # 오래된 순
+        raise RuntimeError(f"{symbol} kline 실패: 요청 한도 — {last_err}")
 
     def daily(self, symbol: str, limit: int = 600) -> pd.DataFrame:
         """일봉. 주봉 숏(MA60주=420일)과 다이버전스가 같이 쓴다.
