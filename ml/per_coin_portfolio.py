@@ -18,6 +18,26 @@ ml/per_coin_portfolio.py
     (수축 K=20). 실제 운용과 같은 방식이라 이 줄을 믿으면 된다.
 
 폭락장 기준은 네 가지로 흔들어 범위로 보인다.
+
+━━ 결과: 코인별이 크게 진다. 미래를 미리 봐도 진다 ━━
+
+    (2019~2026, 폭락장 기준 4가지 범위)
+    롱 규칙                        결과         연복리     1년손실   2024~
+    전 종목 같은 규칙(지금 봇)     43.8~65.3배   66~77%    0~10%   8.0~11.7배
+
+    고르는 기준 = 거래당 평균
+      코인별 · 과거 전체 보고       9.5~17.2배   36~48%   12~29%   6.4~7.4배
+      코인별 · 워크포워드           8.6~17.3배   34~46%    4~18%   5.1~5.7배
+
+    고르는 기준 = 거래당 × 거래 수(총량)  (--by-total)
+      코인별 · 과거 전체 보고      14.9~33.4배   45~62%   10~24%   8.3~10.0배
+      코인별 · 워크포워드          11.3~18.1배   40~49%   14~22%   5.7~7.2배
+
+거래당 평균으로 고르면 42종 중 40종이 드물고 깊은 규칙(C)으로 몰려
+거래 수가 줄어든다. 총량으로 고르면 배정이 흩어지지만 역시 진다.
+과거 전체를 보고 골라도(미래 참조) 공통 규칙을 못 이긴다 — 코인 하나
+하나의 성적을 최적화해도, 한 지갑에서 동시에 굴릴 때의 결과(배율 4배,
+총노출 상한, 차단기, 겹치는 타이밍)는 좋아지지 않는다.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 from __future__ import annotations
@@ -58,6 +78,11 @@ def wmean(ts):
 
 
 def main():
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--by-total", action="store_true",
+                    help="거래당 평균이 아니라 '거래당 × 거래 수'(총량)로 고른다")
+    a = ap.parse_args()
     syms = [s for s in S.SYMBOLS if os.path.exists(f"data/{s}_1d_all.csv.gz")]
     Dd = {s: SS.load_daily(s) for s in syms}
     Dd = {k: v for k, v in Dd.items() if v is not None and len(v) >= 400}
@@ -81,7 +106,11 @@ def main():
     # 과거 전체를 보고 고른 코인별 (미래 참조)
     ins_pick = {}
     for s in coins:
-        best = max(MENU, key=lambda n: (wmean(T[(s, n)])[0] if wmean(T[(s, n)])[1] >= 5 else -9e9))
+        def sc_ins(n):
+            mu, k = wmean(T[(s, n)])
+            if k < 5: return -9e9
+            return mu * k if a.by_total else mu
+        best = max(MENU, key=sc_ins)
         ins_pick[s] = best if wmean(T[(s, best)])[0] > 0 else None
     ins = [t for s in coins if ins_pick[s] for t in T[(s, ins_pick[s])]]
     # 워크포워드 코인별
@@ -94,6 +123,8 @@ def main():
                 mu, k = wmean([t for t in T[(s, n)] if yr(t) < Y])
                 g_ = gm[n] if not np.isnan(gm[n]) else 0.0
                 sc = g_ if (k < 5 or np.isnan(mu)) else (k * mu + K * g_) / (k + K)
+                if a.by_total:
+                    sc = sc * max(k, 1)
                 if sc > bs:
                     best, bs = n, sc
             picks[(Y, s)] = best if bs > 0 else None
