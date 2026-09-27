@@ -189,6 +189,8 @@ class Exchange:
         self.live = live
         self.session = None
         self._spec = {}
+        # 통합거래계정(UTA)이면 격리는 계정 단위다. 한 번 확인하면 캐시한다.
+        self._acct_isolated: bool | None = None
         from pybit.unified_trading import HTTP
         key, sec = os.getenv("BYBIT_API_KEY"), os.getenv("BYBIT_API_SECRET")
         if live:
@@ -311,6 +313,8 @@ class Exchange:
         """
         if not self.live:
             return True
+        if self._acct_isolated:
+            return True
         try:
             self.session.switch_margin_mode(
                 category="linear", symbol=symbol, tradeMode=1,
@@ -319,7 +323,47 @@ class Exchange:
         except Exception as e:
             if "110026" in str(e):            # 이미 격리마진
                 return True
-            log.warning("%s 격리마진 전환 실패: %s", symbol, e)
+            if "100028" not in str(e):
+                log.warning("%s 격리마진 전환 실패: %s", symbol, e)
+                return False
+        # ErrCode 100028 "unified account is forbidden".
+        # 통합거래계정(UTA)은 종목별 격리 전환을 막는다. 격리/교차가 계정
+        # 단위 설정이다(setMarginMode = ISOLATED_MARGIN / REGULAR_MARGIN).
+        # 첫 실거래 점검에서 이걸로 막혔다 — 고치지 않았다면 실거래 봇은
+        # 신호마다 "격리마진 전환 실패 — 진입을 건너뜁니다"를 찍고 아무
+        # 것도 안 했을 것이다.
+        return self.ensure_account_isolated()
+
+    def ensure_account_isolated(self) -> bool:
+        """UTA 계정의 마진 모드를 격리(ISOLATED_MARGIN)로 맞춘다.
+
+        이미 격리면 아무것도 안 한다. 교차(REGULAR_MARGIN)면 격리로 바꾼다.
+        포트폴리오 마진이면 바꾸지 않고 실패로 돌려준다 — 그건 사람이
+        의도적으로 켠 설정일 테니 봇이 멋대로 끄면 안 된다.
+        """
+        if not self.live:
+            return True
+        if self._acct_isolated:
+            return True
+        try:
+            info = self.session.get_account_info()["result"]
+            mode = info.get("marginMode", "")
+        except Exception as e:
+            log.warning("계정 마진 모드 조회 실패: %s", e)
+            return False
+        if mode == "ISOLATED_MARGIN":
+            self._acct_isolated = True
+            return True
+        if mode == "PORTFOLIO_MARGIN":
+            log.error("계정이 포트폴리오 마진입니다. 앱에서 격리 마진으로 바꾸세요.")
+            return False
+        try:
+            self.session.set_margin_mode(setMarginMode="ISOLATED_MARGIN")
+            log.info("계정 마진 모드 %s → ISOLATED_MARGIN", mode or "?")
+            self._acct_isolated = True
+            return True
+        except Exception as e:
+            log.error("계정 마진 모드를 격리로 바꾸지 못했습니다: %s", e)
             return False
 
     def set_stop(self, symbol: str, stop: float,
