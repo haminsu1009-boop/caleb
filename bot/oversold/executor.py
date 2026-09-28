@@ -1434,6 +1434,13 @@ def main():
         print(f"\n  가장 싼 5종 (최소주문액):")
         for sym, v in cheap:
             print(f"    {sym:12s}{v:>8.2f}$  → 자본 {v/t['frac']:>9,.0f}$ 필요")
+        # 비싼 쪽 끝 — "N종까지 거래하려면 얼마"는 N번째로 싼 종목이 정한다
+        dear = sorted(t["need"].items(), key=lambda x: x[1])
+        print(f"\n  종목 수별 필요 자본 (비싼 쪽 끝):")
+        for k in range(max(1, t["n"] - 6), t["n"] + 1):
+            sym, v = dear[k - 1]
+            print(f"    {k:>2}종까지  자본 {v/t['frac']:>9,.0f}$  "
+                  f"(추가되는 종목 {sym}, 최소주문 {v:.2f}$)")
         print(f"\n  전 종목을 거래하려면 자본 {max(t['need'].values())/t['frac']:,.0f}$ 필요")
         return
 
