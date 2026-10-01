@@ -167,6 +167,32 @@ def load_env():
         os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
 
+# ── 텔레그램 알림 ────────────────────────────────────────────────────────
+def notify(text: str) -> None:
+    """실거래 주문을 텔레그램으로 알린다. 보내다 실패해도 매매는 계속한다.
+
+    따로 도는 스레드에서 보낸다 — 텔레그램이 느려도 주문 루프를 막지 않는다.
+    .env 에 TG_BOT_TOKEN · TG_CHAT_ID 가 없으면 아무것도 안 한다.
+    """
+    tok, chat = os.getenv("TG_BOT_TOKEN"), os.getenv("TG_CHAT_ID")
+    if not tok or not chat:
+        return
+    import threading
+
+    def _send():
+        try:
+            import requests
+            requests.post(f"https://api.telegram.org/bot{tok}/sendMessage",
+                          json={"chat_id": chat, "text": text}, timeout=15)
+        except Exception as e:
+            log.warning("텔레그램 알림 실패: %s", e)
+    threading.Thread(target=_send, daemon=True).start()
+
+
+def _px(x) -> str:
+    return f"{x:.6g}" if x else "-"
+
+
 # ── 상태 ────────────────────────────────────────────────────────────────
 def load_state() -> dict:
     if os.path.exists(STATE_PATH):
@@ -478,6 +504,10 @@ class Exchange:
             timeInForce="IOC", reduceOnly=False, **kw)
         ok = r.get("retCode") == 0
         log.info("  진입 %s qty=%s → %s", symbol, qty, "성공" if ok else r.get("retMsg"))
+        if ok:
+            notify(f"🟢 롱 매수 {symbol}\n수량 {qty} · 손절 {_px(stop)} · 익절 {_px(take_profit)}")
+        else:
+            notify(f"❗ 롱 매수 실패 {symbol}: {r.get('retMsg')}")
         return ok
 
     def open_short(self, symbol: str, qty: float, stop: float) -> bool:
@@ -491,6 +521,8 @@ class Exchange:
         ok = r.get("retCode") == 0
         log.info("  숏 진입 %s qty=%s → %s", symbol, qty,
                  "성공" if ok else r.get("retMsg"))
+        notify(f"🔴 숏 매도(진입) {symbol}\n수량 {qty} · 손절 {_px(stop)}" if ok
+               else f"❗ 숏 진입 실패 {symbol}: {r.get('retMsg')}")
         return ok
 
     def close_short(self, symbol: str, qty: float, reason: str) -> bool:
@@ -503,6 +535,8 @@ class Exchange:
         ok = r.get("retCode") == 0
         log.info("  숏 청산 %s qty=%s (%s) → %s", symbol, qty, reason,
                  "성공" if ok else r.get("retMsg"))
+        notify(f"⚪ 숏 청산 {symbol}\n수량 {qty} · 이유 {reason}" if ok
+               else f"❗ 숏 청산 실패 {symbol}: {r.get('retMsg')} — 확인 필요")
         return ok
 
     def open_bracket(self, symbol: str, qty: float, stop: float,
@@ -525,6 +559,8 @@ class Exchange:
         ok = r.get("retCode") == 0
         log.info("  급락반등 진입 %s qty=%s → %s", symbol, qty,
                  "성공" if ok else r.get("retMsg"))
+        notify(f"🟢 급락반등 매수 {symbol}\n수량 {qty} · 손절 {_px(stop)} · 익절 {_px(take_profit)}"
+               if ok else f"❗ 급락반등 매수 실패 {symbol}: {r.get('retMsg')}")
         return ok
 
     def close_long(self, symbol: str, qty: float, reason: str) -> bool:
@@ -537,6 +573,8 @@ class Exchange:
         ok = r.get("retCode") == 0
         log.info("  청산 %s qty=%s (%s) → %s", symbol, qty, reason,
                  "성공" if ok else r.get("retMsg"))
+        notify(f"⚪ 매도(청산) {symbol}\n수량 {qty} · 이유 {reason}" if ok
+               else f"❗ 매도 실패 {symbol}: {r.get('retMsg')} — 확인 필요")
         return ok
 
 
@@ -615,11 +653,15 @@ class Trader:
             if sym not in actual:
                 log.warning("상태엔 있으나 거래소에 없는 포지션 제거: %s "
                             "(손절 체결로 이미 닫혔을 수 있다)", sym)
+                notify(f"⚪ 롱 종료 {sym}\n거래소에서 손절 또는 익절이 체결됐습니다 "
+                       "(손익은 다음 정각 결과 알림에)")
                 tracked.pop(sym)
         for sym in list(mods):
             if sym not in actual:
                 log.warning("상태엔 있으나 거래소에 없는 모듈 포지션 제거: %s [%s]",
                             sym, mods[sym]["kind"])
+                notify(f"⚪ {mods[sym]['kind']} 종료 {sym}\n거래소에서 손절이 체결됐습니다 "
+                       "(손익은 다음 정각 결과 알림에)")
                 mods.pop(sym)
         for sym, p in actual.items():
             if sym not in tracked and sym not in mods and sym in S.SYMBOLS:

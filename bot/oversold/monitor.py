@@ -17,6 +17,7 @@ bot/oversold/monitor.py
       졌다고 울리지 않는다 — 롱은 승률 85%라도 7건 중 2~3건 지는 일이
       흔하다.
   · 매일 아침 8시(한국시간) 하루 요약 — 이건 이상이 없어도 보낸다
+  · 거래가 닫힐 때마다 손익 결과 (매수·매도 순간 알림은 봇이 직접 보낸다)
 
 거래 결과는 거래소의 청산 손익 기록(closed-pnl)에서 읽는다. 거래소에서
 손절이 체결된 것도 빠짐없이 잡힌다. 어느 전략의 거래인지는 감시가 매번
@@ -303,6 +304,11 @@ def main():
         print(f"청산 기록 조회 실패: {e}")
     for t in new:
         print(f"청산: {t['sym']} [{NAME.get(t['kind'], t['kind'])}] {t['pnl']:+.2f} USDT")
+        # 거래마다 결과를 알린다 — 거래소에서 체결된 손절·익절도 여기서 잡힌다
+        icon = "✅" if t["pnl"] > 0 else "❌"
+        send(f"{icon} 거래 결과 {t['sym']} [{NAME.get(t['kind'], t['kind'])}]\n"
+             f"손익 {t['pnl']:+.2f} USDT · 가격 변동 {t['ret']:+.1f}%\n"
+             f"자본 {ex.equity():,.2f} USDT", a.dry)
 
     for key, msg in checks(ex, m, st):
         last = m["alerts"].get(key, 0)
