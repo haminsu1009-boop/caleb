@@ -1330,6 +1330,45 @@ def status(ex, cfg) -> int:
         if sym not in live:
             bad.append(f"{sym}: 봇 기록엔 있는데 거래소엔 없다 (다음 점검에서 정리된다)")
 
+    # 감시 타이머(텔레그램 알림)가 살아 있는가
+    print("\n  ── 텔레그램 감시 ──")
+    tm = sh(["systemctl", "is-active", "oversold-monitor.timer"])
+    print(f"  감시 타이머     {tm or '확인 불가'}")
+    if tm and tm != "active":
+        bad.append("감시 타이머가 꺼져 있다 — sudo systemctl enable --now oversold-monitor.timer")
+    nxt = sh(["systemctl", "show", "oversold-monitor.timer", "-p", "NextElapseUSecRealtime", "--value"])
+    if nxt:
+        print(f"  다음 감시       {nxt}")
+    mlog = sh(["journalctl", "-u", "oversold-monitor", "--since", "-3h", "-o", "cat", "--no-pager"])
+    runs = mlog.count("Finished") + mlog.count("Deactivated successfully")
+    fails = [l for l in mlog.splitlines() if "Traceback" in l or "Failed" in l or "실패" in l]
+    print(f"  최근 3시간      감시 실행 기록 {'있음' if mlog.strip() else '없음'} · 실패 {len(fails)}건")
+    for l in fails[-3:]:
+        print(f"    {l.strip()[:90]}")
+    if tm == "active" and not mlog.strip():
+        bad.append("감시가 3시간 동안 한 번도 안 돌았다 — journalctl -u oversold-monitor -n 30")
+    if fails:
+        bad.append("감시 실행 중 실패가 있다 — journalctl -u oversold-monitor -n 30")
+
+    tok, chat = os.getenv("TG_BOT_TOKEN"), os.getenv("TG_CHAT_ID")
+    if not tok or not chat:
+        print("  텔레그램        .env 에 TG_BOT_TOKEN / TG_CHAT_ID 없음")
+        bad.append("텔레그램 설정이 없다")
+    else:
+        try:
+            import requests
+            r = requests.post(f"https://api.telegram.org/bot{tok}/sendMessage",
+                              json={"chat_id": chat, "text":
+                                    f"🔧 점검 테스트 — 봇 {act or '?'} · 감시 {tm or '?'} · "
+                                    f"자본 {eq:,.2f} USDT"}, timeout=15)
+            ok = r.ok
+            print(f"  텔레그램        시험 메시지 {'보냄 ✅ (휴대폰 확인)' if ok else f'실패 {r.status_code}'}")
+            if not ok:
+                bad.append(f"텔레그램 전송 실패 ({r.status_code}) — 토큰·채팅 ID 확인")
+        except Exception as e:
+            print(f"  텔레그램        전송 실패: {e}")
+            bad.append("텔레그램 전송 실패 — 네트워크 확인")
+
     print("\n  " + ("✅ 이상 없음" if not bad else f"⚠️  확인할 것 {len(bad)}건"))
     for b in bad:
         print(f"    · {b}")
