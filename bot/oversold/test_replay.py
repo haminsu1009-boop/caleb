@@ -63,6 +63,9 @@ class FakeExchange:
     def spec(self, symbol):
         return {"step": 0.001, "min": 0.001}
 
+    def delisting(self):
+        return getattr(self, "delist", set())
+
     def equity(self):
         return self._equity
 
@@ -161,7 +164,7 @@ def load(symbols, bars=1200):
 
 
 def run_replay(state_path, symbols, leverage=3.0, per_trade=0.15, max_gross=1.0,
-               restart_at=None):
+               restart_at=None, delist=None):
     data = load(symbols)
     if not data:
         return None, None
@@ -170,6 +173,7 @@ def run_replay(state_path, symbols, leverage=3.0, per_trade=0.15, max_gross=1.0,
         os.remove(state_path)
 
     ex = FakeExchange(data)
+    ex.delist = set(delist or ())
     cfg = E.Config()
     cfg.leverage, cfg.per_trade, cfg.max_gross = leverage, per_trade, max_gross
     cfg.daily_loss, cfg.max_drawdown = 1.0, 1.0     # 이 테스트에선 차단기 끔
@@ -337,6 +341,17 @@ def main():
     # 상태 파일이 유효한 JSON인가
     st = info["state"]
     check("상태 파일이 직렬화 가능", isinstance(json.dumps(st), str))
+
+    # 상장폐지 예정 종목은 새로 사지 않는다
+    bought = sorted({o[1] for o in opens})
+    if bought:
+        victim = bought[0]
+        ex4, _ = run_replay(os.path.join(tmp, "s4.json"), syms, delist={victim})
+        again = [o for o in ex4.orders if o[0] in ("open", "crash") and o[1] == victim]
+        others = [o for o in ex4.orders if o[0] == "open" and o[1] != victim]
+        check("상장폐지 예정 종목은 신규 진입하지 않는다", not again and len(others) > 0,
+              f"{victim}: 평소 {sum(1 for o in opens if o[1] == victim)}건 → 막으면 {len(again)}건 "
+              f"(다른 종목 {len(others)}건은 그대로)")
 
     print("=" * 88)
     print(f"  {'✅ 전부 통과' if FAILED == 0 else f'❌ {FAILED}건 실패'}")

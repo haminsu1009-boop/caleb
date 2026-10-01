@@ -66,6 +66,9 @@ class DailyFake:
     def spec(self, symbol):
         return {"step": 1e-6, "min": 1e-6}
 
+    def delisting(self):
+        return getattr(self, "delist", set())
+
     def equity(self):
         return self._equity
 

@@ -231,6 +231,45 @@ class Exchange:
         else:
             self.session = HTTP(testnet=False)      # 공개 조회만
 
+    # 상장폐지 예정 종목. 바이빗은 무기한 계약을 내릴 때 미리 공지하고
+    # deliveryTime(정산 시각)을 박거나 status를 Trading이 아닌 값으로 바꾼다.
+    # 과매도 롱은 "급락을 산다" — 죽어가는 코인의 급락이 이 전략이 가장
+    # 크게 잃는 자리이고, 백테스트(지금 살아 있는 42종)에는 이 경우가 없다.
+    # 그래서 공지가 뜬 종목은 신규 진입·2차 매수를 막는다. 보유분은 원래
+    # 규칙(익절·시간청산·손절)대로 둔다.
+    DELIST_TTL = 6 * 3600
+
+    def delisting(self) -> set:
+        now = time.time()
+        if now - getattr(self, "_delist_at", 0) < self.DELIST_TTL:
+            return self._delist
+        bad, cursor = set(), ""
+        try:
+            for _ in range(5):
+                kw = dict(category="linear", limit=1000)
+                if cursor:
+                    kw["cursor"] = cursor
+                r = self.session.get_instruments_info(**kw)["result"]
+                for i in r.get("list", []):
+                    sym = i.get("symbol")
+                    if sym not in S.SYMBOLS:
+                        continue
+                    if i.get("status") != "Trading" or str(i.get("deliveryTime") or "0") != "0":
+                        bad.add(sym)
+                cursor = r.get("nextPageCursor") or ""
+                if not cursor:
+                    break
+        except Exception as e:
+            log.warning("상장폐지 확인 실패 — 이전 목록을 쓴다: %s", e)
+            return getattr(self, "_delist", set())
+        new = bad - getattr(self, "_delist", set())
+        if new:
+            log.warning("⛔ 상장폐지·거래중단 예정: %s — 신규 진입 막음", ", ".join(sorted(new)))
+            notify("⛔ 상장폐지·거래중단 예정 종목: " + ", ".join(sorted(new))
+                   + "\n이 종목은 새로 사지 않습니다. 보유 중이면 확인하세요.")
+        self._delist, self._delist_at = bad, now
+        return bad
+
     # 요청 사이 최소 간격(초). 42종을 쉬지 않고 연달아 조회하다가 바이빗
     # 요청 한도(ErrCode 10006)에 걸려, 한 점검에서 DOGE·UNI 등 여러 종목을
     # 건너뛰었다. 모의에선 손해가 없지만 실거래에서 하필 그 종목에 신호가
@@ -735,6 +774,8 @@ class Trader:
         폴링 사이에 스쳤다가 돌아온 저가는 놓친다 — 놓치는 쪽이
         평단을 더 나쁘게 만드는 쪽보다 항상 안전하다.
         """
+        if sym in self.ex.delisting():
+            return
         if price > p["trigger"]:
             return
         notional2 = p["full_notional"] * (1 - S.SCALE_IN_FIRST_FRAC)
@@ -844,7 +885,7 @@ class Trader:
                 continue
 
             # ② 신규 판정
-            if not can_enter or sym in self._held_symbols():
+            if not can_enter or sym in self._held_symbols() or sym in self.ex.delisting():
                 continue
             sig = None
             if REG.enabled("short", mode):
@@ -1051,6 +1092,8 @@ class Trader:
                 continue
             if sym in self.st.get("mod_positions", {}):
                 continue          # 숏·다이버가 이미 잡고 있는 종목
+            if sym in self.ex.delisting():
+                continue          # 상장폐지 예정 — 급락을 사면 안 되는 자리
             if not REG.enabled("long"):
                 continue
             sig = S.evaluate(sym, closes, bar_time)
