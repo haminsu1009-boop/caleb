@@ -1171,7 +1171,12 @@ def whoami(ex) -> int:
         print(f"  펀딩 지갑       USDT {fb:,.4f}"
               + ("   ← 여기 있으면 봇은 못 씀. 통합거래로 옮기세요" if fb > 0 else ""))
     except Exception as e:
-        print(f"  펀딩 지갑 조회 실패: {e}")
+        if "10005" in str(e):
+            # 지갑 권한을 꺼둔 키는 펀딩 지갑을 못 본다. 출금 권한이 없다는
+            # 뜻이기도 하니 오히려 안전한 상태다.
+            print("  펀딩 지갑       (조회 권한 없음 — 지갑 권한을 꺼둔 키라 정상)")
+        else:
+            print(f"  펀딩 지갑 조회 실패: {e}")
     print("=" * 64)
     return 0
 
