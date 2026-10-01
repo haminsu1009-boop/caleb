@@ -261,6 +261,12 @@ def setup():
         raise SystemExit("먼저 .env 에 TG_BOT_TOKEN=... 을 넣으세요 (@BotFather 에서 받은 토큰)")
     import requests
     r = requests.get(f"https://api.telegram.org/bot{tok}/getUpdates", timeout=20).json()
+    if not r.get("ok"):
+        # 404 = 텔레그램이 이 토큰을 모른다. 토큰을 잘못 옮겼거나(앞뒤 공백·
+        # "bot" 접두어·줄바꿈), BotFather에서 /revoke 로 바뀐 경우다.
+        raise SystemExit(f"토큰이 맞지 않습니다 ({r.get('error_code')} {r.get('description')}).\n"
+                         "  .env 의 TG_BOT_TOKEN 을 BotFather가 준 값 그대로 다시 넣으세요 "
+                         "(형식: 숫자:영문자, 앞에 bot 붙이지 않음).")
     chats = {u["message"]["chat"]["id"] for u in r.get("result", []) if "message" in u}
     if not chats:
         raise SystemExit("텔레그램에서 만든 봇에게 아무 메시지나 하나 보낸 뒤 다시 실행하세요.")
