@@ -352,6 +352,16 @@ def main():
           f"진입당 {cfg.per_trade*100:.1f}% · 총노출 {cfg.max_gross*100:.0f}% · "
           f"차단기 {cfg.max_drawdown*100:.0f}%")
 
+    # 모의와 실거래가 상태 파일을 같이 쓰면 모의 자본 고점을 실거래가
+    # 이어받아 차단기가 바로 켜진다.
+    import inspect
+    from bot.oversold import executor as EX
+    src = inspect.getsource(EX.main)
+    check("실거래는 모의와 다른 상태 파일을 쓴다",
+          EX.LIVE_STATE_PATH != EX.STATE_PATH and "STATE_PATH = LIVE_STATE_PATH" in src
+          and "global STATE_PATH" in src,
+          f"{os.path.basename(EX.STATE_PATH)} / {os.path.basename(EX.LIVE_STATE_PATH)}")
+
     print("=" * 84)
     print(f"  {'✅ 전부 통과' if FAILED == 0 else f'❌ {FAILED}건 실패'}")
     print("=" * 84)

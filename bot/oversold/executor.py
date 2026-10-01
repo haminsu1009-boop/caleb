@@ -90,6 +90,10 @@ from bot.oversold import regime as REG
 from bot.oversold import modules as MOD
 
 STATE_PATH  = os.path.join(ROOT, "bot", "oversold", "state.json")
+# 실거래는 상태 파일을 따로 쓴다. 모의가 남긴 가짜 포지션과 모의 자본
+# 고점(예: 1,000 USDT)을 실거래가 이어받으면, 실제 잔고 300 USDT를
+# "고점 대비 -70%"로 읽어 차단기가 켜지고 30일 동안 아무것도 안 산다.
+LIVE_STATE_PATH = os.path.join(ROOT, "bot", "oversold", "state_live.json")
 CANDLE_DIR  = os.path.join(ROOT, "data", "bybit")
 BAR_MS      = 4 * 60 * 60 * 1000
 
@@ -1331,6 +1335,7 @@ def smoke_test(ex, cfg, symbols) -> int:
 
 
 def main():
+    global STATE_PATH
     ap = argparse.ArgumentParser()
     ap.add_argument("--live", action="store_true", help="실거래 (기본은 모의)")
     # systemd·컨테이너에서는 START를 타이핑할 사람이 없다. 그렇다고
@@ -1393,16 +1398,18 @@ def main():
         print(f"     배율 {cfg.leverage:g}x, 거래 1건의 전체 물량은 자본의 "
               f"{cfg.per_trade*100:.1f}%(최대 {int(1/cfg.per_trade)}건 동시), "
               f"그중 1차는 {cfg.per_trade*S.SCALE_IN_FIRST_FRAC*100:.1f}%만 즉시 나갑니다.")
-        print(f"     백테스트(2배·총노출 60%·차단기 20%·복리·왕복 0.40%) 8.9년 기준:")
-        print(f"       롱 단독  3.14배 · 최대낙폭 21.6% · 승률 81% · 1년 손실확률 29%")
-        print(f"       숏·다이버전스까지 붙이면 21.5배 · 낙폭 21.6% · 1년 손실확률 1%")
-        print(f"       (숏·다이버전스는 아직 백테스트에만 있다 — ml/report.py 참고)")
+        print(f"     백테스트(롱 4배·숏·다이버 1배·폭락장 롱 끔·총노출 60%·차단기 20%) 2019~:")
+        print(f"       45~63배 · 최대낙폭 24~31% · 롱 승률 84~86% · 1년 손실확률 9~15%")
+        print(f"       2024~ 8~11배 (ml/module_winrate.py 참고)")
         print(f"     실제 체결은 백테스트보다 나쁠 수 있습니다.")
         if input("\n  계속하려면 START 입력: ").strip() != "START":
             print("  중단했습니다."); return
     elif a.live_nonint:
         log.warning("무인 실거래로 시작합니다 (OS_CONFIRM_LIVE 확인됨)")
 
+    if a.live:
+        STATE_PATH = LIVE_STATE_PATH
+        log.info(f"상태 파일: {STATE_PATH}")
     ex = Exchange(live=a.live)
 
     if a.whoami:
