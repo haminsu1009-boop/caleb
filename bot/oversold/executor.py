@@ -1181,6 +1181,77 @@ def whoami(ex) -> int:
     return 0
 
 
+def status(ex, cfg) -> int:
+    """실거래 봇이 잘 돌고 있는가 — 읽기만 한다. 주문을 내지 않는다.
+
+    네 가지를 본다: 서비스가 살아 있나, 최근에 점검을 돌았나,
+    봇의 기록(state_live.json)과 거래소의 실제 포지션이 같은가,
+    포지션마다 손절·익절이 걸려 있나.
+    """
+    import subprocess
+    bad = []
+    print("\n" + "=" * 64)
+    print("  실거래 봇 상태")
+    print("=" * 64)
+
+    def sh(cmd):
+        try:
+            return subprocess.run(cmd, capture_output=True, text=True, timeout=20).stdout.strip()
+        except Exception:
+            return ""
+    act = sh(["systemctl", "is-active", "oversold-bot"])
+    print(f"  서비스          {act or '확인 불가'}")
+    if act and act != "active":
+        bad.append("서비스가 꺼져 있다 — sudo systemctl start oversold-bot")
+    last = [l for l in sh(["journalctl", "-u", "oversold-bot", "--since", "-30min",
+                           "-o", "cat", "--no-pager"]).splitlines() if "자본" in l and "노출" in l]
+    if last:
+        print(f"  최근 30분 점검  {len(last)}회 · 마지막: {last[-1].strip()[-70:]}")
+    elif act:
+        print("  최근 30분 점검  0회")
+        bad.append("30분 동안 점검 기록이 없다 — journalctl -u oversold-bot -n 50 확인")
+    errs = [l for l in sh(["journalctl", "-u", "oversold-bot", "--since", "-24h",
+                           "-o", "cat", "--no-pager"]).splitlines()
+            if any(k in l for k in ("ERROR", "⚠️", "Traceback", "실패"))]
+    print(f"  24시간 경고     {len(errs)}건")
+    for l in errs[-5:]:
+        print(f"    {l.strip()[:90]}")
+
+    st = json.load(open(LIVE_STATE_PATH, encoding="utf-8")) if os.path.exists(LIVE_STATE_PATH) else {}
+    eq = ex.equity()
+    peak = st.get("peak_equity") or eq
+    print(f"\n  자본            {eq:,.2f} USDT · 고점 {peak:,.2f} · 낙폭 {max(0, 1 - eq / peak) * 100:.1f}%")
+    print(f"  {REG.describe()}")
+    if st.get("halted_until"):
+        print(f"  ⛔ 차단기 작동 중 — {st['halted_until']} 까지 신규 진입 없음")
+
+    tracked = dict(st.get("positions", {}))
+    mods = st.get("mod_positions", {})
+    live = ex.positions()
+    print(f"\n  봇 기록         롱 {len(tracked)}건 · 숏/다이버 {len(mods)}건")
+    print(f"  거래소 실제     {len(live)}건")
+    for sym, lp in live.items():
+        mine = tracked.get(sym) or mods.get(sym)
+        kind = "롱" if sym in tracked else (mods[sym].get("kind", "모듈") if sym in mods else "봇 기록에 없음")
+        sl = f"{lp['stop']:.6g}" if lp["stop"] else "없음"
+        tp = f"{lp['tp']:.6g}" if lp["tp"] else "없음"
+        print(f"    {sym:<12s}{lp['side']:<5s}{kind:<8s} 수량 {lp['size']:g} · 평단 {lp['entry']:.6g}"
+              f" · 손절 {sl} · 익절 {tp}")
+        if mine is None:
+            bad.append(f"{sym}: 거래소에만 있다 — 손으로 연 포지션이면 정리하라")
+        elif sym in tracked and not lp["stop"]:
+            bad.append(f"{sym}: 손절이 안 걸려 있다 (봇이 다음 점검에서 다시 건다)")
+    for sym in list(tracked) + list(mods):
+        if sym not in live:
+            bad.append(f"{sym}: 봇 기록엔 있는데 거래소엔 없다 (다음 점검에서 정리된다)")
+
+    print("\n  " + ("✅ 이상 없음" if not bad else f"⚠️  확인할 것 {len(bad)}건"))
+    for b in bad:
+        print(f"    · {b}")
+    print("=" * 64)
+    return 1 if bad else 0
+
+
 def smoke_test(ex, cfg, symbols) -> int:
     """주문 경로가 실제로 동작하는지 최소 금액으로 확인한다.
 
@@ -1352,6 +1423,8 @@ def main():
     ap.add_argument("--once", action="store_true", help="1회만 점검하고 종료")
     ap.add_argument("--capital-table", action="store_true",
                     help="자본이 얼마면 몇 종목을 거래할 수 있는지 표로 보고 종료")
+    ap.add_argument("--status", action="store_true",
+                    help="실거래 봇이 잘 돌고 있는지 보고 종료 (읽기만 한다)")
     ap.add_argument("--whoami", action="store_true",
                     help="이 API 키의 계정 UID·권한과 지갑별 잔고를 보고 종료")
     ap.add_argument("--smoke-test", action="store_true",
@@ -1378,6 +1451,8 @@ def main():
     if a.whoami:
         load_env()
         raise SystemExit(whoami(Exchange(live=True)))
+    if a.status:
+        raise SystemExit(status(Exchange(live=True), cfg))
 
     if a.live_nonint:
         if os.getenv("OS_CONFIRM_LIVE") != "START":
