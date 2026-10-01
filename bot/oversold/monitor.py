@@ -16,7 +16,7 @@ bot/oversold/monitor.py
       맞다면 이 정도로 나쁠 확률이 2% 미만일 때만 알린다. 거래 몇 건
       졌다고 울리지 않는다 — 롱은 승률 85%라도 7건 중 2~3건 지는 일이
       흔하다.
-  · 매주 월요일 아침(한국시간) 한 주 요약 — 이건 이상이 없어도 보낸다
+  · 매일 아침 8시(한국시간) 하루 요약 — 이건 이상이 없어도 보낸다
 
 거래 결과는 거래소의 청산 손익 기록(closed-pnl)에서 읽는다. 거래소에서
 손절이 체결된 것도 빠짐없이 잡힌다. 어느 전략의 거래인지는 감시가 매번
@@ -29,7 +29,7 @@ bot/oversold/monitor.py
 사용법
     python -m bot.oversold.monitor --setup     # 채팅 ID 찾기 + 시험 메시지
     python -m bot.oversold.monitor             # 한 번 점검 (타이머가 부른다)
-    python -m bot.oversold.monitor --summary   # 주간 요약을 지금 보낸다
+    python -m bot.oversold.monitor --summary   # 하루 요약을 지금 보낸다
     python -m bot.oversold.monitor --dry       # 보내지 않고 화면에만
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
@@ -229,16 +229,21 @@ def checks(ex, m: dict, st: dict) -> list:
 def summary(ex, m: dict, st: dict) -> str:
     eq = ex.equity()
     now = datetime.now(KST)
-    wk = int((now - timedelta(days=7)).timestamp() * 1000)
     hist = m.setdefault("equity_hist", [])
-    prev = next((v for t, v in reversed(hist) if t <= wk), None)
-    lines = [f"📊 주간 요약 {now:%m/%d}",
-             f"자본 {eq:,.2f} USDT" + (f" ({(eq/prev-1)*100:+.1f}% / 7일)" if prev else "")]
+    def ago(days):
+        t0 = int((now - timedelta(days=days)).timestamp() * 1000) + 3600_000
+        return next((v for t, v in reversed(hist) if t <= t0), None)
+    chg = [f"{(eq/v-1)*100:+.1f}% / {d}일" for d, v in ((1, ago(1)), (7, ago(7)), (30, ago(30))) if v]
+    lines = [f"📊 봇 하루 요약 {now:%m/%d}",
+             f"자본 {eq:,.2f} USDT" + (f" ({' · '.join(chg)})" if chg else "")]
     peak = max(st.get("peak_equity") or 0, eq)
     lines.append(f"고점 대비 {-(1 - eq/peak)*100 if peak else 0:.1f}% · {REG.describe()}")
     lines.append(f"보유: 롱 {len(st.get('positions', {}))} · 숏/다이버 {len(st.get('mod_positions', {}))}")
-    week = [t for t in m["trades"] if t["ts"] >= wk]
-    lines.append(f"이번 주 청산 {len(week)}건 · 손익 {sum(t['pnl'] for t in week):+.2f} USDT")
+    day = int((now - timedelta(days=1)).timestamp() * 1000)
+    wk = int((now - timedelta(days=7)).timestamp() * 1000)
+    for lab, t0 in (("24시간", day), ("7일", wk)):
+        ts = [t for t in m["trades"] if t["ts"] >= t0]
+        lines.append(f"{lab} 청산 {len(ts)}건 · 손익 {sum(t['pnl'] for t in ts):+.2f} USDT")
     for kind, p in EXPECT.items():
         ts = [t for t in m["trades"] if t["kind"] == kind]
         if ts:
@@ -271,7 +276,7 @@ def setup():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--setup", action="store_true", help="채팅 ID 찾기 + 시험 메시지")
-    ap.add_argument("--summary", action="store_true", help="주간 요약을 지금 보낸다")
+    ap.add_argument("--summary", action="store_true", help="하루 요약을 지금 보낸다")
     ap.add_argument("--dry", action="store_true", help="보내지 않고 화면에만")
     a = ap.parse_args()
     E.load_env()
@@ -300,15 +305,15 @@ def main():
         if send(msg, a.dry):
             m["alerts"][key] = now_ms
 
-    # 하루 한 번 자본을 적어 둔다 — 주간 변화 계산용
+    # 매시간 자본을 적어 둔다 — 1·7·30일 변화 계산용
     hist = m.setdefault("equity_hist", [])
-    if not hist or now_ms - hist[-1][0] > 20 * 3600_000:
+    if not hist or now_ms - hist[-1][0] > 50 * 60_000:
         hist.append([now_ms, ex.equity()])
-        m["equity_hist"] = hist[-400:]
+        m["equity_hist"] = hist[-24 * 40:]          # 40일치
 
     kst = datetime.now(KST)
-    tag = kst.strftime("%G-W%V")
-    if a.summary or (kst.weekday() == 0 and kst.hour >= 8 and m.get("last_summary") != tag):
+    tag = kst.strftime("%Y-%m-%d")
+    if a.summary or (kst.hour >= 8 and m.get("last_summary") != tag):
         if send(summary(ex, m, st), a.dry) and not a.summary:
             m["last_summary"] = tag
 

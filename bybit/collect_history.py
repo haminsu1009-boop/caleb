@@ -13,9 +13,13 @@ Binance 공개 아카이브에서 OHLCV 전체 히스토리 수집
 import os, io, zipfile, argparse, time
 import requests
 import pandas as pd
-from datetime import date
+from datetime import date, timedelta
 
 BASE_URL = "https://data.binance.vision/data/spot/monthly/klines"
+# 월 아카이브는 그 달이 끝나고 며칠 뒤에야 올라온다. 그것만 쓰면 데이터가
+# 최대 한 달 넘게 늦다(2026-10-01에 8월 말까지만 있었다). 일 아카이브는
+# 다음 날 올라오므로, 월 아카이브 뒤의 빈 날을 일 단위로 채운다.
+DAILY_URL = "https://data.binance.vision/data/spot/daily/klines"
 SAVE_DIR = "data"
 
 INTERVAL_NAMES = {
@@ -76,6 +80,16 @@ def download_month(year:int, month:int, interval:str="5m",
                    symbol:str="BTCUSDT", retries:int=3) -> pd.DataFrame | None:
     url = (f"{BASE_URL}/{symbol}/{interval}/"
            f"{symbol}-{interval}-{year}-{month:02d}.zip")
+    return _download(url, retries)
+
+
+def download_day(day: date, interval: str, symbol: str,
+                 retries: int = 3) -> pd.DataFrame | None:
+    url = f"{DAILY_URL}/{symbol}/{interval}/{symbol}-{interval}-{day:%Y-%m-%d}.zip"
+    return _download(url, retries)
+
+
+def _download(url: str, retries: int = 3) -> pd.DataFrame | None:
     for attempt in range(retries):
         try:
             r = requests.get(url, timeout=90)
@@ -181,6 +195,7 @@ def collect_interval(interval:str="5m", start_year:int=2017,
         print(f"  ✅ {year} → {year_out} ({len(ydf):,}개, {kb}KB)")
         year_files.append(year_out)
 
+    year_files = sorted(set(year_files) | set(fill_daily(interval, symbol, year_files)))
     if not year_files: return None
 
     # 고빈도 봉 단위는 _all 합산 파일을 건너뜀 (GitHub 100MB 제한)
@@ -206,6 +221,43 @@ def collect_interval(interval:str="5m", start_year:int=2017,
     print(f"\n  📦 {all_out}  ({len(total):,}개 · {mb:.1f}MB)")
     print(f"     {total['timestamp'].iloc[0]} ~ {total['timestamp'].iloc[-1]}")
     return all_out
+
+
+def fill_daily(interval: str, symbol: str, year_files: list) -> list:
+    """월 아카이브의 마지막 봉 다음 날부터 어제(UTC)까지를 일 아카이브로
+    채운다. 손댄 연도 파일 경로를 돌려준다."""
+    if interval in SKIP_ALL_FILE_INTERVALS or not year_files:
+        return []
+    last_file = sorted(year_files)[-1]
+    try:
+        last = pd.to_datetime(pd.read_csv(last_file, compression="gzip",
+                                          usecols=["timestamp"])["timestamp"]).max()
+    except Exception as e:
+        print(f"  일 단위 보충 건너뜀 — {last_file} 읽기 실패: {e}")
+        return []
+    yesterday = date.today() - timedelta(days=1)
+    day = last.date()            # 마지막 날을 한 번 더 받아 반쯤 찬 날을 메운다
+    if day > yesterday:
+        return []
+    got = {}
+    print(f"  일 단위 보충: {day} ~ {yesterday}")
+    while day <= yesterday:
+        df = download_day(day, interval, symbol)
+        if df is not None and not df.empty:
+            got.setdefault(day.year, []).append(df)
+        day += timedelta(days=1)
+        time.sleep(0.05)
+    touched = []
+    for y, frames in got.items():
+        out = f"{SAVE_DIR}/{symbol}_{interval}_{y}.csv.gz"
+        if os.path.exists(out):
+            frames = [pd.read_csv(out, compression="gzip", parse_dates=["timestamp"])] + frames
+        ydf = (pd.concat(frames).drop_duplicates("timestamp", keep="last")
+                 .sort_values("timestamp").reset_index(drop=True))
+        ydf.to_csv(out, index=False, compression={"method": "gzip", "mtime": 0})
+        print(f"  ✅ 일 단위 보충 → {out} (마지막 {ydf['timestamp'].iloc[-1]})")
+        touched.append(out)
+    return touched
 
 
 def collect_all(symbol: str = "BTCUSDT", intervals: list = None,
