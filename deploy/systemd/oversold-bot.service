@@ -20,6 +20,12 @@
 Description=Oversold mean-reversion trading bot (Bybit)
 After=network-online.target
 Wants=network-online.target
+# 재시작 폭주 방지 — 5분에 5번 넘게 죽으면 멈추고 사람을 기다린다.
+# 계속 죽는 상황에서 무한 재시작하면 같은 주문을 반복해서 낼 수 있다.
+# [Unit]에 둬야 한다. 오라클 리눅스의 systemd는 [Service]에 두면
+# "Unknown key name" 경고를 내고 무시한다.
+StartLimitIntervalSec=300
+StartLimitBurst=5
 
 [Service]
 Type=simple
@@ -35,17 +41,13 @@ Environment=PYTHONUNBUFFERED=1
 Environment=OS_CONFIRM_LIVE=START
 ExecStart=/home/opc/caleb/.venv/bin/python -m bot.oversold.executor --live-nonint
 
-# 죽으면 다시 띄운다. 익절(볼린저 상단)은 거래소에 지정가로 걸려 있어
+# 죽으면 다시 띄운다. 익절(볼린저 상단)은 거래소에 시장가 목표 주문으로 걸려 있어
 # 봇이 꺼져도 체결되지만, **시간청산(60봉)과 2차 분할매수는 봇이 살아
 # 있어야 한다.** 상태 파일에서 복구하므로 재시작해도 보유 봉수를
 # 잃지 않는다.
 Restart=always
 RestartSec=30
 
-# 재시작 폭주 방지 — 5분에 5번 넘게 죽으면 멈추고 사람을 기다린다.
-# 계속 죽는 상황에서 무한 재시작하면 같은 주문을 반복해서 낼 수 있다.
-StartLimitIntervalSec=300
-StartLimitBurst=5
 
 # 최소 권한
 NoNewPrivileges=true
