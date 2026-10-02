@@ -301,8 +301,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
   statNums.forEach(el => countObserver.observe(el));
 
-  /* ── CONTACT FORM (Web3Forms → op@ttt3.co.kr) ── */
-  const W3F_KEY = '864a9780-df02-4040-ae0e-c595d296e613';
+  /* ── CONTACT FORM (Web3Forms → op@ttt3.co.kr + 두 번째 수신 이메일) ── */
+  const W3F_KEY  = '864a9780-df02-4040-ae0e-c595d296e613';
+  const W3F_KEY2 = '24be8da2-4295-4ef3-b5b0-006ba8cd1087';
+
+  /* 동일한 내용을 두 Access Key(=두 수신 이메일)로 각각 전송.
+     Web3Forms는 access_key 하나당 수신 이메일이 고정되어 있어
+     두 곳에 보내려면 키를 바꿔가며 두 번 제출해야 함 */
+  async function submitToW3F(buildData) {
+    const results = await Promise.allSettled(
+      [W3F_KEY, W3F_KEY2].map(key => {
+        const data = buildData();
+        data.set('access_key', key);
+        return fetch('https://api.web3forms.com/submit', {
+          method: 'POST', body: data, headers: { 'Accept': 'application/json' }
+        }).then(r => r.json());
+      })
+    );
+    /* 첫 번째(기존) 수신처 전송이 성공하면 전체 성공으로 간주 —
+       두 번째 수신처가 일시적으로 실패해도 고객 문의 자체는 정상 접수된 것으로 처리 */
+    const primary = results[0];
+    if (primary.status === 'fulfilled' && primary.value.success) return primary.value;
+    throw new Error((primary.status === 'fulfilled' && primary.value.message) || 'fail');
+  }
 
   /* 접수번호 생성: TI + 날짜(YYYYMMDD) + 랜덤 4자리 — 고객 응대 시 조회 기준점 */
   function makeReceiptNo() {
@@ -348,21 +369,18 @@ document.addEventListener('DOMContentLoaded', () => {
       msgLines.push('');
       msgLines.push('■ 접수번호: ' + receiptNo);
 
-      const data = new FormData();
-      data.append('access_key', W3F_KEY);
-      data.append('from_name', '태인종합물류 홈페이지');
-      /* 접수번호를 제목에 넣어두면 고객이 나중에 번호로 문의할 때 받은편지함 검색으로 바로 찾을 수 있음 */
-      data.append('subject', '[상담문의' + (service ? ' - ' + service : '') + '] ' + (name || '') + ' (' + receiptNo + ')');
-      data.append('name', name);
-      data.append('email', email);
-      data.append('message', msgLines.join('\n'));
+      const data = () => {
+        const d = new FormData();
+        d.append('from_name', '태인종합물류 홈페이지');
+        /* 접수번호를 제목에 넣어두면 고객이 나중에 번호로 문의할 때 받은편지함 검색으로 바로 찾을 수 있음 */
+        d.append('subject', '[상담문의' + (service ? ' - ' + service : '') + '] ' + (name || '') + ' (' + receiptNo + ')');
+        d.append('name', name);
+        d.append('email', email);
+        d.append('message', msgLines.join('\n'));
+        return d;
+      };
 
-      const resp = await fetch('https://api.web3forms.com/submit', {
-        method: 'POST',
-        body: data,
-        headers: { 'Accept': 'application/json' }
-      });
-      const json = await resp.json();
+      const json = await submitToW3F(data);
       if (json.success) {
         if (btn) { btn.textContent = '문의가 접수되었습니다 ✓'; btn.style.background = '#2e7d32'; }
         showReceiptNote(formEl, receiptNo);
@@ -413,19 +431,18 @@ document.addEventListener('DOMContentLoaded', () => {
         msgLines.push('');
         msgLines.push('■ 접수번호: ' + receiptNo);
 
-        const data = new FormData();
-        data.append('access_key', W3F_KEY);
-        data.append('from_name', '태인종합물류 홈페이지');
-        /* 접수번호를 제목에 넣어두면 고객이 나중에 번호로 문의할 때 받은편지함 검색으로 바로 찾을 수 있음 */
-        data.append('subject', '[' + typeLabel + ' 문의] ' + (company || name) + ' (' + receiptNo + ')');
-        data.append('name', name);
-        data.append('email', email);
-        data.append('message', msgLines.join('\n'));
+        const data = () => {
+          const d = new FormData();
+          d.append('from_name', '태인종합물류 홈페이지');
+          /* 접수번호를 제목에 넣어두면 고객이 나중에 번호로 문의할 때 받은편지함 검색으로 바로 찾을 수 있음 */
+          d.append('subject', '[' + typeLabel + ' 문의] ' + (company || name) + ' (' + receiptNo + ')');
+          d.append('name', name);
+          d.append('email', email);
+          d.append('message', msgLines.join('\n'));
+          return d;
+        };
 
-        const resp = await fetch('https://api.web3forms.com/submit', {
-          method: 'POST', body: data, headers: { 'Accept': 'application/json' }
-        });
-        const json = await resp.json();
+        const json = await submitToW3F(data);
         if (json.success) {
           if (btn) { btn.textContent = '문의 접수 완료 ✓'; btn.style.background = '#2e7d32'; }
           showReceiptNote(icForm, receiptNo);
