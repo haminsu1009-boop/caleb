@@ -144,7 +144,7 @@ def main():
     def bearset(N, th):
         r = (b["close"].pct_change(N) * 100); idx = r.index; v = r.values
         def f(ts):
-            i = idx.searchsorted(pd.Timestamp(ts), side="right") - 1
+            i = idx.searchsorted(pd.Timestamp(ts), side="right") - 2   # 전날 종가까지만 (그날 종가는 아직 모른다)
             return i >= 0 and not np.isnan(v[i]) and v[i] <= th
         return f
     PROX = [bearset(30, -15), bearset(60, -15), bearset(90, -20), bearset(120, -25)]

@@ -111,12 +111,12 @@ def main():
 
     btc = b.copy()
     def bear(ts):
-        i = btc.index.searchsorted(pd.Timestamp(ts), side="right") - 1
+        i = btc.index.searchsorted(pd.Timestamp(ts), side="right") - 2   # 전날 종가까지만 (그날 종가는 아직 모른다)
         if i < 60:
             return False
         return btc.iloc[i] / btc.iloc[i - 60] - 1 <= -0.15
     def bull(ts):
-        i = btc.index.searchsorted(pd.Timestamp(ts), side="right") - 1
+        i = btc.index.searchsorted(pd.Timestamp(ts), side="right") - 2   # 전날 종가까지만 (그날 종가는 아직 모른다)
         if i < 90:
             return False
         return btc.iloc[i] / btc.iloc[i - 90] - 1 >= 0.30
