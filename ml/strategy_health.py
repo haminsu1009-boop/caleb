@@ -173,6 +173,15 @@ def main():
             warn.append(f"최근 1년 결과가 과거 1년 구간 중 하위 {pct:.0f}% — 전략이 시장과 안 맞기 시작했을 수 있다")
 
     lines.append("")
+    # 매일 전략 연구(Claude 세션)가 남긴 최신 보고서의 첫 줄 "요약: ..."
+    rdir = os.path.join(ROOT, "reports", "research")
+    reps = sorted(f for f in os.listdir(rdir) if f.endswith(".md")) if os.path.isdir(rdir) else []
+    if reps:
+        first = open(os.path.join(rdir, reps[-1]), encoding="utf-8").readline().strip()
+        lines.append(f"🔬 연구 {reps[-1][5:10].replace('-', '/')}: {first.removeprefix('요약:').strip()[:120]}")
+        if (today - pd.Timestamp(reps[-1][:10])).days > 2:
+            warn.append(f"매일 연구 보고서가 {(today - pd.Timestamp(reps[-1][:10])).days}일째 없다 — 연구 세션 확인")
+        lines.append("")
     if warn:
         lines.append(f"⚠️ 확인할 것 {len(warn)}건")
         lines += [f" · {x}" for x in warn]
