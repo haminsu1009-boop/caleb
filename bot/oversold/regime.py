@@ -81,6 +81,22 @@ PATH = os.path.join(ROOT, "state", "regime.json")
 AUTO_BEAR_N, AUTO_BEAR_ON, AUTO_BEAR_OFF = 60, -15.0, -10.0
 
 
+# ── 급락 감지 (ml/crash_window.py) ────────────────────────────────────
+# BTC 4시간봉 확정 종가가 직전 24시간(6봉) 최고 종가보다 10% 이상 낮으면,
+# 그 봉 시작 시각부터 3일 동안 새 롱을 2배(증거금 비중은 같음)로 산다.
+# 하루짜리 폭락(2020-03-12, 2022-11-08)은 60일 기준이 늦게 켜져 4배로
+# 들어갔다. (2017~, 증거금 제약) 1년 손실확률 9% → 2%, 수익·낙폭 같음.
+CRASH_BARS, CRASH_DROP, CRASH_DAYS = 6, -10.0, 3
+
+
+def crash_drop(closes) -> float | None:
+    """확정 4시간봉 종가들로 직전 24시간 최고 대비 마지막 종가의 낙폭(%)."""
+    w = list(closes)[-CRASH_BARS:]
+    if len(w) < CRASH_BARS:
+        return None
+    return (w[-1] / max(w) - 1) * 100
+
+
 def auto_bear_update(prev_on: bool, r60: float) -> bool:
     """BTC 60일 수익률(%)로 자동 폭락장 상태를 갱신한다."""
     if r60 != r60:          # NaN

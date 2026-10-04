@@ -149,7 +149,7 @@ class Config:
         self.poll_seconds  = int(os.getenv("OS_POLL_SECONDS",     "300"))
 
     def describe(self) -> str:
-        return (f"배율 롱 {self.leverage:g}x(자동 폭락장 "
+        return (f"배율 롱 {self.leverage:g}x(폭락장·급락 "
                 f"{f'{self.bear_leverage:g}x' if self.bear_leverage else '판단 끔'})·숏/다이버 1x · 거래당 "
                 f"롱 {self.per_trade*100:.1f}% / 숏 {self.per_trade_short*100:.0f}% / "
                 f"다이버 {self.per_trade_div*100:.0f}% · "
@@ -1036,6 +1036,33 @@ class Trader:
         save_state(self.st)
         return on
 
+    def _update_crash_window(self, now_ms: int) -> bool:
+        """BTC 4시간봉으로 급락을 감지하고, 3일 창 안이면 True."""
+        cw = self.st.setdefault("crash", {"until": 0, "bar": 0, "drop": None})
+        if not self.cfg.bear_leverage:
+            return False
+        try:
+            rows = self.ex.klines("BTCUSDT", limit=REG.CRASH_BARS + 2)
+            last_open = int(rows[-1][0])
+            confirmed = rows[:-1] if now_ms < last_open + BAR_MS else rows
+            bar = int(confirmed[-1][0])
+            drop = REG.crash_drop([float(r[4]) for r in confirmed])
+        except Exception as e:
+            log.warning("급락 감지 실패 — 이전 상태를 쓴다: %s", e)
+            return now_ms < cw.get("until", 0)
+        if drop is not None and bar != cw.get("bar"):
+            cw["bar"] = bar
+            if drop <= REG.CRASH_DROP:
+                until = bar + REG.CRASH_DAYS * 86_400_000
+                was = now_ms < cw.get("until", 0)
+                cw.update(until=max(until, cw.get("until", 0)), drop=round(drop, 2))
+                if not was:
+                    msg = (f"⚡ BTC 급락 감지 — 24시간 최고 대비 {drop:.1f}%. "
+                           f"{REG.CRASH_DAYS}일 동안 새 롱은 {self.cfg.bear_leverage:g}배로 들어갑니다.")
+                    log.warning(msg); notify(msg)
+            save_state(self.st)
+        return now_ms < cw.get("until", 0)
+
     def tick(self):
         equity = self.ex.equity()
         can_enter = self._guard(equity)
@@ -1058,10 +1085,15 @@ class Trader:
 
         self._verify_stops(positions)
         bear_on = self._update_auto_bear()
-        long_lev = self.cfg.bear_leverage if bear_on else self.cfg.leverage
+        crash_on = self._update_crash_window(now_ms)
+        long_lev = self.cfg.bear_leverage if (bear_on or crash_on) else self.cfg.leverage
         if bear_on:
             log.info("  자동 폭락장 (BTC 60일 %+.1f%%) — 새 롱 %g배",
                      self.st["auto_bear"].get("r60") or 0, long_lev)
+        if crash_on:
+            log.info("  급락 감지 창 (%s까지) — 새 롱 %g배",
+                     datetime.fromtimestamp(self.st["crash"]["until"] / 1000, timezone.utc)
+                     .strftime("%m-%d %H시"), long_lev)
         self._daily_pass(equity, can_enter)
 
         for sym in S.SYMBOLS:
@@ -1346,6 +1378,10 @@ def status(ex, cfg) -> int:
     if ab.get("day"):
         print(f"  자동 폭락장     {'켜짐 — 새 롱 ' + format(cfg.bear_leverage, 'g') + '배' if ab.get('on') else '꺼짐'}"
               f" · BTC 60일 {ab.get('r60')}% ({ab.get('day')} 판단)")
+    cw = st.get("crash") or {}
+    if cw.get("until", 0) > time.time() * 1000:
+        print(f"  급락 감지       켜짐 — "
+              f"{datetime.fromtimestamp(cw['until'] / 1000, timezone.utc):%m-%d %H시}까지 새 롱 {cfg.bear_leverage:g}배")
     if st.get("halted_until"):
         print(f"  ⛔ 차단기 작동 중 — {st['halted_until']} 까지 신규 진입 없음")
 

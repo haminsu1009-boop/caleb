@@ -376,6 +376,18 @@ def main():
     diff = int((pd.Series(got, index=btc.index) != want).sum())
     check("자동 폭락장 판단이 백테스트와 같다", diff == 0,
           f"{len(want)}일 중 다른 날 {diff}일 · 켜진 날 {int(want.sum())}일")
+    # 급락 감지: 봇이 4시간봉마다 계산하는 낙폭이 백테스트(ml/crash_window.py)와 같은가
+    from ml.backtest_current_bot import load as load4h
+    from ml.crash_window import crash_hits
+    b4 = load4h("BTCUSDT").set_index("datetime")["close"].astype(float)
+    want_hits = set(crash_hits(b4))
+    v = b4.values; idx = b4.index
+    got_hits = {idx[i] for i in range(len(v))
+                if (d := REG.crash_drop(v[max(0, i - REG.CRASH_BARS + 1):i + 1])) is not None
+                and d <= REG.CRASH_DROP}
+    check("급락 감지가 백테스트와 같은 봉에서 켜진다", got_hits == want_hits,
+          f"{len(want_hits)}개 봉 · 차이 {len(got_hits ^ want_hits)}")
+
     from bot.oversold.executor import Config
     check("자동 폭락장 롱 배율 기본 2배", Config().bear_leverage == 2.0,
           f"OS_BEAR_LEVERAGE={Config().bear_leverage:g}")
