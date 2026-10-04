@@ -1,0 +1,36 @@
+name: 🔎 거래소 접속 가능성 점검
+
+# 왜 이 워크플로가 있나:
+#   "봇을 Claude 세션이나 GitHub Actions에서 돌릴 수 없나"에 답하려면
+#   어느 거래소가 어디서 뚫리는지 실측이 필요하다. 바이빗은 이미
+#   확인됐다 — Actions 러너가 미국 IP라 403이다(run 33994205701).
+#   나머지 거래소도 같은지 한 번에 확인한다.
+#
+#   이 파일이 바뀔 때만 돈다. 결과는 Actions 요약에 남는다.
+
+on:
+  push:
+    paths: [".github/workflows/exchange_probe.yml", "scripts/exchange_probe.py"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: 러너에서 거래소 접속 시도
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/quant-trading-bot-tkjtd
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install requests
+      - name: 러너 IP 위치
+        run: |
+          curl -s --max-time 15 https://ipinfo.io/json || echo "ipinfo 실패"
+      - name: 거래소 점검
+        run: python -u scripts/exchange_probe.py | tee -a "$GITHUB_STEP_SUMMARY"
