@@ -13,7 +13,7 @@ GitHub Actions(strategy_health.yml)가 매일 아침 데이터 수집 뒤에 부
   3. 최근 성적이 과거와 같은가 — 롱·숏·다이버별로 최근 90일·365일의
      거래 수·승률·거래당 수익을 2019년부터의 전체와 비교한다.
      과거 승률이 맞다면 최근처럼 나쁠 확률이 2% 미만일 때만 "이상"으로 본다.
-  4. 지갑 전체 — 롱 4배·숏·다이버 1배·폭락장 롱 끔으로 최근 1년을 돌린
+  4. 지갑 전체 — 롱 4배(자동 폭락장엔 2배)·숏·다이버 1배로 최근 1년을 돌린
      결과가 과거의 1년 구간들 중 몇 번째인지(하위 5%면 이상)
 
 사용법
@@ -156,8 +156,15 @@ def main():
                 lines.append(f"    ({NAME[kind]} 신호 {gap}일째 없음 · 과거 최장 {mx}일)")
 
     # ── 지갑 전체: 최근 1년이 과거 1년 구간 중 어디인가 ──
-    tr = ([t for t in L if not bear(t["dt"])] + [t for t in Sh if not bull(t["dt"])] + Dv)
-    fin, mdd, got, curve = taken(tr, PT, LV)
+    # 봇과 같은 자동 폭락장: BTC 60일 -15% 켬 / -10% 끔, 전날 종가 → 새 롱 2배
+    from ml.bear_leverage import bear_series, is_on
+    from bot.oversold import regime as REG
+    BS = bear_series(btc, REG.AUTO_BEAR_ON, REG.AUTO_BEAR_OFF, REG.AUTO_BEAR_N)
+    tr = [dict(t, kind="longb") if is_on(BS, t["dt"]) else t for t in L] + Sh + Dv
+    pt = dict(PT, longb=PT["long"]); lv = dict(LV, longb=2.0)
+    fin, mdd, got, curve = taken(tr, pt, lv)
+    if bool(BS.iloc[-1]):
+        warn.append("자동 폭락장 켜짐 — 새 롱은 2배로 들어간다")
     c = curve.resample("D").last().ffill()
     if len(c) > 400:
         yr = c.iloc[-1] / c.loc[:c.index[-1] - pd.Timedelta(days=365)].iloc[-1]
@@ -166,7 +173,7 @@ def main():
         pct = float((w < yr).mean() * 100)
         dd_now = 1 - c.iloc[-1] / c.max()
         lines.append("")
-        lines.append(f"지갑 백테스트(4배·폭락장 롱 끔): 최근 90일 {(q90-1)*100:+.0f}% · "
+        lines.append(f"지갑 백테스트(4배·폭락장 2배): 최근 90일 {(q90-1)*100:+.0f}% · "
                      f"최근 1년 {(yr-1)*100:+.0f}% (과거 1년 구간 중 하위 {pct:.0f}%)")
         lines.append(f"  2019~ {fin:.1f}배 · 최대낙폭 {mdd*100:.0f}% · 지금 고점 대비 -{dd_now*100:.0f}%")
         if pct < 5:
