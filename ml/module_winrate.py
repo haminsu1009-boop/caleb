@@ -69,8 +69,14 @@ def net(t, lev):
     return px - ROUND_TRIP - (FUNDING_PER_8H * t["bars_h"] / 8 if lev > 1 else 0)
 
 
-def taken(trades, per_trade, leverage, max_gross=0.6, cb=0.20, cool_days=30):
-    """UP.simulate와 같은 규칙으로 돌리고, 실제 체결된 거래를 돌려준다."""
+def taken(trades, per_trade, leverage, max_gross=0.6, cb=0.20, cool_days=30, mcap=0.95):
+    """UP.simulate와 같은 규칙으로 돌리고, 실제 체결된 거래를 돌려준다.
+
+    mcap — 열려 있는 증거금 합이 자본의 이 비율을 넘는 진입은 건너뛴다.
+    거래소는 잔고보다 큰 증거금 주문을 거절한다(2026-10-04 추가). 이게
+    없으면 숏·다이버(각 40%, 1배)와 롱이 겹칠 때 증거금이 자본의 120%를
+    넘는 불가능한 상태를 허용해 결과가 부풀려졌다. None이면 끈다(옛 결과 재현용).
+    """
     cash = peak = 1.0; mdd = 0.0; open_ = []; halted = None; held = set(); got = []
     curve = {}
     ts = sorted(trades, key=lambda x: x["dt"])
@@ -80,11 +86,11 @@ def taken(trades, per_trade, leverage, max_gross=0.6, cb=0.20, cool_days=30):
         while di < len(days) and days[di] <= now:
             curve[days[di]] = cash; di += 1
         keep = []
-        for ex, res, pl, sym in open_:
+        for ex, res, pl, sym, mar in open_:
             if ex <= now:
                 cash += pl; held.discard(sym)
             else:
-                keep.append((ex, res, pl, sym))
+                keep.append((ex, res, pl, sym, mar))
         open_ = keep
         if cash <= 1e-9:
             return 0.0, 1.0, got, pd.Series(curve)
@@ -98,14 +104,16 @@ def taken(trades, per_trade, leverage, max_gross=0.6, cb=0.20, cool_days=30):
         if t["sym"] in held:
             continue
         lev = leverage[k]; m = per_trade[k] * cash; reserved = m * lev
-        if sum(r for _, r, _, _ in open_) + reserved > max_gross * cash * max(leverage.values()):
+        if sum(o[1] for o in open_) + reserved > max_gross * cash * max(leverage.values()):
+            continue
+        if mcap is not None and sum(o[4] for o in open_) + m > mcap * cash:
             continue
         n_ = net(t, lev)
         pl = max(m * t["deployed"] * lev * n_ / 100, -m * t["deployed"])
-        open_.append((t["exit"], reserved, pl, t["sym"])); held.add(t["sym"])
+        open_.append((t["exit"], reserved, pl, t["sym"], m)); held.add(t["sym"])
         got.append((k, n_, pl / cash * 100))
-    for _, _, pl, _ in open_:
-        cash += pl
+    for o in open_:
+        cash += o[2]
     return cash, mdd, got, pd.Series(curve)
 
 
