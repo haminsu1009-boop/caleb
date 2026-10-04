@@ -125,6 +125,8 @@ class Config:
         # 전체 수익과 1년 중앙값(1.53→1.62배)은 오히려 올라간다.
         # 대가는 홀드아웃 13.68 → 9.94배다.
         self.max_gross     = float(os.getenv("OS_MAX_GROSS",      "0.6"))
+        # 자동 폭락장(BTC 60일 -15%)일 때 롱 배율. 0이면 자동 판단을 끈다.
+        self.bear_leverage = float(os.getenv("OS_BEAR_LEVERAGE",  "2"))
         # 모듈별 거래당 자본 비중. 숏·다이버는 연 2.6건·7.4건뿐이라
         # 크게 싣는다 — 작게 실으면 대부분의 시간 그 자본이 논다.
         # ml/unified_pool.py 의 3,456조합 탐색에서 나온 값이다.
@@ -147,7 +149,8 @@ class Config:
         self.poll_seconds  = int(os.getenv("OS_POLL_SECONDS",     "300"))
 
     def describe(self) -> str:
-        return (f"배율 롱 {self.leverage:g}x·숏/다이버 1x · 거래당 "
+        return (f"배율 롱 {self.leverage:g}x(자동 폭락장 "
+                f"{f'{self.bear_leverage:g}x' if self.bear_leverage else '판단 끔'})·숏/다이버 1x · 거래당 "
                 f"롱 {self.per_trade*100:.1f}% / 숏 {self.per_trade_short*100:.0f}% / "
                 f"다이버 {self.per_trade_div*100:.0f}% · "
                 f"총노출 상한 {self.max_gross*100:.0f}%×배율 · "
@@ -1006,6 +1009,33 @@ class Trader:
                           sym, f"{have_tp:.6g}" if have_tp > 0 else "없음", want_tp)
             self.ex.set_stop(sym, want, take_profit=want_tp)
 
+    def _update_auto_bear(self) -> bool:
+        """하루 한 번 BTC 일봉으로 자동 폭락장 상태를 갱신하고 돌려준다."""
+        ab = self.st.setdefault("auto_bear", {"on": False, "day": "", "r60": None})
+        if not self.cfg.bear_leverage:
+            return False
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        if ab.get("day") == today:
+            return bool(ab.get("on"))
+        try:
+            d = self.ex.daily("BTCUSDT", limit=REG.AUTO_BEAR_N + 10)   # 확정봉만 (어제 종가까지)
+            c = d["close"].values
+            if len(c) <= REG.AUTO_BEAR_N:
+                return bool(ab.get("on"))
+            r60 = (c[-1] / c[-1 - REG.AUTO_BEAR_N] - 1) * 100
+        except Exception as e:
+            log.warning("자동 폭락장 판단 실패 — 어제 상태를 쓴다: %s", e)
+            return bool(ab.get("on"))
+        prev = bool(ab.get("on"))
+        on = REG.auto_bear_update(prev, r60)
+        ab.update(on=on, day=today, r60=round(float(r60), 2))
+        if on != prev:
+            msg = (f"⚠️ 자동 폭락장 진입 — BTC 60일 {r60:+.1f}%. 새 롱은 {self.cfg.bear_leverage:g}배로 들어갑니다."
+                   if on else f"✅ 자동 폭락장 해제 — BTC 60일 {r60:+.1f}%. 새 롱은 다시 {self.cfg.leverage:g}배.")
+            log.warning(msg); notify(msg)
+        save_state(self.st)
+        return on
+
     def tick(self):
         equity = self.ex.equity()
         can_enter = self._guard(equity)
@@ -1027,6 +1057,11 @@ class Trader:
                  "진입 가능" if can_enter else "진입 중단")
 
         self._verify_stops(positions)
+        bear_on = self._update_auto_bear()
+        long_lev = self.cfg.bear_leverage if bear_on else self.cfg.leverage
+        if bear_on:
+            log.info("  자동 폭락장 (BTC 60일 %+.1f%%) — 새 롱 %g배",
+                     self.st["auto_bear"].get("r60") or 0, long_lev)
         self._daily_pass(equity, can_enter)
 
         for sym in S.SYMBOLS:
@@ -1107,7 +1142,7 @@ class Trader:
                                             * self.cfg.leverage)):
                     gross += equity * self.cfg.per_trade_crash
                 continue
-            full_notional = equity * self.cfg.per_trade * self.cfg.leverage
+            full_notional = equity * self.cfg.per_trade * long_lev
             cap = equity * self.cfg.max_gross * self.cfg.leverage
             if gross + full_notional > cap:
                 log.info("  신호 %s (%.1f%%) — 총노출 상한 초과로 건너뜀", sym, sig.vs_ma20)
@@ -1124,12 +1159,12 @@ class Trader:
             log.info("🔔 신호 %s  종가 %.6g  20MA대비 %.1f%%  →  1차 진입 %.6g USDT (%.4g개)"
                      "  · 2차 트리거 %.6g%s", sym, sig.close, sig.vs_ma20, notional1, qty1, trigger,
                      f"  · 목표 {tp1:.6g}" if tp1 else "  · 목표 없음(상단이 진입가 아래)")
-            self.ex.set_leverage(sym, self.cfg.leverage)
-            if not self.ex.set_isolated(sym, self.cfg.leverage):
+            self.ex.set_leverage(sym, long_lev)
+            if not self.ex.set_isolated(sym, long_lev):
                 log.error("  %s 격리마진 전환 실패 — 진입을 건너뜁니다", sym)
                 continue
             if self.ex.open_long(sym, qty1, stop1, take_profit=tp1):
-                positions[sym] = {"qty": qty1, "entry": price, "stop": stop1,
+                positions[sym] = {"qty": qty1, "entry": price, "stop": stop1, "lev": long_lev,
                                   "tp": tp1,
                                   "entry_bar": bar_time, "tranche": 1,
                                   "notional": notional1, "reserved": full_notional,
@@ -1307,6 +1342,10 @@ def status(ex, cfg) -> int:
     peak = st.get("peak_equity") or eq
     print(f"\n  자본            {eq:,.2f} USDT · 고점 {peak:,.2f} · 낙폭 {max(0, 1 - eq / peak) * 100:.1f}%")
     print(f"  {REG.describe()}")
+    ab = st.get("auto_bear") or {}
+    if ab.get("day"):
+        print(f"  자동 폭락장     {'켜짐 — 새 롱 ' + format(cfg.bear_leverage, 'g') + '배' if ab.get('on') else '꺼짐'}"
+              f" · BTC 60일 {ab.get('r60')}% ({ab.get('day')} 판단)")
     if st.get("halted_until"):
         print(f"  ⛔ 차단기 작동 중 — {st['halted_until']} 까지 신규 진입 없음")
 

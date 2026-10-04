@@ -71,6 +71,26 @@ _ENABLED = {
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 PATH = os.path.join(ROOT, "state", "regime.json")
 
+# ── 자동 폭락장 (ml/bear_leverage.py) ─────────────────────────────────
+# 사람이 켜는 bear(롱 끔)와 별개로, 봇이 매일 BTC를 보고 판단한다.
+# BTC 60일 수익률이 -15% 이하면 켜고, -10%를 넘으면 끈다(경계선에서
+# 하루마다 켜졌다 꺼지는 것을 막는다). 전날까지 확정된 일봉 종가만 쓴다.
+# 켜지면 롱을 끄지 않고 **배율만 2배로** 낮춘다 — 폭락장에서도 과매도
+# 롱은 평균 플러스이고, 문제는 4배 청산(-24.5%)이었다. 2배면 -49.5%.
+#   (2017~, 증거금 제약 포함)  끔 21배·1년손실 24% → 2배 36배·9%, 낙폭 21% 같음
+AUTO_BEAR_N, AUTO_BEAR_ON, AUTO_BEAR_OFF = 60, -15.0, -10.0
+
+
+def auto_bear_update(prev_on: bool, r60: float) -> bool:
+    """BTC 60일 수익률(%)로 자동 폭락장 상태를 갱신한다."""
+    if r60 != r60:          # NaN
+        return prev_on
+    if not prev_on and r60 <= AUTO_BEAR_ON:
+        return True
+    if prev_on and r60 > AUTO_BEAR_OFF:
+        return False
+    return prev_on
+
 
 def read() -> dict:
     """매 틱 새로 읽는다. 봇을 멈추지 않고 바꿀 수 있도록."""

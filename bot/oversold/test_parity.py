@@ -362,6 +362,24 @@ def main():
           and "global STATE_PATH" in src,
           f"{os.path.basename(EX.STATE_PATH)} / {os.path.basename(EX.LIVE_STATE_PATH)}")
 
+    # 자동 폭락장: 봇의 판단이 백테스트(ml/bear_leverage.py)와 같은 날 켜지고 꺼지는가
+    from bot.oversold import regime as REG
+    import ml.short_setups as SS
+    from ml.bear_leverage import bear_series
+    btc = SS.load_daily("BTCUSDT").set_index("dt")["close"]
+    want = bear_series(btc, REG.AUTO_BEAR_ON, REG.AUTO_BEAR_OFF, REG.AUTO_BEAR_N)
+    r = (btc / btc.shift(REG.AUTO_BEAR_N) - 1) * 100
+    on, got = False, []
+    for v in r.values:
+        on = REG.auto_bear_update(on, float(v))
+        got.append(on)
+    diff = int((pd.Series(got, index=btc.index) != want).sum())
+    check("자동 폭락장 판단이 백테스트와 같다", diff == 0,
+          f"{len(want)}일 중 다른 날 {diff}일 · 켜진 날 {int(want.sum())}일")
+    from bot.oversold.executor import Config
+    check("자동 폭락장 롱 배율 기본 2배", Config().bear_leverage == 2.0,
+          f"OS_BEAR_LEVERAGE={Config().bear_leverage:g}")
+
     print("=" * 84)
     print(f"  {'✅ 전부 통과' if FAILED == 0 else f'❌ {FAILED}건 실패'}")
     print("=" * 84)

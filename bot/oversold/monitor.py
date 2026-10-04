@@ -239,6 +239,9 @@ def summary(ex, m: dict, st: dict) -> str:
              f"자본 {eq:,.2f} USDT" + (f" ({' · '.join(chg)})" if chg else "")]
     peak = max(st.get("peak_equity") or 0, eq)
     lines.append(f"고점 대비 {-(1 - eq/peak)*100 if peak else 0:.1f}% · {REG.describe()}")
+    ab = st.get("auto_bear") or {}
+    if ab.get("day"):
+        lines.append(f"자동 폭락장 {'켜짐 (새 롱 낮은 배율)' if ab.get('on') else '꺼짐'} · BTC 60일 {ab.get('r60')}%")
     lines.append(f"보유: 롱 {len(st.get('positions', {}))} · 숏/다이버 {len(st.get('mod_positions', {}))}")
     day = int((now - timedelta(days=1)).timestamp() * 1000)
     wk = int((now - timedelta(days=7)).timestamp() * 1000)
