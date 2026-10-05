@@ -63,3 +63,27 @@ jobs:
             git pull --rebase origin claude/quant-trading-bot-tkjtd && \
             git push origin HEAD:claude/quant-trading-bot-tkjtd && break || sleep $((i*6))
           done
+
+  notify:
+    name: "텔레그램 알림"
+    needs: [core]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/quant-trading-bot-tkjtd
+          fetch-depth: 300
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install pandas numpy requests
+      - name: 알림
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          RESULT: ${{ (needs.core.result == 'success') && 'success' || 'failure' }}
+        run: |
+          git pull -q origin claude/quant-trading-bot-tkjtd || true
+          python tools/tg_notify.py data --workflow "🕐 코인 핵심 6종 일일 갱신" --result "$RESULT" --hours 2
