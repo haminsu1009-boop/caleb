@@ -1,5 +1,2 @@
-# 쇼피 자동화 — 토큰·결과물은 저장소에 올리지 않음
-shopee/.tokens.json
-shopee/output/
 __pycache__/
 .pytest_cache/
