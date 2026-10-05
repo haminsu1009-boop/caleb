@@ -171,6 +171,36 @@ def collect_closed(ex, m: dict) -> list:
 
 
 # ── 판정 ────────────────────────────────────────────────────────────────
+def summarize_errors(log: str) -> list:
+    """로그에서 경고·오류를 뽑는다. Traceback은 제목 대신 마지막 줄(실제
+    원인, 예: "KeyError: 'x'")과 그 직전 코드 위치를 보여 준다."""
+    lines = log.splitlines()
+    out, i = [], 0
+    while i < len(lines):
+        l = lines[i]
+        if "Traceback" in l:
+            j = i + 1
+            where = ""
+            while j < len(lines) and (lines[j].startswith((" ", "\t")) or not lines[j].strip()):
+                if lines[j].strip().startswith("File "):
+                    where = lines[j].strip()
+                j += 1
+            cause = lines[j].strip() if j < len(lines) else "(원인 줄 없음)"
+            loc = ""
+            if where:
+                import re as _re
+                m = _re.search(r'File ".*?([^/]+)", line (\d+), in (\S+)', where)
+                if m:
+                    loc = f" @ {m.group(1)}:{m.group(2)} {m.group(3)}"
+            out.append(f"💥 {cause[:140]}{loc}")
+            i = j + 1
+            continue
+        if any(k in l for k in ("ERROR", "⚠️")) and "최소주문량 미달" not in l:
+            out.append(l.strip())
+        i += 1
+    return out
+
+
 def checks(ex, m: dict, st: dict) -> list:
     """(키, 메시지) 목록. 키가 같으면 12시간 안에 다시 보내지 않는다."""
     out = []
@@ -183,9 +213,7 @@ def checks(ex, m: dict, st: dict) -> list:
             out.append(("stall", "⏸ 30분 넘게 점검 기록이 없습니다. 봇이 멈춰 있을 수 있어요.\n"
                                  f"journalctl -u {SERVICE} -n 50 --no-pager"))
     log1 = sh(["journalctl", "-u", SERVICE, "--since", "-1h", "-o", "cat", "--no-pager"])
-    errs = [l.strip() for l in log1.splitlines()
-            if any(k in l for k in ("ERROR", "Traceback", "⚠️"))
-            and "최소주문량 미달" not in l]
+    errs = summarize_errors(log1)
     if errs:
         out.append(("err", f"⚠️ 최근 1시간 경고 {len(errs)}건\n" + "\n".join(e[:120] for e in errs[-3:])))
 
