@@ -1,0 +1,33 @@
+name: 📨 데이터 수집 알림
+
+# 가격 데이터 수집 워크플로가 끝나면 무엇이 갱신됐는지 텔레그램으로 보낸다.
+# (tools/tg_notify.py data — 비밀값 TG_BOT_TOKEN · TG_CHAT_ID)
+
+on:
+  workflow_run:
+    workflows:
+      - "🕐 코인 핵심 6종 일일 갱신 (4h+1d)"
+      - "🪙 코인 확장 수집 (40종 + 펀딩비)"
+    types: [completed]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/quant-trading-bot-tkjtd
+          fetch-depth: 200
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install pandas numpy requests
+      - name: 알림
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          WF_NAME: ${{ github.event.workflow_run.name }}
+          WF_RESULT: ${{ github.event.workflow_run.conclusion }}
+        run: python tools/tg_notify.py data --workflow "$WF_NAME" --result "$WF_RESULT" --hours 3
