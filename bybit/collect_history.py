@@ -58,7 +58,25 @@ SYMBOL_START_YEAR = {
     "AXSUSDT":  2020, "THETAUSDT":2019, "EOSUSDT": 2018, "XLMUSDT":  2018,
     "IOTAUSDT": 2018, "NEOUSDT":  2017, "QNTUSDT": 2021, "RUNEUSDT": 2020,
     "FTMUSDT":  2019, "EGLDUSDT": 2020, "FLOWUSDT":2021, "CHZUSDT":  2019,
+    # ── 확장 후보 (2026-10-05) ─────────────────────────────────
+    # 실거래 42종에 넣을지 검토하려고 받는다. 아직 봇은 거래하지 않는다.
+    # 기준: 바이낸스 현물 2023년 이전 상장(검증구간 2024~ 전에 1년 이상)
+    # · 바이빗 USDT 무기한이 같은 티커 · 이름이 바뀌지 않음.
+    # 성적을 보고 고른 게 아니다 — 평가는 ml/universe_expand.py 가
+    # "후보 전부를 한꺼번에 넣었을 때" 지갑 결과로 한다.
+    **{s: y for s, y in {
+        "BCHUSDT": 2019, "LDOUSDT": 2022, "FETUSDT": 2019, "STXUSDT": 2021,
+        "IMXUSDT": 2022, "CRVUSDT": 2020, "COMPUSDT": 2020, "KAVAUSDT": 2019,
+        "KSMUSDT": 2020, "SUSHIUSDT": 2020, "1INCHUSDT": 2020, "ENSUSDT": 2021,
+        "GALAUSDT": 2021, "APEUSDT": 2022, "DYDXUSDT": 2021, "ARUSDT": 2021,
+        "ZECUSDT": 2019, "DASHUSDT": 2019, "ORDIUSDT": 2023, "WLDUSDT": 2023,
+        "PENDLEUSDT": 2023, "JTOUSDT": 2023,
+    }.items()},
 }
+CANDIDATE_SYMBOLS = ["BCHUSDT", "LDOUSDT", "FETUSDT", "STXUSDT", "IMXUSDT", "CRVUSDT",
+                     "COMPUSDT", "KAVAUSDT", "KSMUSDT", "SUSHIUSDT", "1INCHUSDT", "ENSUSDT",
+                     "GALAUSDT", "APEUSDT", "DYDXUSDT", "ARUSDT", "ZECUSDT", "DASHUSDT",
+                     "ORDIUSDT", "WLDUSDT", "PENDLEUSDT", "JTOUSDT"]
 
 # 확장 검증용 심볼 목록 (기존 6종 제외)
 EXTENDED_SYMBOLS = [s for s in SYMBOL_START_YEAR

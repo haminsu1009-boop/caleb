@@ -83,6 +83,10 @@ def data_report(workflow: str, result: str, hours: int) -> str:
             lines.append(f"42종 4시간봉: {newest:%m/%d %H시}까지 ({len(last)}종)")
             if stale:
                 lines.append(f"⚠️ 갱신 늦은 종목 {len(stale)}개: {', '.join(stale[:8])}")
+        sys.path.insert(0, os.path.join(ROOT, "bybit"))
+        from collect_history import CANDIDATE_SYMBOLS
+        got = [c for c in CANDIDATE_SYMBOLS if os.path.exists(os.path.join(ROOT, "data", f"{c}_4h_all.csv.gz"))]
+        lines.append(f"확장 후보: {len(got)}/{len(CANDIDATE_SYMBOLS)}종 수집됨 (아직 거래 안 함)")
     except Exception as e:
         lines.append(f"(가격 데이터 확인 실패: {e})")
     return "\n".join(lines)
