@@ -195,7 +195,7 @@ def summarize_errors(log: str) -> list:
             out.append(f"💥 {cause[:140]}{loc}")
             i = j + 1
             continue
-        if any(k in l for k in ("ERROR", "⚠️")) and "최소주문량 미달" not in l:
+        if any(k in l for k in ("ERROR", "⚠️", "응답 지연")) and "최소주문량 미달" not in l:
             out.append(l.strip())
         i += 1
     return out
@@ -214,6 +214,12 @@ def checks(ex, m: dict, st: dict) -> list:
                                  f"journalctl -u {SERVICE} -n 50 --no-pager"))
     log1 = sh(["journalctl", "-u", SERVICE, "--since", "-1h", "-o", "cat", "--no-pager"])
     errs = summarize_errors(log1)
+    # 바이빗 응답 지연은 한두 번은 흔하다. 한 시간에 5번 이상일 때만 알린다.
+    blips = [e for e in errs if "응답 지연" in e]
+    errs = [e for e in errs if "응답 지연" not in e]
+    if len(blips) >= 5:
+        out.append(("net", f"🌐 바이빗 연결 불안정 — 최근 1시간 응답 지연 {len(blips)}번.\n"
+                           "계속되면 서버 네트워크나 바이빗 상태를 확인하세요."))
     if errs:
         out.append(("err", f"⚠️ 최근 1시간 경고 {len(errs)}건\n" + "\n".join(e[:120] for e in errs[-3:])))
 

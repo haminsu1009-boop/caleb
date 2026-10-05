@@ -1609,6 +1609,19 @@ def smoke_test(ex, cfg, symbols) -> int:
     return 1 if bad else 0
 
 
+
+def _is_network_blip(e: Exception) -> bool:
+    """일시적인 네트워크 문제인가 (응답 지연·연결 끊김·5xx)."""
+    try:
+        import requests
+        if isinstance(e, (requests.exceptions.Timeout, requests.exceptions.ConnectionError)):
+            return True
+    except Exception:
+        pass
+    msg = str(e)
+    return any(k in msg for k in ("timed out", "Read timed out", "Connection aborted",
+                                  "RemoteDisconnected", "502", "503", "504"))
+
 def main():
     global STATE_PATH
     ap = argparse.ArgumentParser()
@@ -1765,7 +1778,13 @@ def main():
                   "(--close-all 로 청산 가능).")
             return
         except Exception as e:
-            log.exception("점검 중 오류: %s", e)
+            if _is_network_blip(e):
+                # 바이빗 응답 지연·연결 끊김은 흔하고 다음 점검에서 풀린다.
+                # 스택 전체를 찍으면 감시가 오류로 보고 알린다 — 한 줄만 남긴다.
+                log.warning("바이빗 응답 지연 — 이번 점검 건너뜀, 다음 점검에 다시: %s",
+                            type(e).__name__)
+            else:
+                log.exception("점검 중 오류: %s", e)
         if a.once:
             return
         time.sleep(cfg.poll_seconds)
