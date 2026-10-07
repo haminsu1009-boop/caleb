@@ -301,16 +301,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   statNums.forEach(el => countObserver.observe(el));
 
-  /* ── CONTACT FORM (Web3Forms → op@ttt3.co.kr + 두 번째 수신 이메일) ── */
+  /* ── CONTACT FORM (Web3Forms → 기본 이메일 + 두 번째·세 번째 수신 이메일) ── */
   const W3F_KEY  = '864a9780-df02-4040-ae0e-c595d296e613';
   const W3F_KEY2 = '24be8da2-4295-4ef3-b5b0-006ba8cd1087';
+  const W3F_KEY3 = '42f5eb80-3c26-409e-adef-0b55ddcb454c';
 
-  /* 동일한 내용을 두 Access Key(=두 수신 이메일)로 각각 전송.
+  /* 동일한 내용을 세 Access Key(=세 수신 이메일)로 각각 전송.
      Web3Forms는 access_key 하나당 수신 이메일이 고정되어 있어
-     두 곳에 보내려면 키를 바꿔가며 두 번 제출해야 함 */
+     여러 곳에 보내려면 키를 바꿔가며 여러 번 제출해야 함 */
   async function submitToW3F(buildData) {
     const results = await Promise.allSettled(
-      [W3F_KEY, W3F_KEY2].map(key => {
+      [W3F_KEY, W3F_KEY2, W3F_KEY3].map(key => {
         const data = buildData();
         data.set('access_key', key);
         return fetch('https://api.web3forms.com/submit', {
