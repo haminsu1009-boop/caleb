@@ -652,7 +652,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </span>
         </button>
         <div class="chat-choice-divider"></div>
-        <a href="https://pf.kakao.com/_taeinlogistics" target="_blank" rel="noopener" class="chat-choice-item" id="choiceKakao">
+        <a href="https://pf.kakao.com/_DglFX/chat" target="_blank" rel="noopener" class="chat-choice-item" id="choiceKakao">
           <span class="chat-choice-icon chat-choice-kakao-icon">
             <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M12 2C6.48 2 2 5.86 2 10.6c0 3.04 1.87 5.72 4.72 7.29L5.6 22l5.02-2.64c.45.06.9.09 1.38.09 5.52 0 10-3.86 10-8.6S17.52 2 12 2z"/></svg>
           </span>
