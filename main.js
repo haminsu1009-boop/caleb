@@ -307,7 +307,8 @@ document.addEventListener('DOMContentLoaded', () => {
     '24be8da2-4295-4ef3-b5b0-006ba8cd1087',
     '42f5eb80-3c26-409e-adef-0b55ddcb454c',
     '9bdd3954-14ee-40a8-9bf1-40ee0062b227',
-    'b6b2e3ab-fe85-469d-aa77-f601afe0bc18'
+    'b6b2e3ab-fe85-469d-aa77-f601afe0bc18',
+    '5f0c9610-e808-42cd-928f-077e7e264777'
   ];
 
   /* 동일한 내용을 위 Access Key(=수신 이메일) 각각으로 전송.
