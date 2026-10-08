@@ -1,8 +1,11 @@
-name: 🪙 코인 확장 수집 (40종 + 펀딩비)
+name: 🪙 코인 수집 (42종 전부 + 후보 + 펀딩비)
 
 # 목적
 #   1) MA롱온리 전략을 처음 보는 40개 심볼에서 재검증하기 위한 OHLCV
 #   2) 지금 백테스트가 무시하고 있는 펀딩비 (추세추종은 몇 주씩 보유)
+#
+#   3) (2026-10-08) 핵심 6종(BTC·ETH·BNB·SOL·XRP·ADA)도 여기서 같이 받는다.
+#      collect_core_daily.yml 과 따로 돌아 알림이 두 번 왔다 — 하나로 합쳤다.
 #
 # 데이터 출처는 data.binance.vision 정적 아카이브 — API 키 불필요,
 # 지역 차단 없음. api.binance.com은 미국 러너에서 451을 반환하므로 안 쓴다.
@@ -70,9 +73,11 @@ jobs:
           import subprocess, sys
           sys.path.insert(0, ".")
           from bybit.collect_history import EXTENDED_SYMBOLS
+          CORE = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "ADAUSDT"]
+          ALL = CORE + [s for s in EXTENDED_SYMBOLS if s not in CORE]
 
           group = int("${{ matrix.group }}")
-          mine = EXTENDED_SYMBOLS[group::5]
+          mine = ALL[group::5]
           intervals = "${{ github.event.inputs.intervals || '1d 4h' }}".split()
           print(f"그룹 {group}: {len(mine)}종 x {intervals}")
           for s in mine:
@@ -174,4 +179,4 @@ jobs:
           RESULT: ${{ (needs.ohlcv.result == 'success' && needs.funding.result == 'success') && 'success' || 'failure' }}
         run: |
           git pull -q origin claude/quant-trading-bot-tkjtd || true
-          python tools/tg_notify.py data --workflow "🪙 코인 확장 수집 (40종 + 펀딩비)" --result "$RESULT" --hours 2
+          python tools/tg_notify.py data --workflow "🪙 코인 수집 (42종 전부 + 후보)" --result "$RESULT" --hours 2
