@@ -303,7 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* ── CONTACT FORM (Web3Forms → 아래 수신 이메일들로 동시 발송) ── */
   const W3F_KEYS = [
-    '864a9780-df02-4040-ae0e-c595d296e613',
+    // '864a9780-df02-4040-ae0e-c595d296e613', // op@ttt3.co.kr — 요청으로 임시 중지 (재개 시 주석 해제)
     '24be8da2-4295-4ef3-b5b0-006ba8cd1087',
     '42f5eb80-3c26-409e-adef-0b55ddcb454c',
     '9bdd3954-14ee-40a8-9bf1-40ee0062b227',
