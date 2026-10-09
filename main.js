@@ -1044,6 +1044,11 @@ document.addEventListener('DOMContentLoaded', () => {
         /* ── 문의 (인덱스) ── */
         'contact.title':'언제든지 문의하세요',
         'contact.desc':'물류 관련 궁금한 사항이나 견적 문의는 전화 또는 온라인으로 남겨주시면 빠르게 연락드리겠습니다.',
+        'contact.hq.tag':'본사 · SEOUL','contact.branch.tag':'지사 · BUSAN',
+        'hours.weekday':'평일 09:00 ~ 18:00',
+        'contact.cta.label':'온라인 견적 문의',
+        'contact.cta.title':'빠른 견적이<br/>필요하신가요?',
+        'contact.cta.desc':'전문 상담원이 최적의 물류<br/>솔루션을 제안해드립니다.',
         'form.title':'견적 및 상담 문의','form.subtitle':'아래 양식을 작성해 주시면 담당자가 빠르게 연락드리겠습니다.',
         'form.name':'이름/회사명 *','form.phone':'연락처 *','form.email':'이메일 *',
         'form.service':'문의 서비스','form.message':'문의 내용 *','form.submit':'문의 보내기',
@@ -1349,6 +1354,11 @@ document.addEventListener('DOMContentLoaded', () => {
         /* ── Contact ── */
         'contact.title':'Contact Us Anytime',
         'contact.desc':'For logistics inquiries or quotation requests, contact us by phone or online and we will respond promptly.',
+        'contact.hq.tag':'HQ · SEOUL','contact.branch.tag':'Branch · BUSAN',
+        'hours.weekday':'Weekdays 09:00 - 18:00',
+        'contact.cta.label':'Online Quote Inquiry',
+        'contact.cta.title':'Need a Quick<br/>Quote?',
+        'contact.cta.desc':'Our experts will recommend<br/>the best logistics solution.',
         'form.title':'Inquiry & Consultation','form.subtitle':'Fill in the form below and our team will get back to you quickly.',
         'form.name':'Name / Company *','form.phone':'Phone *','form.email':'Email *',
         'form.service':'Service Type','form.message':'Message *','form.submit':'Send Inquiry',
