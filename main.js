@@ -1052,7 +1052,43 @@ document.addEventListener('DOMContentLoaded', () => {
         'form.title':'견적 및 상담 문의','form.subtitle':'아래 양식을 작성해 주시면 담당자가 빠르게 연락드리겠습니다.',
         'form.name':'이름/회사명 *','form.phone':'연락처 *','form.email':'이메일 *',
         'form.service':'문의 서비스','form.message':'문의 내용 *','form.submit':'문의 보내기',
+        'form.name.ph':'이름 또는 회사명',
+        'form.service.select':'서비스를 선택하세요',
+        'form.service.sea.fcl':'해상운송 (FCL)','form.service.sea.lcl':'해상운송 (LCL)','form.service.air':'항공운송','form.service.land':'육상운송','form.service.customs':'통관/포워딩','form.service.solution':'물류 솔루션','form.service.other':'기타',
+        'form.message.ph':'출발지, 도착지, 화물 정보 등을 함께 입력해 주시면 빠른 견적 안내가 가능합니다.',
+        'form.agree.html':'개인정보 수집·이용에 동의합니다. <a href="privacy.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">[내용보기]</a>',
+        'inquiry.notice.text':'견적 정보가 자동으로 입력되었습니다. 이메일 주소와 추가 문의사항만 입력해 주세요.',
         'estimate.title':'빠른 견적 문의','estimate.desc':'출발지·도착지·화물 정보를 입력하시면 담당자가 빠르게 안내해 드립니다.',
+        /* ── 신뢰 지표(통계) ── */
+        'stat.years.unit':'년+','stat.countries.unit':'개국+','stat.company.unit':'개사+',
+        'stat.years.label':'물류 전문 역사','stat.countries.label':'글로벌 파트너십',
+        'stat.partners.label':'해외 파트너','stat.clients.label':'주요 거래처',
+        /* ── 빠른 견적 탭 (q-*) ── */
+        'q.tab.fcl':'해운 FCL','q.tab.lcl':'해운 LCL','q.tab.air':'항공','q.tab.land':'육상',
+        'q.label.from':'출발지','q.label.to':'도착지','q.label.from.air':'출발 공항','q.label.to.air':'도착 공항',
+        'q.placeholder.port':'항구 선택 또는 직접 입력','q.placeholder.airport':'공항 선택 또는 직접 입력','q.placeholder.region':'지역 선택 또는 직접 입력',
+        'q.btn.list':'목록 ▾',
+        'q.label.qty':'수량','q.label.container':'컨테이너','q.opt.selectType':'종류 선택',
+        'q.optgroup.general':'일반 (GP/HC)','q.optgroup.flatrack':'플랫랙 (FR)','q.optgroup.opentop':'오픈탑 (OT)','q.optgroup.reefer':'냉동 (RF)','q.optgroup.special':'특수',
+        'q.opt.dangerous.container':'위험물 컨테이너','q.opt.other.special':'기타 특수컨',
+        'q.label.goods':'물품명 / HS CODE','q.optional':'(선택사항)','q.placeholder.goods':'예: 기계부품 / 8479.89',
+        'q.label.incoterms':'인코텀즈','q.opt.selectIncoterms':'선택 (선택사항)',
+        'q.label.weight':'화물 중량','q.placeholder.weight.lcl':'예: 500 kg / 2 CBM','q.placeholder.weight.air':'예: 100 kg','q.placeholder.weight.land':'예: 500 kg',
+        'q.label.size':'사이즈','q.placeholder.size.lcl':'예: 120×100×100 cm','q.placeholder.size.air':'예: 60×40×40 cm','q.placeholder.size.land':'예: 200×150×120 cm',
+        'q.label.volume':'용적','q.placeholder.volume':'예: 3.6 CBM',
+        'q.label.cargoType':'화물 종류','q.opt.general.cargo':'일반 화물','q.opt.large.cargo':'대형 화물','q.opt.frozen':'냉동/냉장','q.opt.dangerous':'위험물','q.opt.special.cargo':'특수화물','q.opt.other':'기타',
+        'q.submit':'견적 문의하기 →',
+        /* ── 인라인 견적 신청 패널 (ic-*) ── */
+        'ic.title':'간단한 개인정보 입력 후,<br/>즉시 견적 확인 가능합니다.',
+        'ic.required':'* 체크된 항목은 필수입력항목입니다.',
+        'ic.name.ph':'이름 *','ic.email.ph':'이메일 *','ic.phone.ph':'연락처 *','ic.company.ph':'회사명 *','ic.note.ph':'기타 문의사항 (선택사항)',
+        'ic.consent.notice':'아래 링크를 눌러 내용을 주의깊게 읽으세요. 체크박스를 선택하면, 다음 항목을 모두 읽고 동의한 것으로 간주합니다.',
+        'ic.agreeAll':'모두 동의하기',
+        'ic.terms.html':'<a href="terms.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">이용약관</a>에 동의합니다.<em>(필수)</em>',
+        'ic.privacy.html':'<a href="privacy.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">개인정보 수집 및 이용</a>에 동의합니다.<em>(필수)</em>',
+        'ic.age.html':'만 14세 이상임을 확인하고 동의합니다.<em>(필수)</em>',
+        'ic.marketing.html':'<a href="privacy.html#marketing" target="_blank" rel="noopener" onclick="event.stopPropagation()">마케팅 활용</a>에 동의합니다.<em class="opt">(선택)</em>',
+        'ic.submit':'견적 문의하기',
         /* ── 페이지 헤더 레이블 ── */
         'page.ceo.label':'CEO GREETING','page.ceo.h1':'대표 인사말',
         'page.phil.label':'MANAGEMENT PHILOSOPHY','page.phil.h1':'경영이념',
@@ -1362,7 +1398,43 @@ document.addEventListener('DOMContentLoaded', () => {
         'form.title':'Inquiry & Consultation','form.subtitle':'Fill in the form below and our team will get back to you quickly.',
         'form.name':'Name / Company *','form.phone':'Phone *','form.email':'Email *',
         'form.service':'Service Type','form.message':'Message *','form.submit':'Send Inquiry',
+        'form.name.ph':'Name or company name',
+        'form.service.select':'Select a service',
+        'form.service.sea.fcl':'Ocean Freight (FCL)','form.service.sea.lcl':'Ocean Freight (LCL)','form.service.air':'Air Freight','form.service.land':'Land Transport','form.service.customs':'Customs / Forwarding','form.service.solution':'Logistics Solutions','form.service.other':'Other',
+        'form.message.ph':'Please include origin, destination, and cargo details for a faster quote.',
+        'form.agree.html':'I agree to the collection and use of personal information. <a href="privacy.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">[View Details]</a>',
+        'inquiry.notice.text':'Your quote details have been pre-filled. Please enter your email and any additional notes.',
         'estimate.title':'Quick Quote','estimate.desc':'Enter origin, destination and cargo details — our team will respond promptly.',
+        /* ── Stats ── */
+        'stat.years.unit':'Years+','stat.countries.unit':'Countries+','stat.company.unit':'Companies+',
+        'stat.years.label':'Years of Logistics Expertise','stat.countries.label':'Global Partnerships',
+        'stat.partners.label':'Overseas Partners','stat.clients.label':'Key Clients',
+        /* ── Quick quote tabs (q-*) ── */
+        'q.tab.fcl':'Sea FCL','q.tab.lcl':'Sea LCL','q.tab.air':'Air','q.tab.land':'Land',
+        'q.label.from':'Origin','q.label.to':'Destination','q.label.from.air':'Departure Airport','q.label.to.air':'Arrival Airport',
+        'q.placeholder.port':'Select or enter a port','q.placeholder.airport':'Select or enter an airport','q.placeholder.region':'Select or enter a region',
+        'q.btn.list':'List ▾',
+        'q.label.qty':'Quantity','q.label.container':'Container','q.opt.selectType':'Select Type',
+        'q.optgroup.general':'General (GP/HC)','q.optgroup.flatrack':'Flat Rack (FR)','q.optgroup.opentop':'Open Top (OT)','q.optgroup.reefer':'Reefer (RF)','q.optgroup.special':'Special',
+        'q.opt.dangerous.container':'Dangerous Goods Container','q.opt.other.special':'Other Special Container',
+        'q.label.goods':'Item Name / HS Code','q.optional':'(optional)','q.placeholder.goods':'e.g. Machine Parts / 8479.89',
+        'q.label.incoterms':'Incoterms','q.opt.selectIncoterms':'Select (optional)',
+        'q.label.weight':'Cargo Weight','q.placeholder.weight.lcl':'e.g. 500 kg / 2 CBM','q.placeholder.weight.air':'e.g. 100 kg','q.placeholder.weight.land':'e.g. 500 kg',
+        'q.label.size':'Size','q.placeholder.size.lcl':'e.g. 120×100×100 cm','q.placeholder.size.air':'e.g. 60×40×40 cm','q.placeholder.size.land':'e.g. 200×150×120 cm',
+        'q.label.volume':'Volume','q.placeholder.volume':'e.g. 3.6 CBM',
+        'q.label.cargoType':'Cargo Type','q.opt.general.cargo':'General Cargo','q.opt.large.cargo':'Oversized Cargo','q.opt.frozen':'Frozen/Refrigerated','q.opt.dangerous':'Dangerous Goods','q.opt.special.cargo':'Special Cargo','q.opt.other':'Other',
+        'q.submit':'Request a Quote →',
+        /* ── Inline quote request panel (ic-*) ── */
+        'ic.title':'Enter your info below<br/>to get an instant quote.',
+        'ic.required':'* Checked items are required.',
+        'ic.name.ph':'Name *','ic.email.ph':'Email *','ic.phone.ph':'Phone *','ic.company.ph':'Company *','ic.note.ph':'Additional notes (optional)',
+        'ic.consent.notice':'Please click the links below to read them carefully. Checking the box means you have read and agreed to the following items.',
+        'ic.agreeAll':'Agree to All',
+        'ic.terms.html':'I agree to the <a href="terms.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">Terms of Service</a>.<em>(Required)</em>',
+        'ic.privacy.html':'I agree to the <a href="privacy.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">Collection & Use of Personal Information</a>.<em>(Required)</em>',
+        'ic.age.html':'I confirm that I am 14 years of age or older.<em>(Required)</em>',
+        'ic.marketing.html':'I agree to <a href="privacy.html#marketing" target="_blank" rel="noopener" onclick="event.stopPropagation()">Marketing Use</a>.<em class="opt">(Optional)</em>',
+        'ic.submit':'Request a Quote',
         /* ── Page headers ── */
         'page.ceo.label':'CEO GREETING','page.ceo.h1':"CEO's Message",
         'page.phil.label':'MANAGEMENT PHILOSOPHY','page.phil.h1':'Our Philosophy',
@@ -1689,6 +1761,14 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('[data-i18n-html]').forEach(el => {
         const v = LANGS[l][el.dataset.i18nHtml];
         if (v !== undefined) el.innerHTML = v;
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const v = LANGS[l][el.dataset.i18nPlaceholder];
+        if (v !== undefined) el.setAttribute('placeholder', v);
+      });
+      document.querySelectorAll('[data-i18n-label]').forEach(el => {
+        const v = LANGS[l][el.dataset.i18nLabel];
+        if (v !== undefined) el.setAttribute('label', v);
       });
     }
 
