@@ -289,6 +289,12 @@ def summary(ex, m: dict, st: dict) -> str:
             lines.append(f"누적 {NAME[kind]}: {k}/{len(ts)}승 ({k/len(ts)*100:.0f}%, 백테스트 {p*100:.0f}%+)")
     if not m["trades"]:
         lines.append("아직 청산된 거래가 없습니다 (신호는 드물게 옵니다).")
+    try:                                    # 돌파 모의매매(bot/breakout/paper.py)가 돌고 있으면 한 줄
+        from bot.breakout import paper as BP
+        if os.path.exists(BP.STATE_PATH):
+            lines.append(BP.status_line(BP.load_state()))
+    except Exception:
+        pass
     return "\n".join(lines)
 
 
