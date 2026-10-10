@@ -73,6 +73,19 @@ const tests = {
     ['SKU', '상태', '원가(원)', '소싱URL', 'AI결과'].forEach(k => assert.ok(h['상품'].includes(k), k));
     ['주문번호', '발주상태', '발송기한'].forEach(k => assert.ok(h['주문'].includes(k), k));
   },
+  '요약 시트 수식의 열 문자가 실제 헤더 위치와 일치': () => {
+    const h = g('sheetHeaders_()');
+    const col = (sheet, name) => String.fromCharCode(65 + h[sheet].indexOf(name));
+    assert.strictEqual(col('상품', '등록일'), 'R');
+    assert.strictEqual(col('상품', '상태'), 'B');
+    assert.strictEqual(col('주문', '주문시각'), 'C');
+    assert.strictEqual(col('주문', '발주상태'), 'K');
+    assert.strictEqual(col('채팅', '처리'), 'J');
+    assert.strictEqual(col('채팅', '시각'), 'A');
+  },
+  '실행 버튼은 모두 실제 함수를 가리킴': () => {
+    Object.values(g('RUN_BUTTONS')).forEach(fn => assert.strictEqual(typeof sandbox[fn], 'function', fn));
+  },
 };
 
 let failed = 0;

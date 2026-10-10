@@ -106,9 +106,25 @@ function setupSheets() {
     }
   });
 
+  setupSummary_(book);
+  addMissingSettings_(book.getSheetByName(SHEETS.SETTINGS));
+
   const def = book.getSheetByName('시트1') || book.getSheetByName('Sheet1');
   if (def && book.getSheets().length > 1 && def.getLastRow() === 0) book.deleteSheet(def);
   SpreadsheetApp.getActive().toast('시트 준비 완료. 확장 프로그램 > Apps Script > 프로젝트 설정 에서 스크립트 속성을 넣어 주세요.');
+}
+
+/** 코드 업데이트로 새 설정 항목이 생기면 기존 시트 아래에 덧붙인다 */
+function addMissingSettings_(sh) {
+  const have = sh.getRange(1, 1, sh.getLastRow(), 1).getValues().flat();
+  DEFAULT_SETTINGS.filter(r => have.indexOf(r[0]) < 0).forEach(r => {
+    sh.appendRow(r);
+    if (typeof r[1] === 'boolean') {
+      const cell = sh.getRange(sh.getLastRow(), 2);
+      cell.insertCheckboxes();
+      cell.setValue(r[1]);
+    }
+  });
 }
 
 function styleHeader_(sh) {
@@ -116,7 +132,7 @@ function styleHeader_(sh) {
   sh.getRange(1, 1, 1, sh.getLastColumn()).setFontWeight('bold').setBackground('#fde7d9');
 }
 
-const JOBS = ['listingJob', 'ordersJob', 'chatJob', 'sourcingJob', 'demandJob'];
+const JOBS = ['listingJob', 'ordersJob', 'chatJob', 'sourcingJob', 'demandJob', 'handleEdit'];
 
 function installTriggers() {
   removeTriggers();
@@ -125,6 +141,7 @@ function installTriggers() {
   ScriptApp.newTrigger('chatJob').timeBased().everyMinutes(30).create();
   ScriptApp.newTrigger('sourcingJob').timeBased().everyDays(1).atHour(7).create();
   ScriptApp.newTrigger('demandJob').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(6).create();
+  ScriptApp.newTrigger('handleEdit').forSpreadsheet(book_()).onEdit().create(); // 모바일 실행 체크박스
   SpreadsheetApp.getActive().toast('자동 실행을 켰습니다');
 }
 
