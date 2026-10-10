@@ -1,0 +1,229 @@
+name: 🔄 선물 데이터 수집 + 재학습 + 패턴 분석
+
+on:
+  workflow_dispatch:
+    inputs:
+      symbols:
+        description: "심볼 (공백 구분, 기본=전체)"
+        required: false
+        default: "BTCUSDT ETHUSDT BNBUSDT ADAUSDT SOLUSDT XRPUSDT"
+      from_year:
+        description: "데이터 시작 연도"
+        required: false
+        default: "2021"
+      skip_retrain:
+        description: "재학습 건너뛰기 (패턴 분석만 실행)"
+        required: false
+        default: "false"
+      fast:
+        description: "fast mode (TemporalXGB + 멀티TF 스킵)"
+        required: false
+        default: "false"
+
+permissions:
+  contents: write
+
+jobs:
+  # ── STEP 1: 선물 데이터 수집 ──────────────────────────
+  fetch-futures:
+    name: "📡 선물 데이터 수집"
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/quant-trading-bot-tkjtd
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+
+      - name: 패키지 설치
+        run: pip install pandas numpy requests
+
+      - name: 선물 데이터 수집 (펀딩비 + OI + LSR)
+        run: |
+          mkdir -p data/futures
+          SYMBOLS="${{ github.event.inputs.symbols }}"
+          FROM_YEAR=${{ github.event.inputs.from_year }}
+
+          for SYM in $SYMBOLS; do
+            echo "=========================================="
+            echo "  ▶ $SYM 선물 데이터 수집"
+            echo "=========================================="
+            python ml/fetch_futures_data.py \
+              --symbol "$SYM" \
+              --from_year $FROM_YEAR || {
+              echo "⚠️  $SYM 수집 실패 — 계속"
+              continue
+            }
+          done
+
+      - name: 결과 저장
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add data/futures/ 2>/dev/null || true
+          git diff --staged --quiet && echo "변경 없음" && exit 0
+          git commit -m "📡 선물 데이터 수집 완료 (펀딩비+OI+LSR)"
+          for i in $(seq 1 5); do
+            sleep $((i * 3))
+            git fetch origin claude/quant-trading-bot-tkjtd
+            git rebase origin/claude/quant-trading-bot-tkjtd || { git rebase --abort; continue; }
+            git push origin claude/quant-trading-bot-tkjtd && break || true
+          done
+
+      - name: 수집 결과 요약
+        if: always()
+        run: |
+          echo "=============================="
+          echo "  수집된 파일:"
+          ls -lh data/futures/ 2>/dev/null || echo "  없음"
+          echo "=============================="
+
+  # ── STEP 2: 심볼별 재학습 ─────────────────────────────
+  retrain:
+    name: "🤖 ${{ matrix.symbol }} 재학습"
+    needs: fetch-futures
+    if: ${{ github.event.inputs.skip_retrain != 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      matrix:
+        symbol: ${{ fromJson(needs.fetch-futures.outputs.symbol_matrix || '["BTCUSDT","ETHUSDT","BNBUSDT","ADAUSDT","SOLUSDT","XRPUSDT"]') }}
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/quant-trading-bot-tkjtd
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+
+      - name: 패키지 설치
+        run: pip install pandas numpy scikit-learn xgboost lightgbm matplotlib requests
+
+      - name: 봉단위 결정
+        id: intervals
+        run: |
+          SYM="${{ matrix.symbol }}"
+          if [ "$SYM" = "BTCUSDT" ] || [ "$SYM" = "ETHUSDT" ]; then
+            echo "intervals=1m 5m 1h 4h 1d" >> $GITHUB_OUTPUT
+          else
+            echo "intervals=5m 1h 4h 1d" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 재학습 (Y1-Y15 신규 피처 포함)
+        run: |
+          FAST_FLAG=""
+          if [ "${{ github.event.inputs.fast }}" = "true" ]; then
+            FAST_FLAG="--fast"
+          fi
+
+          SYM="${{ matrix.symbol }}"
+          INTERVALS="${{ steps.intervals.outputs.intervals }}"
+          BASE_FROM=${{ github.event.inputs.from_year }}
+
+          for IV in $INTERVALS; do
+            FROM_YEAR=$BASE_FROM
+            if [ "$IV" = "1m" ]; then
+              FROM_YEAR=2023
+            elif [ "$IV" = "5m" ] && [ "$BASE_FROM" -lt "2022" ]; then
+              FROM_YEAR=2022
+            fi
+
+            echo "=============================="
+            echo "  ▶ $SYM $IV 재학습"
+            echo "=============================="
+
+            python ml/train_directional.py \
+              --symbol "$SYM" \
+              --interval "$IV" \
+              --from $FROM_YEAR \
+              $FAST_FLAG || {
+              echo "⚠️  $SYM $IV 실패 — 계속"
+              continue
+            }
+          done
+
+      - name: 모델 저장
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add ml/saved_models/ charts/ 2>/dev/null || true
+          git diff --staged --quiet && echo "변경 없음" && exit 0
+          git commit -m "🤖 재학습 완료 — ${{ matrix.symbol }} (Y1-Y15 + 펀딩비 + OI + 멀티TF)"
+          for i in $(seq 1 10); do
+            SLEEP=$((RANDOM % 20 + i * 5))
+            sleep $SLEEP
+            git fetch origin claude/quant-trading-bot-tkjtd
+            git rebase origin/claude/quant-trading-bot-tkjtd || { git rebase --abort; continue; }
+            git push origin claude/quant-trading-bot-tkjtd && break || true
+          done
+
+  # ── STEP 3: 패턴 분석 ─────────────────────────────────
+  pattern-analysis:
+    name: "🔍 패턴 분석 (전체 피처)"
+    needs: [fetch-futures, retrain]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/quant-trading-bot-tkjtd
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: 최신 모델 pull
+        run: git pull origin claude/quant-trading-bot-tkjtd
+
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+
+      - name: 패키지 설치
+        run: pip install pandas numpy scikit-learn xgboost lightgbm matplotlib requests
+
+      - name: 패턴 분석 실행
+        run: |
+          echo "=============================="
+          echo "  전체 피처 패턴 분석 시작"
+          echo "=============================="
+          python ml/pattern_analysis.py
+
+      - name: 결과 저장
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add charts/pattern_report.html ml/saved_models/pattern_rules.csv 2>/dev/null || true
+          git diff --staged --quiet && echo "변경 없음" && exit 0
+          git commit -m "🔍 패턴 분석 완료 — 294+피처 (Y1-Y15) + 멀티TF + 펀딩비"
+          for i in $(seq 1 5); do
+            sleep $((i * 3))
+            git fetch origin claude/quant-trading-bot-tkjtd
+            git rebase origin/claude/quant-trading-bot-tkjtd || { git rebase --abort; continue; }
+            git push origin claude/quant-trading-bot-tkjtd && break || true
+          done
+
+      - name: 최고 승률 룰 요약
+        if: always()
+        run: |
+          echo "=============================="
+          python3 -c "
+          import pandas as pd, os
+          path = 'ml/saved_models/pattern_rules.csv'
+          if os.path.exists(path):
+              df = pd.read_csv(path)
+              print(f'  총 룰: {len(df)}개')
+              print()
+              print(df.sort_values('win_rate', ascending=False).head(10).to_string(index=False))
+          else:
+              print('  패턴 룰 파일 없음')
+          " 2>/dev/null || echo "요약 실패"
+          echo "=============================="

@@ -1,0 +1,47 @@
+symbol,interval,direction,rule,train_wr,train_n,train_wilson,oos_n,oos_wins,oos_wr,oos_wilson_lower,verdict,wr_drift
+BTCUSDT,4h,LONG,atr > 0.02665 AND vol_288 > 0.00952 AND gold_vs_ma > -0.0109...,99.2,123,96.4,0,0,,,no_matches_in_oos,
+SOLUSDT,4h,SHORT,vol_ratio_96 ≤ 0.9553 AND fractal_high > 0.5 AND vol_48 > 0.01217 AND hour_cos ≤...,98.8,161,96.3,98,69,70.4,62.4,WARN_WEAKENED,-28.4
+SOLUSDT,4h,SHORT,vol_ratio_96 > 0.9553 AND dxy_ret1d > -0.00077 AND bb_width_...,98.4,373,96.9,0,0,,,no_matches_in_oos,
+SOLUSDT,4h,LONG,atr7 > 0.02182 AND vol_ratio_12 > 0.40166 AND force_idx > -0.22287 AND atr > 0.0...,98.1,157,95.3,62,32,51.6,41.3,FAIL_BROKEN,-46.5
+ETHUSDT,4h,LONG,atr7 > 0.02397 AND session_europe > 0.5 AND body_ratio > 0.08206 AND vol_expand ...,97.8,185,95.3,102,45,44.1,36.3,FAIL_BROKEN,-53.7
+ETHUSDT,4h,LONG,atr7 > 0.02397 AND session_europe ≤ 0.5 AND atr28 > 0.03214 AND vpt_vs_ma24 ≤ 0....,97.5,162,94.6,36,23,63.9,50.2,WARN_WEAKENED,-33.6
+ETHUSDT,4h,SHORT,hour_cos ≤ 0.0 AND hl_vol > 0.00876 AND vol_6 > 0.01545 AND vol_ratio_96 > 0.763...,97.1,175,94.2,187,97,51.9,45.9,FAIL_BROKEN,-45.2
+SOLUSDT,1h,LONG,atr > 0.02274 AND ret_3 ≤ -0.0258 AND body_ratio > 0.09581 AND vs_sma48 ≤ -0.104...,97.0,133,93.5,26,17,65.4,49.3,WARN_WEAKENED,-31.6
+SOLUSDT,4h,LONG,atr7 > 0.02182 AND vol_ratio_12 > 0.40166 AND force_idx ≤ -0.22287 AND ret_accel...,96.5,400,94.6,629,358,56.9,53.6,WARN_WEAKENED,-39.6
+BNBUSDT,4h,LONG,vol_48 > 0.00645 AND ret_std_6 > 0.01424 AND stoch_kd_14 ≤ -0.06426,95.9,146,92.3,115,64,55.7,48.0,WARN_WEAKENED,-40.2
+XRPUSDT,4h,SHORT,atr > 0.02002 AND inside_bar ≤ 0.5 AND atr7 > 0.02628 AND upper_shadow ≤ 0.45254...,95.4,307,93.1,408,194,47.5,43.5,FAIL_BROKEN,-47.9
+ADAUSDT,4h,SHORT,atr7 > 0.02152 AND vol_ratio_12 > 0.45059 AND stoch_d_9 > 0.41492 AND vpt_vs_ma2...,95.1,426,93.0,336,170,50.6,46.1,FAIL_BROKEN,-44.5
+ADAUSDT,4h,SHORT,atr7 ≤ 0.02152 AND ret_std_60 > 0.01059 AND hour_cos ≤ 0.0 AND dow_sin > -0.2169...,95.1,142,91.1,148,68,45.9,39.3,FAIL_BROKEN,-49.2
+ADAUSDT,4h,LONG,atr28 > 0.01825 AND vol_ratio_24 > 0.45177 AND vol_ratio_24 > 1.16109 AND lower_...,94.8,383,92.6,294,161,54.8,50.0,FAIL_BROKEN,-40.0
+XRPUSDT,4h,LONG,atr7 > 0.0192 AND atr7 > 0.02813 AND lower_shadow ≤ 0.5368 AND hma_55_slope > -0...,94.6,333,92.2,306,158,51.6,46.9,FAIL_BROKEN,-43.0
+SOLUSDT,4h,SHORT,vol_ratio_96 ≤ 0.9553 AND fractal_high ≤ 0.5 AND atr > 0.03455 AND vol_288 > 0.0...,94.2,137,89.9,67,36,53.7,43.8,FAIL_BROKEN,-40.5
+BNBUSDT,4h,SHORT,atr7 > 0.01788 AND vs_sma48 > -0.04843 AND vol_ratio_12 > 0.69291 AND obv_slope2...,93.8,161,89.9,45,14,31.1,21.1,FAIL_BROKEN,-62.7
+ADAUSDT,1h,LONG,atr > 0.02158 AND vs_sma96 ≤ -0.13803,93.8,113,89.0,76,54,71.1,61.9,WARN_WEAKENED,-22.7
+ETHUSDT,4h,SHORT,hour_cos ≤ 0.0 AND hl_vol > 0.00876 AND vol_6 ≤ 0.01545 AND skew_24 ≤ 0.31531 AN...,92.8,194,89.1,312,153,49.0,44.4,FAIL_BROKEN,-43.8
+BTCUSDT,4h,SHORT,vol_ratio_12 > 0.63766 AND vol_ratio_48 ≤ 1.67297 AND atr28 ...,92.8,152,88.5,0,0,,,no_matches_in_oos,
+BTCUSDT,4h,LONG,atr ≤ 0.02665 AND vol_ratio_24 > 0.99918 AND ha_body_ratio > 0.13325 AND adx ≤ 0...,92.2,103,86.7,121,66,54.5,47.1,FAIL_BROKEN,-37.7
+XRPUSDT,4h,SHORT,atr > 0.02002 AND inside_bar > 0.5 AND bb_width_14 > 0.06553...,92.0,112,86.7,0,0,,,no_matches_in_oos,
+SOLUSDT,5m,LONG,htf_1h_atr > 0.03925 AND inside_bar ≤ 0.5 AND roc_21 > -0.08...,91.5,213,87.9,0,0,,,no_matches_in_oos,
+ADAUSDT,4h,SHORT,atr7 > 0.02152 AND vol_ratio_12 > 0.45059 AND stoch_d_9 ≤ 0.41492 AND lr_slope_1...,90.8,240,87.3,301,141,46.8,42.2,FAIL_BROKEN,-44.0
+SOLUSDT,1h,LONG,atr > 0.02274 AND ret_3 > -0.0258 AND obv_slope > -0.20807 A...,90.8,173,86.5,0,0,,,no_matches_in_oos,
+XRPUSDT,4h,LONG,atr7 > 0.0192 AND atr7 ≤ 0.02813 AND hour_cos ≤ 0.0 AND vs_sma96 ≤ 0.08441 AND o...,90.6,255,87.1,122,66,54.1,46.7,FAIL_BROKEN,-36.5
+SOLUSDT,1h,LONG,atr > 0.02274 AND ret_3 ≤ -0.0258 AND body_ratio > 0.09581 A...,90.3,226,86.5,0,0,,,no_matches_in_oos,
+SOLUSDT,4h,SHORT,vol_ratio_96 > 0.9553 AND dxy_ret1d > -0.00077 AND bb_width_...,90.2,378,87.4,0,0,,,no_matches_in_oos,
+SOLUSDT,1h,SHORT,vol_24 > 0.01782 AND htf_4h_atr > 0.04038 AND htf_4h_ema50_v...,90.1,323,87.0,0,0,,,no_matches_in_oos,
+XRPUSDT,4h,SHORT,atr > 0.02002 AND inside_bar ≤ 0.5 AND atr7 ≤ 0.02628 AND dx...,89.6,250,86.0,0,0,,,no_matches_in_oos,
+SOLUSDT,5m,SHORT,upper_shadow > 0.32765 AND bb_width_14 ≤ 0.04097 AND htf_1h_...,89.2,139,84.1,0,0,,,no_matches_in_oos,
+XRPUSDT,4h,LONG,atr7 > 0.0192 AND atr7 > 0.02813 AND lower_shadow ≤ 0.5368 AND hma_55_slope ≤ -0...,88.5,148,83.5,83,53,63.9,54.9,WARN_WEAKENED,-24.6
+SOLUSDT,5m,SHORT,upper_shadow > 0.32765 AND bb_width_14 > 0.04097 AND hma_9_s...,88.1,177,83.6,0,0,,,no_matches_in_oos,
+BNBUSDT,1h,SHORT,htf_4h_atr > 0.03371 AND hour_cos > -0.78657 AND htf_4h_bb_p...,88.0,100,81.6,0,0,,,no_matches_in_oos,
+ADAUSDT,4h,LONG,atr28 > 0.01825 AND vol_ratio_24 > 0.45177 AND vol_ratio_24 ...,87.8,541,85.3,0,0,,,no_matches_in_oos,
+BNBUSDT,4h,LONG,vol_48 > 0.00645 AND ret_std_6 > 0.01424 AND stoch_kd_14 > -0.06426 AND vs_r2 > ...,87.6,314,84.2,246,128,52.0,46.8,FAIL_BROKEN,-35.6
+SOLUSDT,5m,LONG,htf_1h_atr ≤ 0.03925 AND ret_1 ≤ -0.00174 AND lower_shadow ≤...,87.4,103,81.0,0,0,,,no_matches_in_oos,
+BNBUSDT,4h,SHORT,atr7 ≤ 0.01788 AND body_ratio ≤ 0.65301 AND bb_width_48 > 0.03657 AND vol_ratio_...,87.3,150,82.2,217,116,53.5,47.9,FAIL_BROKEN,-33.8
+SOLUSDT,5m,LONG,htf_1h_atr ≤ 0.03925 AND ret_1 ≤ -0.00174 AND lower_shadow ≤...,87.3,608,85.0,0,0,,,no_matches_in_oos,
+SOLUSDT,5m,LONG,htf_1h_atr ≤ 0.03925 AND ret_1 ≤ -0.00174 AND lower_shadow >...,86.6,119,80.6,0,0,,,no_matches_in_oos,
+ADAUSDT,4h,SHORT,atr7 ≤ 0.02152 AND ret_std_60 > 0.01059 AND hour_cos ≤ 0.0 AND dow_sin ≤ -0.2169...,86.4,110,80.1,108,61,56.5,48.6,WARN_WEAKENED,-29.9
+SOLUSDT,5m,LONG,htf_1h_atr ≤ 0.03925 AND ret_1 > -0.00174 AND htf_1h_bb_pos_...,86.2,218,82.0,0,0,,,no_matches_in_oos,
+ADAUSDT,4h,SHORT,atr7 > 0.02152 AND vol_ratio_12 > 0.45059 AND stoch_d_9 > 0.41492 AND vpt_vs_ma2...,85.9,255,81.9,310,153,49.4,44.7,FAIL_BROKEN,-36.5
+BNBUSDT,4h,LONG,vol_48 > 0.00645 AND ret_std_6 ≤ 0.01424 AND elder_bull_slope ≤ 0.02289 AND vs_p...,85.5,220,81.1,118,94,79.7,72.9,PASS,-5.8
+SOLUSDT,4h,LONG,atr7 > 0.02182 AND vol_ratio_12 > 0.40166 AND force_idx > -0.22287 AND atr ≤ 0.0...,85.2,759,83.0,759,349,46.0,43.0,FAIL_BROKEN,-39.2
+SOLUSDT,5m,SHORT,upper_shadow ≤ 0.32765 AND vs_low_20 > 0.00428 AND atr > 0.0...,84.8,1250,83.1,0,0,,,no_matches_in_oos,

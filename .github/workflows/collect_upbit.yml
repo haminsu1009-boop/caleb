@@ -1,0 +1,81 @@
+name: 🇰🇷 업비트 데이터 수집
+
+# api.upbit.com은 이 세션의 프록시에서 막히지만(바이낸스·야후파이낸스와 동일
+# 증상) GitHub 러너에서는 정상 동작한다. 공개 API라 인증 키는 필요 없다.
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "데이터를 커밋할 브랜치"
+        default: "claude/quant-trading-bot-tkjtd"
+      units:
+        description: "수집 단위 (공백 구분: day 240 60 등)"
+        default: "day 240"
+  schedule:
+    - cron: "5 0 * * *"     # 매일 00:05 UTC (업비트 일봉 마감 00:00 UTC 직후)
+
+permissions:
+  contents: write
+
+concurrency:
+  group: collect-upbit-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  TARGET_BRANCH: ${{ github.event.inputs.branch || 'claude/quant-trading-bot-tkjtd' }}
+
+jobs:
+  collect:
+    name: "업비트 수집"
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install pandas requests
+
+      - name: 수집
+        run: |
+          for U in ${{ github.event.inputs.units || 'day 240' }}; do
+            python upbit/collect_upbit.py --all --unit "$U"
+          done
+
+      - name: 커버리지 요약
+        run: |
+          python - <<'PY' >> $GITHUB_STEP_SUMMARY
+          import glob, os
+          import pandas as pd
+
+          print("### 업비트 수집 결과")
+          print()
+          print("| 파일 | 행수 | 시작 | 종료 |")
+          print("|---|---|---|---|")
+          for f in sorted(glob.glob("data/upbit/*.csv.gz")):
+              d = pd.read_csv(f, compression="gzip")
+              if d.empty:
+                  continue
+              name = os.path.basename(f).replace(".csv.gz", "")
+              print(f"| {name} | {len(d):,} | {d['datetime'].iloc[0][:10]} | "
+                    f"{d['datetime'].iloc[-1][:10]} |")
+          PY
+
+      - name: 커밋 & 푸시
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/upbit/ || true
+          git diff --staged --quiet && { echo "변경 없음"; exit 0; }
+          git commit -m "data: upbit refresh $(date -u +%Y-%m-%d)"
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin $TARGET_BRANCH && \
+            git push origin HEAD:$TARGET_BRANCH && break || sleep $((i*6))
+          done
