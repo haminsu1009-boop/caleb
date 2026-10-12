@@ -571,9 +571,15 @@ class Exchange:
         if not self.live:
             log.info("  [모의] 숏 청산 %s qty=%s (%s)", symbol, qty, reason)
             return True
-        r = self.session.place_order(
-            category="linear", positionIdx=0, symbol=symbol, side="Buy", orderType="Market",
-            qty=str(qty), reduceOnly=True, timeInForce="IOC")
+        try:
+            r = self.session.place_order(
+                category="linear", positionIdx=0, symbol=symbol, side="Buy", orderType="Market",
+                qty=str(qty), reduceOnly=True, timeInForce="IOC")
+        except Exception as e:
+            if _already_closed(e):
+                log.info("  %s 이미 거래소에서 닫혀 있음 (익절·손절 체결) — 기록만 정리", symbol)
+                return True
+            raise
         ok = r.get("retCode") == 0
         log.info("  숏 청산 %s qty=%s (%s) → %s", symbol, qty, reason,
                  "성공" if ok else r.get("retMsg"))
@@ -609,15 +615,26 @@ class Exchange:
         if not self.live:
             log.info("  [모의] 청산 %s qty=%s (%s)", symbol, qty, reason)
             return True
-        r = self.session.place_order(
-            category="linear", positionIdx=0, symbol=symbol, side="Sell", orderType="Market",
-            qty=str(qty), reduceOnly=True, timeInForce="IOC")
+        try:
+            r = self.session.place_order(
+                category="linear", positionIdx=0, symbol=symbol, side="Sell", orderType="Market",
+                qty=str(qty), reduceOnly=True, timeInForce="IOC")
+        except Exception as e:
+            if _already_closed(e):
+                log.info("  %s 이미 거래소에서 닫혀 있음 (익절·손절 체결) — 기록만 정리", symbol)
+                return True
+            raise
         ok = r.get("retCode") == 0
         log.info("  청산 %s qty=%s (%s) → %s", symbol, qty, reason,
                  "성공" if ok else r.get("retMsg"))
         notify(f"⚪ 매도(청산) {symbol}\n수량 {qty} · 이유 {reason}" if ok
                else f"❗ 매도 실패 {symbol}: {r.get('retMsg')} — 확인 필요")
         return ok
+
+
+def _already_closed(e: Exception) -> bool:
+    """reduce-only 청산 주문이 '포지션 0'으로 거절됐다 = 거래소가 이미 닫았다."""
+    return "110017" in str(e)
 
 
 def min_order_qty(spec: dict, price: float) -> float:
@@ -685,31 +702,53 @@ class Trader:
         self.st = load_state()
 
     # 시작 시 거래소 실제 포지션과 상태 파일을 맞춘다.
-    def reconcile(self):
+    def reconcile(self, startup: bool = True):
+        """봇 기록과 거래소 포지션을 맞춘다. 시작할 때와 매 점검 맨 앞에서 부른다.
+
+        익절·손절은 거래소에 걸려 있어서 봇이 모르는 사이에 닫힌다. 예전엔
+        시작할 때만 맞춰서, 그사이 거래소가 닫은 포지션을 봇이 계속 들고
+        있다고 믿었다 — 60봉이 되면 이미 없는 포지션을 시장가로 팔려다
+        110017(포지션 0) 오류가 매 분 났고, 그 예외가 점검 전체를 끊어
+        뒤쪽 종목의 진입·분할매수가 막혔다 (2026-10-12).
+        """
         if not self.ex.live:
             return
         actual = self.ex.positions()
         tracked = self.st["positions"]
         mods = self.st.setdefault("mod_positions", {})
-        for sym in list(tracked):
-            if sym not in actual:
-                log.warning("상태엔 있으나 거래소에 없는 포지션 제거: %s "
-                            "(손절 체결로 이미 닫혔을 수 있다)", sym)
+        # 점검 중엔 두 번 연속 없을 때만 지운다 — 방금 낸 주문이 포지션 목록에
+        # 늦게 잡히는 드문 경우에 멀쩡한 포지션을 잊지 않도록.
+        miss = getattr(self, "_miss", {})
+        gone = {}
+        for sym in list(tracked) + list(mods):
+            if sym in actual:
+                miss.pop(sym, None)
+                continue
+            miss[sym] = miss.get(sym, 0) + 1
+            if startup or miss[sym] >= 2:
+                gone[sym] = miss.pop(sym)
+        self._miss = miss
+        say = log.warning if startup else log.info
+        for sym in gone:
+            if sym in tracked:
+                say("상태엔 있으나 거래소에 없는 포지션 제거: %s "
+                    "(익절·손절 체결로 이미 닫혔다)", sym)
                 notify(f"⚪ 롱 종료 {sym}\n거래소에서 손절 또는 익절이 체결됐습니다 "
                        "(손익은 다음 정각 결과 알림에)")
                 tracked.pop(sym)
-        for sym in list(mods):
-            if sym not in actual:
-                log.warning("상태엔 있으나 거래소에 없는 모듈 포지션 제거: %s [%s]",
-                            sym, mods[sym]["kind"])
+            elif sym in mods:
+                say("상태엔 있으나 거래소에 없는 모듈 포지션 제거: %s [%s]",
+                    sym, mods[sym]["kind"])
                 notify(f"⚪ {mods[sym]['kind']} 종료 {sym}\n거래소에서 손절이 체결됐습니다 "
                        "(손익은 다음 정각 결과 알림에)")
                 mods.pop(sym)
-        for sym, p in actual.items():
-            if sym not in tracked and sym not in mods and sym in S.SYMBOLS:
-                log.warning("거래소에만 있는 포지션 발견: %s — 이 봇이 연 것이 아니므로 "
-                            "건드리지 않는다", sym)
-        save_state(self.st)
+        if startup:
+            for sym, p in actual.items():
+                if sym not in tracked and sym not in mods and sym in S.SYMBOLS:
+                    log.warning("거래소에만 있는 포지션 발견: %s — 이 봇이 연 것이 아니므로 "
+                                "건드리지 않는다", sym)
+        if startup or gone:
+            save_state(self.st)
 
     def _guard(self, equity: float) -> bool:
         """차단기. False면 신규 진입 금지 — 보유 중인 포지션은 건드리지
@@ -1064,6 +1103,7 @@ class Trader:
         return now_ms < cw.get("until", 0)
 
     def tick(self):
+        self.reconcile(startup=False)
         equity = self.ex.equity()
         can_enter = self._guard(equity)
         positions = self.st["positions"]
