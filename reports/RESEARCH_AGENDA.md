@@ -75,3 +75,13 @@
 - 코인 확장 22종은 기각했다(`ml/universe_expand.py`).
 - 약한 코인 빼기·교체도 기각했다(`ml/coin_swap.py`).
 - BTC 급등장 보유는 보류했다(`ml/btc_surge_hold.py`).
+
+## 끝난 것 (2026-10-12~18, 매일 연구 세션 — 반복 금지)
+| 시험 | 결과 |
+|---|---|
+| 4시간봉 다이버전스 (`ml/div4h_module.py`) | 기각 — 승률 40%·기대값 0 |
+| BTC 대비 개별 급락 (`ml/rel_crash_module.py`) | 학습 1등(5일 보유) 검증서 붕괴 → 기각. 2일 보유는 두 구간 +1.2~2.2%로 보류 |
+| 돌파 2배 코인 분리·하위계정·동적 비중 (`ml/break_separate.py`, `ml/subaccount_regime.py`, `ml/subaccount_dynamic.py`) | ⚠️ `UP.make_break` 미래참조(진입일 종가로 시장 판단). 신호일 종가로 고치면 동적 비중 2024~ 5.25배(지금 6.22) → 기각. 돌파는 반드시 `bull_days(...).shift(1)` 로 계산할 것 |
+| 약세장 과열 숏 (`ml/pump_short_module.py`) | 기각 — 숏 거래당 −2~−8% |
+| 펀딩 극단 역추세 (`ml/funding_extreme_module.py`) | 기각 — 효과 없음(±10%) |
+| 횡보장 박스권 하단 (`ml/box_bottom_module.py`) | 기각 — 좁으면 신호 없음, 넓히면 이탈에 손해(2022 −25%) |
