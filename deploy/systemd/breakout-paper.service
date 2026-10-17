@@ -1,0 +1,28 @@
+# 돌파 모듈 모의매매 — 주문 없음, 가상 지갑 (bot/breakout/paper.py)
+# 타이머(breakout-paper.timer)가 하루 한 번(UTC 00:10 = 한국 09:10) 부른다.
+#
+# 설치
+#   sudo cp deploy/systemd/breakout-paper.* /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now breakout-paper.timer
+# 확인
+#   systemctl list-timers breakout-paper.timer
+#   journalctl -u breakout-paper -n 30 --no-pager
+#   .venv/bin/python -m bot.breakout.paper --status
+
+[Unit]
+Description=Breakout module paper trading (no orders)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=opc
+WorkingDirectory=/home/opc/caleb
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/opc/caleb/.venv/bin/python -m bot.breakout.paper
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/opc/caleb/state
