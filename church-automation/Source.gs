@@ -78,11 +78,13 @@ function readTable_(sheet, anchors) {
     .filter(r => r.md));
 }
 
-/** 찬송: ['24', '조셉 스미스의 첫 번째 기도'] → '24장 조셉 스미스의 첫 번째 기도' */
+/** 찬송: ['24', '조셉 스미스의 첫 번째 기도'] → '24장 - 조셉 스미스의 첫 번째 기도' ('찬송 형식' 설정대로) */
 function hymnText_(parts) {
   const [num, title] = parts;
   if (!num) return '';
-  return /^\d+$/.test(num) ? `${num}장${title ? ' ' + title : ''}` : parts.join(' ');
+  if (!/^\d+$/.test(num)) return parts.join(' '); // '특별찬송' 같은 글자
+  if (!title) return `${num}장`;
+  return (getSetting_('찬송 형식') || '{번호}장 - {제목}').split('{번호}').join(num).split('{제목}').join(title);
 }
 
 /** 한 주일의 성찬식 정보를 하나의 객체로 모으기. 시트에 그 날짜가 없으면 null */
