@@ -84,7 +84,7 @@ function hymnText_(parts) {
   if (!num) return '';
   if (!/^\d+$/.test(num)) return parts.join(' '); // '특별찬송' 같은 글자
   if (!title) return `${num}장`;
-  return (getSetting_('찬송 형식') || '{번호}장 - {제목}').split('{번호}').join(num).split('{제목}').join(title);
+  return (getSetting_('찬송 형식') || '{번호}장 {제목}').split('{번호}').join(num).split('{제목}').join(title);
 }
 
 /** 한 주일의 성찬식 정보를 하나의 객체로 모으기. 시트에 그 날짜가 없으면 null */

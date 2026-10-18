@@ -40,7 +40,7 @@ function updateAgenda() {
   const m = getMeeting_(target);
   if (!m) return notify_({ subject: `[확인 필요] ${label} 아젠다 생략`, text: `원본 시트에서 ${label} 줄을 찾지 못했습니다.` });
   if (m.special) return log_('아젠다 생략', `${label} ${m.special}`);
-  if ((getSetting_('아젠다 방식') || '새 문서') === '새 문서') return makeAgendaDoc_(m);
+  if (getSetting_('아젠다 방식') === '새 문서') return makeAgendaDoc_(m);
 
   let doc;
   try {
@@ -77,10 +77,24 @@ function insertAgendaSection_(body, m) {
   let start = -1;
   for (let i = 0; i < n; i++) if (SECTION_RE.test(text(body.getChild(i)))) { start = i; break; }
   if (start < 0) throw new Error("아젠다 문서에서 'MM.DD … 성찬식' 제목을 찾지 못했습니다.");
-  const section = collectSection_(body, start);
   if (text(body.getChild(start)).startsWith(newDate)) {
-    fillSection_(section, m);
+    fillSection_(collectSection_(body, start), m);
     return 'updated';
+  }
+
+  // 복사할 칸: 최근 몇 주 중 '회중찬송:'·'마지막 … 말씀:' 줄까지 다 있는 가장 최근 칸
+  // (금식간증 주 칸은 이 줄들이 빠져 있어서 그대로 복사하면 다음 주 칸에도 빠짐)
+  const complete = sec => {
+    const lines = sec.map(text);
+    return lines.some(s => s.startsWith('회중찬송:')) && lines.some(s => /^마지막.*말씀:/.test(s));
+  };
+  let section = collectSection_(body, start);
+  for (let i = start, seen = 0; i < n && seen < 6 && !complete(section); i++) {
+    if (i > start && SECTION_RE.test(text(body.getChild(i)))) {
+      seen++;
+      const candidate = collectSection_(body, i);
+      if (complete(candidate)) section = candidate;
+    }
   }
 
   // 복사해서 바로 위에 끼워 넣기 (목록·메모 줄은 빼고)

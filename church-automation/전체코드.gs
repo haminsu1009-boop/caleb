@@ -19,11 +19,11 @@ const CONFIG = {
     ['원본 시트', '', '감독단 구글 시트 주소(URL)를 붙여넣으세요'],
     ['성찬식 탭 이름', '{년}년 성찬식', '{년} 은 해당 주일의 연도로 바뀜 (2026년 성찬식, 2027년 성찬식 …)'],
     ['축복/전달 탭 이름', '성찬 축복/전달', ''],
-    ['아젠다 방식', '새 문서', '새 문서 = 매주 템플릿을 복사해 새 문서 만들기 / 공용 문서 = 「성찬식 아젠다」 맨 위에 추가'],
+    ['아젠다 방식', '공용 문서', '공용 문서 = 「성찬식 아젠다」 맨 위에 계속 추가 / 새 문서 = 매주 템플릿을 복사해 새 문서 만들기'],
     ['아젠다 템플릿', '', '(새 문서) 복사할 아젠다 문서 주소. 예: 녹번와드 성찬식 아젠다 (9/6)'],
     ['아젠다 문서', '', '(공용 문서) 「성찬식 아젠다」 구글 문서 주소(URL)'],
-    ['아젠다 호칭', '아니오', '아젠다 이름 뒤에 형제님/자매님 붙이기 (예 / 아니오)'],
-    ['찬송 형식', '{번호}장 - {제목}', '예: {번호}장 - {제목} → 16장 - 성도들아 두려울 것 없다'],
+    ['아젠다 호칭', '예', '아젠다 이름 뒤에 형제님/자매님 붙이기 (예 / 아니오)'],
+    ['찬송 형식', '{번호}장 {제목}', '예: {번호}장 {제목} → 23장 주께 찬양하여라'],
     ['알림 이메일', '', '쉼표로 여러 명 가능'],
     ['와드 이름', '녹번와드', '부탁 메시지에 들어감'],
     ['미리 확인할 주 수', 8, '이 기간 안에 비어 있는 순서를 알려줌'],
@@ -228,7 +228,7 @@ function hymnText_(parts) {
   if (!num) return '';
   if (!/^\d+$/.test(num)) return parts.join(' '); // '특별찬송' 같은 글자
   if (!title) return `${num}장`;
-  return (getSetting_('찬송 형식') || '{번호}장 - {제목}').split('{번호}').join(num).split('{제목}').join(title);
+  return (getSetting_('찬송 형식') || '{번호}장 {제목}').split('{번호}').join(num).split('{제목}').join(title);
 }
 
 /** 한 주일의 성찬식 정보를 하나의 객체로 모으기. 시트에 그 날짜가 없으면 null */
@@ -456,7 +456,7 @@ function updateAgenda() {
   const m = getMeeting_(target);
   if (!m) return notify_({ subject: `[확인 필요] ${label} 아젠다 생략`, text: `원본 시트에서 ${label} 줄을 찾지 못했습니다.` });
   if (m.special) return log_('아젠다 생략', `${label} ${m.special}`);
-  if ((getSetting_('아젠다 방식') || '새 문서') === '새 문서') return makeAgendaDoc_(m);
+  if (getSetting_('아젠다 방식') === '새 문서') return makeAgendaDoc_(m);
 
   let doc;
   try {
@@ -493,10 +493,24 @@ function insertAgendaSection_(body, m) {
   let start = -1;
   for (let i = 0; i < n; i++) if (SECTION_RE.test(text(body.getChild(i)))) { start = i; break; }
   if (start < 0) throw new Error("아젠다 문서에서 'MM.DD … 성찬식' 제목을 찾지 못했습니다.");
-  const section = collectSection_(body, start);
   if (text(body.getChild(start)).startsWith(newDate)) {
-    fillSection_(section, m);
+    fillSection_(collectSection_(body, start), m);
     return 'updated';
+  }
+
+  // 복사할 칸: 최근 몇 주 중 '회중찬송:'·'마지막 … 말씀:' 줄까지 다 있는 가장 최근 칸
+  // (금식간증 주 칸은 이 줄들이 빠져 있어서 그대로 복사하면 다음 주 칸에도 빠짐)
+  const complete = sec => {
+    const lines = sec.map(text);
+    return lines.some(s => s.startsWith('회중찬송:')) && lines.some(s => /^마지막.*말씀:/.test(s));
+  };
+  let section = collectSection_(body, start);
+  for (let i = start, seen = 0; i < n && seen < 6 && !complete(section); i++) {
+    if (i > start && SECTION_RE.test(text(body.getChild(i)))) {
+      seen++;
+      const candidate = collectSection_(body, i);
+      if (complete(candidate)) section = candidate;
+    }
   }
 
   // 복사해서 바로 위에 끼워 넣기 (목록·메모 줄은 빼고)
