@@ -38,6 +38,7 @@ const KEEP_IF_EMPTY = ['감리:'];                      // 시트에 없으면 �
 const AGENDA_SECTIONS = ['광고', '스테이크 행사', '와드 행사'];
 const SECTION_RE = /^\d{1,2}\.\d{1,2}\s.*성찬식/;     // '10.18 녹번와드 성찬식'
 const SEPARATOR_RE = /^-{3,}$/;
+const FAST_REMOVE_RE = /^(회중찬송:|마지막.*말씀:)/;     // 금식간증 주에 빼는 줄
 
 // ───────── 실행 함수 ─────────
 
@@ -176,7 +177,7 @@ function ensureBullets_(body, section, source) {
     const t = templates[label] || base;
     const at = body.getChildIndex(el) + 1;
     const li = t ? insertCopy_(body, at, t) : body.insertListItem(at, ' ');
-    li.setText('');
+    li.setText(' '); // 완전히 빈 글자('')는 Google 문서가 거부 → 공백 한 칸
     const extra = !templates[label] && t ? EXTRA_INDENT[label] || 0 : 0;
     if (!extra) return;
     const s = t.getIndentStart(), f = t.getIndentFirstLine();
@@ -228,6 +229,7 @@ function fillSection_(elements, m) {
       p.editAsText().deleteText(d.index, d.index + d[0].length - 1).insertText(d.index, newDate);
       return;
     }
+    if (m.fast && FAST_REMOVE_RE.test(s.trim())) return p.removeFromParent(); // 금식간증 주엔 줄 자체를 뺌
     const line = AGENDA_LINES.find(([l]) => s.trim().startsWith(l));
     if (!line) return;
     const v = line[1](m);
@@ -288,7 +290,12 @@ function getMeeting_(sunday) {
     hymns: { openingHymn: hymn('개회찬송'), sacramentHymn: hymn('성찬찬송'), restHymn: hymn('회중찬송'), closingHymn: hymn('폐회찬송') },
   };
   m.special = /대회/.test(m.conducting) ? m.conducting : '';   // 연차대회 · 스테이크 대회 주
-  if (/간증/.test(m.talk5)) m.talk10 = m.lastSpeaker = '';      // 금식간증 주
+  // 금식간증 주: 매달 첫째 주일(1~7일) 또는 시트에 '간증'이라고 적힌 주 → 말씀 순서 없음
+  m.fast = !m.special && (/간증/.test(m.talk5) || sunday.getDate() <= 7);
+  if (m.fast) {
+    m.talk5 = '금식간증';
+    m.talk10 = m.lastSpeaker = '';
+  }
   m.speakers = unique_([m.talk5, m.talk10].filter(Boolean));
   return m;
 }

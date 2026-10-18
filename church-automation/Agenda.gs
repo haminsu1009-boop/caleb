@@ -215,7 +215,7 @@ function ensureBullets_(body, section, source) {
     const t = templates[label] || base;
     const at = body.getChildIndex(el) + 1;
     const li = t ? insertCopy_(body, at, t) : body.insertListItem(at, ' ');
-    li.setText('');
+    li.setText(' '); // 완전히 빈 글자('')는 Google 문서가 거부 → 공백 한 칸
     const extra = !templates[label] && t ? EXTRA_INDENT[label] || 0 : 0;
     if (!extra) return;
     const s = t.getIndentStart(), f = t.getIndentFirstLine();

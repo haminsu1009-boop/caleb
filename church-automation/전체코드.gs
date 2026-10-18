@@ -247,8 +247,12 @@ function getMeeting_(sunday) {
   ['openingHymn', 'sacramentHymn', 'restHymn', 'closingHymn'].forEach(k => (m.hymns[k] = hymnText_(row.get(C[k]))));
 
   m.special = CONFIG.SPECIAL_WEEK.test(m.conducting) ? m.conducting : '';
-  m.fast = /간증/.test(m.talk5); // 금식간증 주일: 말씀 칸 3개가 병합돼 있음
-  if (m.fast) m.talk10 = m.lastSpeaker = '';
+  // 금식간증 주: 매달 첫째 주일(1~7일) 또는 시트에 '간증'이라고 적힌 주 → 말씀 순서 없음
+  m.fast = !m.special && (/간증/.test(m.talk5) || sunday.getDate() <= 7);
+  if (m.fast) {
+    m.talk5 = '금식간증';
+    m.talk10 = m.lastSpeaker = '';
+  }
   m.speakers = unique_([m.talk5, m.talk10].filter(Boolean));
 
   const blessTab = ss.getSheetByName(getSetting_('축복/전달 탭 이름'));
@@ -631,7 +635,7 @@ function ensureBullets_(body, section, source) {
     const t = templates[label] || base;
     const at = body.getChildIndex(el) + 1;
     const li = t ? insertCopy_(body, at, t) : body.insertListItem(at, ' ');
-    li.setText('');
+    li.setText(' '); // 완전히 빈 글자('')는 Google 문서가 거부 → 공백 한 칸
     const extra = !templates[label] && t ? EXTRA_INDENT[label] || 0 : 0;
     if (!extra) return;
     const s = t.getIndentStart(), f = t.getIndentFirstLine();
