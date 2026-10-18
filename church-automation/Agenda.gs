@@ -77,9 +77,15 @@ function insertAgendaSection_(body, m) {
   let start = -1;
   for (let i = 0; i < n; i++) if (SECTION_RE.test(text(body.getChild(i)))) { start = i; break; }
   if (start < 0) throw new Error("아젠다 문서에서 'MM.DD … 성찬식' 제목을 찾지 못했습니다.");
-  if (text(body.getChild(start)).startsWith(newDate)) {
-    fillSection_(collectSection_(body, start), m);
-    return 'updated';
+  // 같은 날짜 칸이 위쪽 몇 주 안에 이미 있으면 (미리 만들어 둔 경우 포함) 그 칸의 값만 다시 맞춤
+  for (let i = start, seen = 0; i < n && seen < 6; i++) {
+    const s = text(body.getChild(i));
+    if (!SECTION_RE.test(s)) continue;
+    seen++;
+    if (s.startsWith(fmt_(m.sunday, 'MM.dd'))) {
+      fillSection_(collectSection_(body, i), m);
+      return 'updated';
+    }
   }
 
   // 복사할 칸: 최근 몇 주 중 '회중찬송:'·'마지막 … 말씀:' 줄까지 다 있는 가장 최근 칸
@@ -174,16 +180,31 @@ function fillLine_(p, m) {
 }
 
 /** '광고' · '스테이크 행사' · '와드 행사' 아래에 빈 글머리 기호(-) 한 줄씩 넣기
- *  모양을 문서와 똑같이 하려고, 문서에 이미 있는 글머리 줄을 복사해서 내용만 비움 */
+ *  항목마다 '같은 이름표 바로 아래에 있던 글머리 줄'을 복사해서 내용만 비움
+ *  → 광고는 광고 아래 줄, 스테이크 행사는 스테이크 행사 아래 줄의 들여쓰기·모양을 그대로 따라감 */
 function addEmptyBullets_(body, inserted) {
+  const P = DocumentApp.ElementType.PARAGRAPH;
   const LI = DocumentApp.ElementType.LIST_ITEM;
-  let template = null;
-  for (let i = 0; i < body.getNumChildren() && !template; i++) {
-    if (body.getChild(i).getType() === LI) template = body.getChild(i).asListItem();
+  const isNew = el => inserted.indexOf(el) >= 0;
+
+  // 문서 위쪽부터 '이름표 → 바로 다음 글머리 줄' 짝 찾기 (새로 넣은 칸은 제외)
+  const templates = {};
+  let any = null;
+  const n = Math.min(body.getNumChildren(), 400);
+  for (let i = 0; i < n; i++) {
+    const el = body.getChild(i);
+    if (el.getType() === LI && !any) any = el.asListItem();
+    if (el.getType() !== P || isNew(el) || i + 1 >= n) continue;
+    const label = el.asParagraph().getText().trim();
+    const next = body.getChild(i + 1);
+    if (AGENDA_SECTIONS.includes(label) && !templates[label] && next.getType() === LI) templates[label] = next.asListItem();
   }
+
   inserted.forEach(el => {
-    if (el.getType() !== DocumentApp.ElementType.PARAGRAPH) return;
-    if (!AGENDA_SECTIONS.includes(el.asParagraph().getText().trim())) return;
+    if (el.getType() !== P) return;
+    const label = el.asParagraph().getText().trim();
+    if (!AGENDA_SECTIONS.includes(label)) return;
+    const template = templates[label] || any;
     const at = body.getChildIndex(el) + 1;
     const li = template ? body.insertListItem(at, template.copy()) : body.insertListItem(at, '');
     li.setText('');
