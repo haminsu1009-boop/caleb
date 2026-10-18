@@ -51,9 +51,17 @@ function installTrigger() {
   console.log('예약 완료: 매주 월요일 9시');
 }
 
+/** 테스트용: 다음 주일 아젠다를 지금 바로 만들기 (일요일에 실행하면 7일 뒤 주일) */
+function testNextSunday() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  updateAgenda(d);
+}
+
 /** 이번 주 주일 아젠다 추가 (이미 있으면 순서 값만 다시 맞춤) */
-function updateAgenda() {
-  const sunday = upcomingSunday_(new Date());
+function updateAgenda(base) {
+  // 자동 실행 때는 날짜가 아닌 '실행 정보'가 들어오므로, 날짜일 때만 기준일로 사용
+  const sunday = upcomingSunday_(base instanceof Date ? base : new Date());
   const label = fmt_(sunday, 'M/d');
   const m = getMeeting_(sunday);
   if (!m) return report_(`[확인 필요] ${label} 아젠다 생략`, `감독단 시트에서 ${label} 줄을 찾지 못했습니다.`);
