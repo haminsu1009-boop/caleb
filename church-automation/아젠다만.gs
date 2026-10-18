@@ -21,9 +21,9 @@ const ROSTERS = [
 // [이름표, 값] — 아젠다에서 이 이름표로 시작하는 줄·표 칸의 값을 바꿈
 const AGENDA_LINES = [
   ['감리:', m => m.presiding],
-  ['지휘:', m => person_(m.chorister)],
+  ['지휘:', m => person_(m.chorister, '자매님')],   // 명단에 없으면 '자매님'
   ['사회:', m => person_(m.conducting)],
-  ['반주:', m => person_(m.organist)],
+  ['반주:', m => person_(m.organist, '자매님')],
   ['개회찬송:', m => m.hymns.openingHymn],
   ['개회기도:', m => person_(m.openingPrayer)],
   ['성찬찬송:', m => m.hymns.sacramentHymn],
@@ -251,11 +251,15 @@ function hymnText_(parts) {
   return HYMN_FORMAT.split('{번호}').join(num).split('{제목}').join(title);
 }
 
-function person_(raw) {
+/** 이름 뒤 호칭: 명단(장로정원회·상호부조회…)에서 찾고, 없으면 fallback 사용 */
+function person_(raw, fallback) {
   raw = String(raw || '');
   if (!USE_TITLES) return raw;
-  return raw.split('/').map(s => s.trim()).filter(Boolean)
-    .map(s => (roster_()[s] && !s.endsWith('님') ? `${s} ${roster_()[s]}` : s)).join(' / ');
+  return raw.split('/').map(s => s.trim()).filter(Boolean).map(s => {
+    if (s.endsWith('님')) return s;
+    const title = roster_()[s] || fallback;
+    return title ? `${s} ${title}` : s;
+  }).join(' / ');
 }
 
 function roster_() {
