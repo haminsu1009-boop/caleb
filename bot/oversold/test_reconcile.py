@@ -29,8 +29,12 @@ def check(name, ok, detail=""):
 class FakeEx:
     live = True
 
-    def __init__(self, pos):
+    def __init__(self, pos, last=1.0):
         self.pos = pos
+        self.last = last
+
+    def klines(self, symbol, limit=200, interval=None):
+        return [[0, self.last, self.last, self.last, self.last]]
 
     def positions(self):
         return {s: {"size": 1.0, "entry": 1.0, "side": "Buy", "stop": 0.6, "tp": 0.0}
@@ -83,7 +87,39 @@ def main():
     tr2.reconcile()
     check("시작 시 한 번에 제거", not tr2.st["positions"])
 
-    print("④ 이미 닫힌 포지션 청산 주문(110017)")
+    print("④ 4배 손실 청산 뒤 재매수 잠금 (백테스트와 같게)")
+    H = E.BAR_MS
+    ex5 = FakeEx({"AAAUSDT"}, last=70.0)          # 평단 100 → 지금 70 = 손실로 닫힘
+    tr5 = E.Trader(ex5, E.Config())
+    tr5.st["positions"] = {"LIQUSDT": {"qty": 1, "entry": 100.0, "stop": 60.0, "lev": 4.0,
+                                       "entry_bar": 0}}
+    tr5.reconcile()
+    lk = tr5.st.get("relock", {}).get("LIQUSDT")
+    check("4배가 손실로 닫히면 잠근다", bool(lk) and lk["until"] == E.S.HOLD_BARS * H)
+    check("알림에 잠금 안내", "다시 사지 않습니다" in sent[-1])
+    flat = [[0, 70, 72, 69, 70]]
+    closes = [70.0] * 30
+    check("잠금 중엔 진입 막음", tr5._relocked("LIQUSDT", 10 * H, closes, flat))
+    check("60봉 지나면 풀림", not tr5._relocked("LIQUSDT", E.S.HOLD_BARS * H, closes, flat))
+    tr5.st["positions"] = {"LIQUSDT": {"qty": 1, "entry": 100.0, "stop": 60.0, "lev": 4.0,
+                                       "entry_bar": 0}}
+    tr5.reconcile()
+    check("-40% 손절선에 닿으면 풀림 (백테스트에선 그때 거래가 끝난다)",
+          not tr5._relocked("LIQUSDT", 10 * H, closes, [[0, 60, 61, 59, 60]]))
+    ex6 = FakeEx(set(), last=110.0)                # 평단 위에서 닫힘 = 익절
+    tr6 = E.Trader(ex6, E.Config())
+    tr6.st["positions"] = {"TPUSDT": {"qty": 1, "entry": 100.0, "stop": 60.0, "lev": 4.0,
+                                      "entry_bar": 0}}
+    tr6.reconcile()
+    check("익절로 닫히면 잠그지 않는다", not tr6.st.get("relock"))
+    ex7 = FakeEx(set(), last=70.0)
+    tr7 = E.Trader(ex7, E.Config())
+    tr7.st["positions"] = {"B2USDT": {"qty": 1, "entry": 100.0, "stop": 60.0, "lev": 2.0,
+                                      "entry_bar": 0}}
+    tr7.reconcile()
+    check("2배는 잠그지 않는다 (손절이 청산보다 먼저 = 백테스트와 같음)", not tr7.st.get("relock"))
+
+    print("⑤ 이미 닫힌 포지션 청산 주문(110017)")
     x = E.Exchange.__new__(E.Exchange)
     x.live = True
     x.session = Zero110017()

@@ -731,11 +731,14 @@ class Trader:
         say = log.warning if startup else log.info
         for sym in gone:
             if sym in tracked:
+                p = tracked.pop(sym)
+                lock = self._relock_after_loss(sym, p)
                 say("상태엔 있으나 거래소에 없는 포지션 제거: %s "
-                    "(익절·손절 체결로 이미 닫혔다)", sym)
+                    "(익절·손절 체결로 이미 닫혔다)%s", sym, " — 손실 청산, 재매수 잠금" if lock else "")
                 notify(f"⚪ 롱 종료 {sym}\n거래소에서 손절 또는 익절이 체결됐습니다 "
-                       "(손익은 다음 정각 결과 알림에)")
-                tracked.pop(sym)
+                       "(손익은 다음 정각 결과 알림에)"
+                       + (f"\n손실로 닫혀서 {lock} 까지 이 코인은 다시 사지 않습니다"
+                          " (백테스트와 같은 규칙)" if lock else ""))
             elif sym in mods:
                 say("상태엔 있으나 거래소에 없는 모듈 포지션 제거: %s [%s]",
                     sym, mods[sym]["kind"])
@@ -749,6 +752,46 @@ class Trader:
                                 "건드리지 않는다", sym)
         if startup or gone:
             save_state(self.st)
+
+    def _relock_after_loss(self, sym: str, p: dict) -> str:
+        """거래소가 롱을 손실로 닫았으면(4배 강제청산) 재매수를 잠근다.
+
+        백테스트(ml/per_coin_rules.sim)는 강제청산을 따로 다루지 않는다 — 손익만
+        증거금 전부로 자르고, 거래 자체는 -40% 손절·익절·60봉까지 열린 것으로
+        본다. 그동안 그 코인은 다시 사지 않는다. 실거래는 -24.5%에서 강제청산되면
+        포지션이 사라지므로, 막지 않으면 폭락 중에 같은 코인을 또 사서 또
+        청산된다 — 2017~ 36배가 23배로 깎이는 차이다 (2026-10-19 확인).
+
+        그래서 잠금은 백테스트에서 그 거래가 끝났을 시점까지다: 진입 후 60봉,
+        또는 그 전에 가격이 -40% 손절선이나 볼린저 상단(익절)에 닿을 때.
+        익절로 닫힌 거래와 2배(손절이 청산보다 먼저 걸린다)는 잠그지 않는다.
+        """
+        if (p.get("lev") or self.cfg.leverage) < 3 or "entry_bar" not in p:
+            return ""
+        try:
+            last = float(self.ex.klines(sym, limit=2)[-1][4])
+        except Exception:
+            last = 0.0                     # 모르면 잠근다 — 다시 사는 쪽이 더 위험하다
+        if last and last >= p["entry"]:
+            return ""                      # 이익 쪽에서 닫혔다 = 익절
+        until = int(p["entry_bar"]) + S.HOLD_BARS * BAR_MS
+        self.st.setdefault("relock", {})[sym] = {
+            "until": until, "entry": p["entry"], "stop": p.get("stop") or S.stop_price(p["entry"])}
+        return datetime.fromtimestamp(until / 1000, timezone.utc).strftime("%m-%d %H시(UTC)")
+
+    def _relocked(self, sym: str, bar_time: int, closes: list, confirmed: list) -> bool:
+        """잠금 중이면 True. 백테스트에서 그 거래가 끝났을 조건이면 풀어준다."""
+        lk = self.st.get("relock", {}).get(sym)
+        if not lk:
+            return False
+        hi, lo = float(confirmed[-1][2]), float(confirmed[-1][3])
+        tp = S.take_profit_price(closes, lk["entry"])
+        if bar_time >= lk["until"] or lo <= lk["stop"] or (tp and hi >= tp):
+            self.st["relock"].pop(sym, None)
+            save_state(self.st)
+            log.info("  %s 재매수 잠금 해제", sym)
+            return False
+        return True
 
     def _guard(self, equity: float) -> bool:
         """차단기. False면 신규 진입 금지 — 보유 중인 포지션은 건드리지
@@ -1199,6 +1242,8 @@ class Trader:
                 continue
             if sym in self.st.get("mod_positions", {}):
                 continue          # 숏·다이버가 이미 잡고 있는 종목
+            if self._relocked(sym, bar_time, closes, confirmed):
+                continue          # 4배 강제청산 뒤 — 백테스트에선 아직 그 거래가 열려 있다
             if sym in self.ex.delisting():
                 continue          # 상장폐지 예정 — 급락을 사면 안 되는 자리
             if not REG.enabled("long"):
