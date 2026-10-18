@@ -108,6 +108,7 @@ function insertAgendaSection_(body, m) {
   });
 
   fillSection_(inserted, m);
+  addEmptyBullets_(body, inserted);
   return 'added';
 }
 
@@ -170,6 +171,23 @@ function fillLine_(p, m) {
   if (!v && KEEP_IF_EMPTY.includes(line[0])) return true;
   setAfterLabel_(p.editAsText(), line[0], v);
   return true;
+}
+
+/** '광고' · '스테이크 행사' · '와드 행사' 아래에 빈 글머리 기호(-) 한 줄씩 넣기
+ *  모양을 문서와 똑같이 하려고, 문서에 이미 있는 글머리 줄을 복사해서 내용만 비움 */
+function addEmptyBullets_(body, inserted) {
+  const LI = DocumentApp.ElementType.LIST_ITEM;
+  let template = null;
+  for (let i = 0; i < body.getNumChildren() && !template; i++) {
+    if (body.getChild(i).getType() === LI) template = body.getChild(i).asListItem();
+  }
+  inserted.forEach(el => {
+    if (el.getType() !== DocumentApp.ElementType.PARAGRAPH) return;
+    if (!AGENDA_SECTIONS.includes(el.asParagraph().getText().trim())) return;
+    const at = body.getChildIndex(el) + 1;
+    const li = template ? body.insertListItem(at, template.copy()) : body.insertListItem(at, '');
+    li.setText('');
+  });
 }
 
 /** 제목 줄부터 그 주 칸의 끝(----- 줄)까지 모으기 */
