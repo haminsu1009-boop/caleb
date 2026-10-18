@@ -3,8 +3,8 @@
  * 매주 월요일 9시, 감독단 시트의 성찬식 순서표를 읽어
  * 「성찬식 아젠다」 문서 맨 위에 이번 주 칸을 추가합니다.
  *
- * 처음 한 번: 아래 주소 2개 입력 → 저장 → 함수 'installTrigger' 실행 → 권한 허용
- * 바로 만들어 보기: 함수 'updateAgenda' 실행
+ * 테스트: 함수 'testNextSunday' 실행 → 다음 주일 칸 바로 만들기
+ * 자동 실행 예약: 함수 'installTrigger' 실행 (한 번만)
  */
 const SOURCE_URL = '여기에 감독단 시트 주소';
 const AGENDA_URL = '여기에 성찬식 아젠다 문서 주소';
@@ -27,7 +27,7 @@ const AGENDA_LINES = [
   ['개회찬송:', m => m.hymns.openingHymn],
   ['개회기도:', m => person_(m.openingPrayer)],
   ['성찬찬송:', m => m.hymns.sacramentHymn],
-  ['말씀:', m => m.speakers.map(person_).join(', ')],
+  ['말씀:', m => m.speakers.map(s => person_(s)).join(', ')],
   ['회중찬송:', m => m.hymns.restHymn],
   ['마지막 연사 말씀:', m => person_(m.lastSpeaker)],
   ['마지막 말씀:', m => person_(m.lastSpeaker)],
