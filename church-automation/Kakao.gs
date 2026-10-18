@@ -70,19 +70,38 @@ function kakaoAccessToken_() {
   return props.getProperty('KAKAO_ACCESS_TOKEN');
 }
 
+/** 긴 글은 줄 단위로 200자 이하 조각으로 나눠 여러 번 보냄 */
 function kakaoSendToMe_(text, linkUrl) {
-  const shortText = text.length > KAKAO_TEXT_LIMIT ? text.slice(0, KAKAO_TEXT_LIMIT - 1) + '…' : text;
-  const template = {
-    object_type: 'text',
-    text: shortText,
-    link: { web_url: linkUrl, mobile_web_url: linkUrl },
-    button_title: '자세히 보기',
-  };
-  const res = UrlFetchApp.fetch('https://kapi.kakao.com/v2/api/talk/memo/default/send', {
-    method: 'post',
-    headers: { Authorization: 'Bearer ' + kakaoAccessToken_() },
-    payload: { template_object: JSON.stringify(template) },
-    muteHttpExceptions: true,
+  kakaoChunks_(text).forEach(chunk => {
+    const template = {
+      object_type: 'text',
+      text: chunk,
+      link: { web_url: linkUrl, mobile_web_url: linkUrl },
+      button_title: '자세히 보기',
+    };
+    const res = UrlFetchApp.fetch('https://kapi.kakao.com/v2/api/talk/memo/default/send', {
+      method: 'post',
+      headers: { Authorization: 'Bearer ' + kakaoAccessToken_() },
+      payload: { template_object: JSON.stringify(template) },
+      muteHttpExceptions: true,
+    });
+    if (res.getResponseCode() !== 200) throw new Error('카카오 전송 오류: ' + res.getContentText());
   });
-  if (res.getResponseCode() !== 200) throw new Error('카카오 전송 오류: ' + res.getContentText());
+}
+
+function kakaoChunks_(text) {
+  const chunks = [];
+  let cur = '';
+  text.split('\n').forEach(line => {
+    while (line.length > KAKAO_TEXT_LIMIT) {
+      if (cur) chunks.push(cur), (cur = '');
+      chunks.push(line.slice(0, KAKAO_TEXT_LIMIT));
+      line = line.slice(KAKAO_TEXT_LIMIT);
+    }
+    const next = cur ? cur + '\n' + line : line;
+    if (next.length > KAKAO_TEXT_LIMIT) chunks.push(cur), (cur = line);
+    else cur = next;
+  });
+  if (cur.trim()) chunks.push(cur);
+  return chunks;
 }

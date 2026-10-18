@@ -1,13 +1,16 @@
 /** 메뉴 · 초기 설정 · 트리거(자동 실행 예약) */
 
 function onOpen() {
-  SpreadsheetApp.getUi().createMenu('⛪ 교회 자동화')
+  SpreadsheetApp.getUi().createMenu('⛪ 성찬식 자동화')
     .addItem('1. 초기 설정 (처음 한 번)', 'setup')
     .addItem('2. 카카오톡 연결', 'kakaoConnect')
     .addSeparator()
-    .addItem('지금 보내기: 주일 말씀 주제', 'sendWeeklyTopic')
-    .addItem('지금 보내기: 오늘의 기도 리마인드', 'sendDailyReminder')
-    .addItem('지금 갱신: 성찬식 문서', 'updateCommunionAgenda')
+    .addItem('미리보기: 다음 주 임무·부탁 메시지', 'previewNextWeek')
+    .addItem('미리보기: 내일 톡방 공지', 'previewTomorrow')
+    .addSeparator()
+    .addItem('지금 보내기: 다음 주 임무·부탁 메시지', 'sendNextWeekAssignments')
+    .addItem('지금 보내기: 내일 톡방 공지', 'sendTomorrowNotice')
+    .addItem('지금 갱신: 성찬식 아젠다 문서', 'updateAgenda')
     .addSeparator()
     .addItem('자동 실행 다시 설치', 'installTriggers')
     .addToUi();
@@ -15,59 +18,50 @@ function onOpen() {
 
 function setup() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sunday = upcomingSunday_(new Date());
 
-  ensureSheet_(ss, CONFIG.SHEETS.SETTINGS, CONFIG.HEADERS.SETTINGS, [
-    ['교회 이름', '우리교회'],
-    ['알림 이메일', Session.getEffectiveUser().getEmail()], // 쉼표로 여러 명 가능
-    ['성찬식 문서 ID', ''],
-  ]);
-  ensureSheet_(ss, CONFIG.SHEETS.SERMON, CONFIG.HEADERS.SERMON, [
-    [sunday, '(예시) 두려워하지 말라', '이사야 41:10', '두려워하지 말라 내가 너와 함께 함이라', '담임목사', ''],
-  ]);
-  ensureSheet_(ss, CONFIG.SHEETS.PRAYER, CONFIG.HEADERS.PRAYER, [
-    [new Date(), '(예시) 홍길동', '어머니 수술 회복', '공개', '진행중'],
-  ]);
-  ensureSheet_(ss, CONFIG.SHEETS.COMMUNION, CONFIG.HEADERS.COMMUNION, [
-    [sunday, '담임목사', '김장로', '이권사', '박집사, 최집사', '찬송가 227장', '여전도회', ''],
-  ]);
+  let settings = ss.getSheetByName(CONFIG.SETTINGS_SHEET);
+  if (!settings) {
+    settings = ss.insertSheet(CONFIG.SETTINGS_SHEET, 0);
+    settings.appendRow(['항목', '값', '설명']);
+    settings.getRange('A1:C1').setFontWeight('bold').setBackground('#f1f3f4');
+    settings.setFrozenRows(1);
+  }
+  // 없는 항목만 추가 (다시 실행해도 입력한 값은 그대로)
+  const existing = settings.getDataRange().getValues().map(r => r[0]);
+  CONFIG.DEFAULT_SETTINGS.forEach(([key, value, help]) => {
+    if (existing.includes(key)) return;
+    settings.appendRow([key, key === '알림 이메일' ? Session.getEffectiveUser().getEmail() : value, help]);
+  });
+  settings.getRange('B:B').setWrap(true);
+  settings.setColumnWidth(2, 360);
 
-  const prayer = ss.getSheetByName(CONFIG.SHEETS.PRAYER);
-  prayer.getRange('D2:D').setDataValidation(
-    SpreadsheetApp.newDataValidation().requireValueInList(['공개', '비공개']).build());
-  prayer.getRange('E2:E').setDataValidation(
-    SpreadsheetApp.newDataValidation().requireValueInList(['진행중', '응답']).build());
+  if (!ss.getSheetByName(CONFIG.LOG_SHEET)) {
+    const log = ss.insertSheet(CONFIG.LOG_SHEET);
+    log.appendRow(['시각', '제목', '내용']);
+    log.getRange('A1:C1').setFontWeight('bold').setBackground('#f1f3f4');
+    log.setFrozenRows(1);
+  }
 
-  getAgendaDoc_();
   installTriggers();
   SpreadsheetApp.getUi().alert(
     '초기 설정 완료!\n\n'
-    + '• 토 20시: 주일 말씀 주제 전송\n• 매일 7시: 말씀·기도 리마인드\n• 목 9시: 성찬식 문서 갱신\n\n'
-    + "'설정' 시트에서 교회 이름과 알림 이메일을 확인하세요.");
-}
-
-function ensureSheet_(ss, name, headers, sampleRows) {
-  if (ss.getSheetByName(name)) return;
-  const sheet = ss.insertSheet(name);
-  sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight('bold').setBackground('#f1f3f4');
-  sheet.setFrozenRows(1);
-  if (sampleRows.length) sheet.getRange(2, 1, sampleRows.length, headers.length).setValues(sampleRows);
-  if (headers[0].includes('날짜') || headers[0] === '등록일') sheet.getRange('A2:A').setNumberFormat('yyyy-mm-dd');
-  sheet.autoResizeColumns(1, headers.length);
+    + "1) '설정' 시트에 원본 시트 주소와 아젠다 문서 주소를 붙여넣으세요.\n"
+    + "2) 메뉴의 '미리보기'로 메시지가 맞게 나오는지 확인하세요.\n\n"
+    + '자동 실행: 일 7시(다음 주 임무) · 토 14시(아젠다) · 토 15시(톡방 공지)');
 }
 
 /** 기존 예약을 지우고 다시 만듦 (여러 번 실행해도 중복 안 됨) */
 function installTriggers() {
-  const jobs = ['sendWeeklyTopic', 'sendDailyReminder', 'updateCommunionAgenda'];
-  ScriptApp.getProjectTriggers()
-    .filter(t => jobs.includes(t.getHandlerFunction()))
-    .forEach(t => ScriptApp.deleteTrigger(t));
-
   const S = CONFIG.SCHEDULE;
-  ScriptApp.newTrigger('sendWeeklyTopic').timeBased()
-    .onWeekDay(S.WEEKLY_TOPIC.day).atHour(S.WEEKLY_TOPIC.hour).create();
-  ScriptApp.newTrigger('sendDailyReminder').timeBased()
-    .everyDays(1).atHour(S.DAILY_REMINDER.hour).create();
-  ScriptApp.newTrigger('updateCommunionAgenda').timeBased()
-    .onWeekDay(S.COMMUNION_AGENDA.day).atHour(S.COMMUNION_AGENDA.hour).create();
+  const jobs = {
+    sendNextWeekAssignments: S.NEXT_WEEK,
+    updateAgenda: S.AGENDA,
+    sendTomorrowNotice: S.TOMORROW,
+  };
+  ScriptApp.getProjectTriggers()
+    .filter(t => t.getHandlerFunction() in jobs)
+    .forEach(t => ScriptApp.deleteTrigger(t));
+  Object.keys(jobs).forEach(fn => {
+    ScriptApp.newTrigger(fn).timeBased().onWeekDay(jobs[fn].day).atHour(jobs[fn].hour).create();
+  });
 }

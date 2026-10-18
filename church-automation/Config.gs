@@ -1,44 +1,70 @@
 /**
- * 교회 업무 자동화 — 설정
- * 시간·시트 이름·성찬식 순서는 여기만 고치면 됩니다.
+ * 와드 성찬식 자동화 — 설정
+ * 원본 데이터: 감독단 구글 시트(성찬식 일정 · 성찬 축복/전달 탭)
+ * 내 시트(이 스크립트가 붙은 시트)에는 '설정'과 '발송기록'만 둡니다.
  */
+const DEFAULT_REQUEST_TEMPLATE =
+  '{이름}, 안녕하세요 🙂 {와드} 감독단입니다.\n'
+  + '{날짜} 성찬식 {역할} 순서를 맡아 주셔서 감사합니다.{주제}\n'
+  + '준비하시다 어려운 점이 있으면 언제든 연락 주세요!';
+
 const CONFIG = {
-  SHEETS: {
-    SETTINGS: '설정',
-    SERMON: '주간말씀',
-    PRAYER: '기도제목',
-    COMMUNION: '성찬식',
-  },
-  HEADERS: {
-    SETTINGS: ['항목', '값'],
-    SERMON: ['주일날짜', '말씀주제', '성경본문', '핵심구절', '설교자', '주제전송'],
-    PRAYER: ['등록일', '요청자', '기도제목', '공개', '상태'],
-    COMMUNION: ['주일날짜', '인도', '떡기도', '잔기도', '분병분잔위원', '찬송', '준비담당', '비고'],
-  },
-  // 자동 실행 시각 (한국 시간)
+  SETTINGS_SHEET: '설정',
+  LOG_SHEET: '발송기록',
+  // [항목, 기본값, 설명]
+  DEFAULT_SETTINGS: [
+    ['원본 시트', '', '감독단 구글 시트 주소(URL)를 붙여넣으세요'],
+    ['성찬식 탭 이름', '{년}년 성찬식', '{년} 은 해당 주일의 연도로 바뀜 (2026년 성찬식, 2027년 성찬식 …)'],
+    ['축복/전달 탭 이름', '성찬 축복/전달', ''],
+    ['아젠다 문서', '', '「성찬식 아젠다」 구글 문서 주소(URL)'],
+    ['알림 이메일', '', '쉼표로 여러 명 가능'],
+    ['와드 이름', '녹번와드', '부탁 메시지에 들어감'],
+    ['미리 확인할 주 수', 8, '이 기간 안에 비어 있는 순서를 알려줌'],
+    ['부탁 메시지', DEFAULT_REQUEST_TEMPLATE, '{이름} {날짜} {역할} {주제} {와드} 사용 가능'],
+    ['부탁 메시지 카톡 발송', '예', '예 / 아니오'],
+  ],
+  // 자동 실행 시각 (한국 시간, ±15분 안에서 실행됨)
   SCHEDULE: {
-    WEEKLY_TOPIC: { day: ScriptApp.WeekDay.SATURDAY, hour: 20 },     // 토요일 저녁: 내일 말씀 주제
-    DAILY_REMINDER: { hour: 7 },                                      // 매일 아침: 말씀·기도 리마인드
-    COMMUNION_AGENDA: { day: ScriptApp.WeekDay.THURSDAY, hour: 9 },  // 목요일 아침: 성찬식 문서 갱신
+    NEXT_WEEK: { day: ScriptApp.WeekDay.SUNDAY, hour: 7 },    // 다음 주 임무 + 부탁 메시지
+    AGENDA: { day: ScriptApp.WeekDay.SATURDAY, hour: 14 },    // 아젠다 문서 갱신
+    TOMORROW: { day: ScriptApp.WeekDay.SATURDAY, hour: 15 },  // 톡방 공지
   },
-  MAX_PRAYERS_PER_DAY: 5, // 하루에 돌아가며 보여줄 기도제목 수
+  // 원본 시트의 열 제목 (여러 후보 중 먼저 찾은 것 사용)
+  COLUMNS: {
+    presiding: ['감리'],
+    conducting: ['사회'],
+    chorister: ['지휘'],
+    organist: ['반주'],
+    talk5: ['5분 말씀'],
+    talk10: ['10분 말씀'],
+    lastSpeaker: ['마지막 연사', '주연사'],
+    openingPrayer: ['개회기도'],
+    closingPrayer: ['폐회기도'],
+    openingHymn: ['개회찬송'],
+    sacramentHymn: ['성찬찬송'],
+    restHymn: ['회중찬송'],
+    closingHymn: ['폐회찬송'],
+    topic: ['말씀 주제', '주제'], // 열을 추가하면 부탁 메시지에 자동으로 들어감
+    blessers: ['축복', '성찬 축복'],
+    passers: ['전달', '성찬 전달'],
+  },
+  // 호칭(형제님/자매님)을 붙이기 위해 읽는 명단 탭
+  ROSTERS: [
+    { tab: '장로정원회', title: '형제님' },
+    { tab: '상호부조회', title: '자매님' },
+    { tab: '청년독신성인', genderCol: '성별' },
+  ],
+  SPECIAL_WEEK: /대회/, // 사회 칸에 이 글자가 있으면 정규 성찬식이 없는 주 (연차대회, 스테이크 대회)
+  NOT_A_PERSON: /간증|대회|스테이크|발표|선교사|장로님|성찬식|방문|찬송|\?/, // 사람 이름이 아닌 칸
 };
 
-// 성찬식 순서 — detail/owner 는 고정 문구, detailCol/ownerCol 은 '성찬식' 시트의 열 이름
-const COMMUNION_ORDER = [
-  { step: '예배로 부름 · 찬송', detailCol: '찬송', ownerCol: '인도' },
-  { step: '성찬 제정의 말씀', detail: '고린도전서 11:23-26', ownerCol: '인도' },
-  { step: '떡을 위한 기도', ownerCol: '떡기도' },
-  { step: '분병', ownerCol: '분병분잔위원' },
-  { step: '잔을 위한 기도', ownerCol: '잔기도' },
-  { step: '분잔', ownerCol: '분병분잔위원' },
-  { step: '감사 기도 · 폐회 찬송', ownerCol: '인도' },
+// 부탁·리마인드 메시지를 보낼 순서
+const REMINDER_ROLES = [
+  ['talk5', '5분 말씀'],
+  ['talk10', '10분 말씀'],
+  ['lastSpeaker', '마지막 연사 말씀'],
+  ['openingPrayer', '개회기도'],
+  ['closingPrayer', '폐회기도'],
 ];
-
-const COMMUNION_CHECKLIST = [
-  '떡 준비 (수량 확인)',
-  '포도주스 준비',
-  '성찬기 세척 · 성찬보 준비',
-  '분병분잔위원 연락 및 확인',
-  '순서지 / 자막 반영',
-];
+// 비어 있으면 경고할 순서
+const REQUIRED_ROLES = [['conducting', '사회'], ...REMINDER_ROLES];
