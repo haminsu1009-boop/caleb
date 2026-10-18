@@ -527,8 +527,7 @@ function insertAgendaSection_(body, m) {
   let at = start;
   const inserted = [];
   section.forEach(el => {
-    if (el.getType() === T) inserted.push(body.insertTable(at++, el.asTable().copy()));
-    else if (el.getType() === P && keep(text(el))) inserted.push(body.insertParagraph(at++, el.asParagraph().copy()));
+    if (el.getType() === T || (el.getType() === P && keep(text(el)))) inserted.push(insertCopy_(body, at++, el));
   });
 
   fillSection_(inserted, m);
@@ -631,7 +630,7 @@ function ensureBullets_(body, section, source) {
     if (next && next.getType() === LI) return; // 이미 있음
     const t = templates[label] || base;
     const at = body.getChildIndex(el) + 1;
-    const li = t ? body.insertListItem(at, t.copy()) : body.insertListItem(at, '');
+    const li = t ? insertCopy_(body, at, t) : body.insertListItem(at, ' ');
     li.setText('');
     const extra = !templates[label] && t ? EXTRA_INDENT[label] || 0 : 0;
     if (!extra) return;
@@ -640,6 +639,23 @@ function ensureBullets_(body, section, source) {
     if (s !== null) li.setIndentStart(s + extra);
     if (f !== null) li.setIndentFirstLine(f + extra);
   });
+}
+
+/** 복사한 줄 끼워 넣기 — Google 문서는 내용이 완전히 빈 줄의 복사본을 거부하므로,
+ *  거부되면 공백 한 칸을 넣어서 다시 시도 */
+function insertCopy_(body, at, el) {
+  const T = DocumentApp.ElementType.TABLE;
+  const LI = DocumentApp.ElementType.LIST_ITEM;
+  const type = el.getType();
+  const copy = type === T ? el.asTable().copy() : type === LI ? el.asListItem().copy() : el.asParagraph().copy();
+  const insert = c => (type === T ? body.insertTable(at, c) : type === LI ? body.insertListItem(at, c) : body.insertParagraph(at, c));
+  try {
+    return insert(copy);
+  } catch (e) {
+    if (type === T) throw e;
+    copy.setText(' ');
+    return insert(copy);
+  }
 }
 
 /** 제목 줄부터 그 주 칸의 끝(----- 줄)까지 모으기 */
