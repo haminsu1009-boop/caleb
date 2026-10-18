@@ -10,7 +10,7 @@ function onOpen() {
     .addSeparator()
     .addItem('지금 보내기: 다음 주 임무·부탁 메시지', 'sendNextWeekAssignments')
     .addItem('지금 보내기: 내일 톡방 공지', 'sendTomorrowNotice')
-    .addItem('지금 갱신: 성찬식 아젠다 문서', 'updateAgenda')
+    .addItem('지금 만들기/갱신: 이번 주 아젠다', 'updateAgenda')
     .addSeparator()
     .addItem('자동 실행 다시 설치', 'installTriggers')
     .addToUi();
@@ -47,7 +47,7 @@ function setup() {
     '초기 설정 완료!\n\n'
     + "1) '설정' 시트에 원본 시트 주소와 아젠다 문서 주소를 붙여넣으세요.\n"
     + "2) 메뉴의 '미리보기'로 메시지가 맞게 나오는지 확인하세요.\n\n"
-    + '자동 실행: 일 7시(다음 주 임무) · 토 14시(아젠다) · 토 15시(톡방 공지)');
+    + '자동 실행: 월 9시(이번 주 아젠다) · 일 7시(다음 주 임무) · 토 15시(톡방 공지)');
 }
 
 /** 기존 예약을 지우고 다시 만듦 (여러 번 실행해도 중복 안 됨) */

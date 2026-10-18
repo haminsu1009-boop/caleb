@@ -26,7 +26,7 @@ const CONFIG = {
   // 자동 실행 시각 (한국 시간, ±15분 안에서 실행됨)
   SCHEDULE: {
     NEXT_WEEK: { day: ScriptApp.WeekDay.SUNDAY, hour: 7 },    // 다음 주 임무 + 부탁 메시지
-    AGENDA: { day: ScriptApp.WeekDay.SATURDAY, hour: 14 },    // 아젠다 문서 갱신
+    AGENDA: { day: ScriptApp.WeekDay.MONDAY, hour: 9 },       // 이번 주 아젠다 만들기
     TOMORROW: { day: ScriptApp.WeekDay.SATURDAY, hour: 15 },  // 톡방 공지
   },
   // 원본 시트의 열 제목 (여러 후보 중 먼저 찾은 것 사용)
