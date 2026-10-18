@@ -499,7 +499,9 @@ function insertAgendaSection_(body, m) {
     if (!SECTION_RE.test(s)) continue;
     seen++;
     if (s.startsWith(fmt_(m.sunday, 'MM.dd'))) {
-      fillSection_(collectSection_(body, i), m);
+      const existing = collectSection_(body, i);
+      fillSection_(existing, m);
+      ensureBullets_(body, existing, existing);
       return 'updated';
     }
   }
@@ -530,7 +532,7 @@ function insertAgendaSection_(body, m) {
   });
 
   fillSection_(inserted, m);
-  addEmptyBullets_(body, inserted);
+  ensureBullets_(body, inserted, section);
   return 'added';
 }
 
@@ -595,35 +597,48 @@ function fillLine_(p, m) {
   return true;
 }
 
-/** '광고' · '스테이크 행사' · '와드 행사' 아래에 빈 글머리 기호(-) 한 줄씩 넣기
- *  항목마다 '같은 이름표 바로 아래에 있던 글머리 줄'을 복사해서 내용만 비움
- *  → 광고는 광고 아래 줄, 스테이크 행사는 스테이크 행사 아래 줄의 들여쓰기·모양을 그대로 따라감 */
-function addEmptyBullets_(body, inserted) {
+/** '광고' · '스테이크 행사' · '와드 행사' 바로 아래에 빈 글머리 기호(-)가 없으면 한 줄 넣기
+ *  본보기: source 칸의 '같은 이름표 바로 아래 글머리 줄' → 없으면 광고 글머리를 복사해 EXTRA_INDENT 만큼 더 들여씀 */
+const EXTRA_INDENT = { '광고': 0, '스테이크 행사': 36, '와드 행사': 36 }; // pt (36pt = 한 단계)
+
+function ensureBullets_(body, section, source) {
   const P = DocumentApp.ElementType.PARAGRAPH;
   const LI = DocumentApp.ElementType.LIST_ITEM;
-  const isNew = el => inserted.indexOf(el) >= 0;
+  const labelOf = el => (el.getType() === P ? el.asParagraph().getText().trim() : '');
+  const nextOf = el => {
+    const i = body.getChildIndex(el);
+    return i + 1 < body.getNumChildren() ? body.getChild(i + 1) : null;
+  };
 
-  // 문서 위쪽부터 '이름표 → 바로 다음 글머리 줄' 짝 찾기 (새로 넣은 칸은 제외)
   const templates = {};
-  let any = null;
-  const n = Math.min(body.getNumChildren(), 400);
-  for (let i = 0; i < n; i++) {
-    const el = body.getChild(i);
-    if (el.getType() === LI && !any) any = el.asListItem();
-    if (el.getType() !== P || isNew(el) || i + 1 >= n) continue;
-    const label = el.asParagraph().getText().trim();
-    const next = body.getChild(i + 1);
-    if (AGENDA_SECTIONS.includes(label) && !templates[label] && next.getType() === LI) templates[label] = next.asListItem();
+  let base = null;
+  source.forEach(el => {
+    const label = labelOf(el);
+    const next = AGENDA_SECTIONS.includes(label) && nextOf(el);
+    if (next && next.getType() === LI) {
+      templates[label] = next.asListItem();
+      if (!base) base = templates[label];
+    }
+  });
+  for (let i = 0; i < Math.min(body.getNumChildren(), 400) && !base; i++) {
+    if (body.getChild(i).getType() === LI) base = body.getChild(i).asListItem();
   }
 
-  inserted.forEach(el => {
-    if (el.getType() !== P) return;
-    const label = el.asParagraph().getText().trim();
+  section.forEach(el => {
+    const label = labelOf(el);
     if (!AGENDA_SECTIONS.includes(label)) return;
-    const template = templates[label] || any;
+    const next = nextOf(el);
+    if (next && next.getType() === LI) return; // 이미 있음
+    const t = templates[label] || base;
     const at = body.getChildIndex(el) + 1;
-    const li = template ? body.insertListItem(at, template.copy()) : body.insertListItem(at, '');
+    const li = t ? body.insertListItem(at, t.copy()) : body.insertListItem(at, '');
     li.setText('');
+    const extra = !templates[label] && t ? EXTRA_INDENT[label] || 0 : 0;
+    if (!extra) return;
+    const s = t.getIndentStart(), f = t.getIndentFirstLine();
+    if (s === null && f === null) return li.setNestingLevel(t.getNestingLevel() + 1);
+    if (s !== null) li.setIndentStart(s + extra);
+    if (f !== null) li.setIndentFirstLine(f + extra);
   });
 }
 
