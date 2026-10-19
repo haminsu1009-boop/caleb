@@ -592,25 +592,41 @@ function tableImage_(title, header, rows) {
  *    감독단과 '기도 & 말씀 어렵다고 하신분' 메모의 분들은 뺌.
  *  · 찬송: 개회 1~57 / 성찬 105~121 / 회중 58~104 / 폐회 138~195 를 섞어서 돌아가며
  *    (한 바퀴 다 쓰기 전엔 같은 찬송 안 나옴). 부활절 122~124, 12월은 성탄 찬송 125~137.
+ *  · 모양: 작년 탭을 통째로 복사해서 서식·수식·병합은 그대로, 값만 바꿈. 확인할 주는 날짜 칸 메모로.
  */
 function buildYearDraft_(year) {
   const ss = source_();
   const prevTab = ss.getSheetByName(SCHEDULE_TAB.replace('{년}', year - 1));
   if (!prevTab) throw new Error(`'${year - 1}년 성찬식' 탭이 없습니다.`);
-  const COLS = 20; // A~S 는 작년 탭과 같은 모양, T = 비고
+  const COLS = 19; // A~S (작년 탭과 같은 열)
 
+  // 1) 작년 탭을 통째로 복사 → 서식·수식·병합·열 너비·조건부 서식이 그대로
   const name = `${year}년 성찬식 (초안)`;
-  let sheet = ss.getSheetByName(name);
-  if (sheet) {
-    sheet.getDataRange().breakApart();
-    sheet.clear();
-  } else {
-    sheet = ss.insertSheet(name);
-  }
-  prevTab.getRange(1, 1, 1, COLS - 1).copyTo(sheet.getRange(1, 1)); // 제목 행 (병합·서식 그대로)
-  sheet.getRange(1, COLS).setValue('비고');
-  for (let c = 1; c < COLS; c++) sheet.setColumnWidth(c, prevTab.getColumnWidth(c));
+  const old = ss.getSheetByName(name);
+  if (old) ss.deleteSheet(old);
+  const sheet = prevTab.copyTo(ss).setName(name);
+  ss.setActiveSheet(sheet);
+  ss.moveActiveSheet(prevTab.getIndex() + 1);
 
+  // 2) 작년 탭에서 주일 줄 위치와, 열마다 쓰던 수식(R1C1 = 상대 위치 수식) 찾기
+  const values = prevTab.getDataRange().getValues();
+  const hr = values.findIndex((row, i) => i < 5 && row.some(v => String(v).trim() === '날짜'));
+  const dateCol = values[hr].findIndex(v => String(v).trim() === '날짜');
+  const sundayRows = [];
+  values.forEach((row, i) => { if (i > hr && monthDay_(row[dateCol])) sundayRows.push(i + 1); });
+  const firstRow = sundayRows[0];
+  const lastRow = sundayRows[sundayRows.length - 1];
+  const dateIsDate = values[firstRow - 1][dateCol] instanceof Date;
+  const f = prevTab.getRange(1, 1, values.length, COLS).getFormulasR1C1();
+  const formulaCols = {};
+  for (let c = 0; c < COLS; c++) {
+    const n = {};
+    sundayRows.forEach(r => { if (f[r - 1][c]) n[f[r - 1][c]] = (n[f[r - 1][c]] || 0) + 1; });
+    const best = Object.keys(n).sort((x, y) => n[y] - n[x])[0];
+    if (best && n[best] >= sundayRows.length / 3) formulaCols[c] = best;
+  }
+
+  // 3) 올해 내용 만들기
   const rand = seededRandom_(year);
   const prev = readTable_(prevTab);
   const bishopric = bishopric_();
@@ -625,22 +641,25 @@ function buildYearDraft_(year) {
   const h = n => (n ? [n, book[n] || ''] : ['', '']);
   const easter = fmt_(easterSunday_(year), 'MM-dd');
 
-  const rows = [], merges = [];
+  const rows = [], meta = [], merges = [];
   let meetingNo = 0;
   for (let d = upcomingSunday_(new Date(year, 0, 1)), w = 0; d.getFullYear() === year; d = plusDays_(d, 7), w++) {
     const month = d.getMonth() + 1, nth = Math.ceil(d.getDate() / 7);
     const isLast = plusDays_(d, 7).getMonth() !== d.getMonth();
-    const r = rows.length + 2; // 시트 행 번호
+    const r = firstRow + rows.length; // 시트 행 번호
     const row = new Array(COLS).fill('');
-    row[2] = fmt_(d, 'MM/dd');
+    const info = { special: false, note: '' };
+    row[2] = dateIsDate ? new Date(d) : fmt_(d, 'MM/dd');
 
     const special = (month === 4 || month === 10) && nth === 2 ? '연차대회 시청'
       : (month === 3 || month === 9) && nth === 2 ? '스테이크 대회' : '';
     if (special) {
       row[3] = special;
-      row[19] = special === '스테이크 대회' ? '날짜 확인 필요' : '';
+      info.special = true;
+      if (special === '스테이크 대회') info.note = '스테이크 대회 날짜 확인 필요';
       merges.push([r, 4, 1, 16]);
       rows.push(row);
+      meta.push(info);
       continue;
     }
 
@@ -655,9 +674,9 @@ function buildYearDraft_(year) {
     const taken = new Set(row.slice(3, 6));
     const assign = (role, g) => pickPerson_(people, role, g, w, taken, rand);
     if (fast || program) {
-      row[6] = row[7] = row[8] = fast ? '금식간증' : program;
+      row[6] = fast ? '금식간증' : program;
       merges.push([r, 7, 1, 3]);
-      if (program) row[19] = '확인 필요';
+      if (program) info.note = `${program} 확인 필요`;
     } else {
       row[6] = assign('talk5', g1);
       row[7] = assign('talk10', g2);
@@ -666,38 +685,59 @@ function buildYearDraft_(year) {
     row[9] = assign('open', g2);
     row[10] = assign('close', g1);
 
-    // 찬송
+    // 찬송 (제목 칸에 작년처럼 수식이 있으면 아래 4)에서 수식으로 덮어씀)
     const isEaster = fmt_(d, 'MM-dd') === easter;
     const xmas = month === 12;
     [row[11], row[12]] = h(isEaster ? 122 : xmas ? hymn.xmas() : hymn.open());
     [row[13], row[14]] = h(hymn.sacrament());
     [row[15], row[16]] = fast ? ['', ''] : h(isEaster ? 123 : xmas ? hymn.xmas() : hymn.rest());
     [row[17], row[18]] = h(isEaster ? 124 : xmas ? hymn.xmas() : hymn.close());
-    if (isEaster) row[19] = '부활절';
+    if (isEaster) info.note = '부활절';
     rows.push(row);
+    meta.push(info);
   }
 
   // 년도·분기 칸 (작년처럼 병합)
-  rows[0][0] = String(year);
-  merges.push([2, 1, rows.length, 1]);
+  rows[0][0] = year;
+  merges.push([firstRow, 1, rows.length, 1]);
   [0, 1, 2, 3].forEach(q => {
-    const idx = rows.map((row, i) => i).filter(i => Math.floor((Number(rows[i][2].slice(0, 2)) - 1) / 3) === q);
+    const idx = rows.map((row, i) => i).filter(i => Math.floor((Number(fmt_(sundayOf_(year, i), 'M')) - 1) / 3) === q);
     if (!idx.length) return;
     rows[idx[0]][1] = `${q + 1}분기`;
-    merges.push([idx[0] + 2, 2, idx.length, 1]);
+    merges.push([firstRow + idx[0], 2, idx.length, 1]);
   });
 
-  sheet.getRange(2, 3, rows.length, 1).setNumberFormat('@'); // 날짜를 글자 그대로 (01/03)
-  sheet.getRange(2, 1, rows.length, COLS).setValues(rows);
+  // 4) 주일 줄 수가 작년과 다르면 줄 늘리기/비우기 → 값 쓰기 → 수식 넣기 → 병합 → 메모
+  const extra = rows.length - sundayRows.length;
+  if (extra > 0) {
+    sheet.insertRowsAfter(lastRow, extra);
+    sheet.getRange(lastRow, 1, 1, COLS).copyTo(sheet.getRange(lastRow + 1, 1, extra, COLS), { formatOnly: true });
+  }
+  const area = sheet.getRange(firstRow, 1, Math.max(rows.length, sundayRows.length), COLS);
+  area.breakApart();
+  area.clearContent();
+  area.clearNote();
+  sheet.getRange(firstRow, 1, rows.length, COLS).setValues(rows);
+  rows.forEach((row, i) => {
+    if (meta[i].special) return;
+    Object.keys(formulaCols).forEach(c => sheet.getRange(firstRow + i, Number(c) + 1).setFormulaR1C1(formulaCols[c]));
+  });
   merges.forEach(([r, c, nr, nc]) => sheet.getRange(r, c, nr, nc).merge());
-  sheet.getRange(2, 1, rows.length, COLS).setVerticalAlignment('middle');
+  meta.forEach((info, i) => { if (info.note) sheet.getRange(firstRow + i, dateCol + 1).setNote(info.note); });
 
   const counts = people.filter(p => p.total || p.wTotal).sort((a, b) => b.total - a.total)
     .map(p => `${p.name} ${p.total}(작년 ${p.wTotal})`).join(', ');
+  const fCols = Object.keys(formulaCols).map(c => String.fromCharCode(65 + Number(c))).join(', ') || '없음';
   report_(`[순서표 초안] ${year}년 성찬식 (초안) 탭을 만들었습니다`,
-    `사회: ${bishopric.join(' → ')}\n지휘: 첫째 주 ${music.choristerFirst} / 그 외 ${music.choristerOther}\n반주: ${music.organists.join(', ')} 번갈아\n\n`
-    + `말씀·기도 배정 횟수: ${counts}\n\n'비고' 열의 '확인 필요' 칸을 확인하고, 다 고친 뒤 탭 이름을 '${year}년 성찬식'으로 바꾸면 아젠다 자동화가 이 탭을 읽습니다.`,
+    `${year - 1}년 탭을 복사해서 서식·수식을 그대로 두고 값만 바꿨습니다. (수식을 그대로 넣은 열: ${fCols})\n\n`
+    + `사회: ${bishopric.join(' → ')}\n지휘: 첫째 주 ${music.choristerFirst} / 그 외 ${music.choristerOther}\n반주: ${music.organists.join(', ')} 번갈아\n\n`
+    + `말씀·기도 배정 횟수: ${counts}\n\n날짜 칸에 메모(오른쪽 위 작은 표시)가 달린 주를 확인하고, 다 고친 뒤 탭 이름을 '${year}년 성찬식'으로 바꾸면 아젠다 자동화가 이 탭을 읽습니다.`,
     `${ss.getUrl()}#gid=${sheet.getSheetId()}`);
+}
+
+/** year 년의 i 번째 주일 */
+function sundayOf_(year, i) {
+  return plusDays_(upcomingSunday_(new Date(year, 0, 1)), 7 * i);
 }
 
 /** 사람 고르기: '올해 맡은 횟수 ÷ 작년 맡은 횟수'가 가장 작은 분 먼저 → 작년과 비슷한 비율로 돌아감
