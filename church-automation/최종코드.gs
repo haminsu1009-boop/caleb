@@ -579,31 +579,41 @@ function 말씀안내보내기(base) {
   console.log(`카톡으로 ${notices.length + reminds.length + 1}통 보냈습니다.`);
 }
 
-/** 월간 작업: 반주표 이미지 · 내년 순서표 초안 */
-const SENDER = '녹번와드 감독단';
-const NOTICE_WEEKS_AHEAD = 4;   // 몇 주 전에 주제 안내를 보낼지
-const DRAFT_YEAR = 2027;        // 내년순서표만들기 로 만들 연도
+// ═══════════════ 반주표 이미지 ═══════════════
 
-const NOT_PERSON_RE = /간증|대회|스테이크|발표|선교사|장로님|성찬식|방문|\?/;
-// ───────── ② 반주자 톡방용 한 달 찬송·반주표 이미지 ─────────
+const ORG_EMPTY = 'N/A';
+const ORG_COLORS = {
+  title: '#1F3A5F',      // 제목 · 날짜 · 찬송 번호
+  header: '#1F3A5F',     // 머리글 배경
+  headerText: '#FFFFFF',
+  stripe: '#EEF3F9',     // 줄무늬
+  plain: '#FFFFFF',
+  text: '#222222',
+  muted: '#A0AAB4',      // N/A · 부제목
+};
 
 function 반주표보내기(base) {
   const today = base instanceof Date ? base : new Date();
   const first = new Date(today.getFullYear(), today.getMonth() + 1, 1); // 다음 달 1일
   const month = first.getMonth();
   const header = ['날짜', '지휘', '반주', '개회찬송', '성찬찬송', '회중찬송', '폐회찬송'];
+  const na = v => v || ORG_EMPTY;
   const rows = [];
   for (let d = upcomingSunday_(first); d.getMonth() === month; d = plusDays_(d, 7)) {
     const m = getMeeting_(d);
-    const date = fmt_(d, 'M/d');
-    if (!m) rows.push([date, '(시트에 없음)', '', '', '', '', '']);
-    else if (m.special) rows.push([date, m.special, '', '', '', '', '']);
-    else rows.push([date, person_(m.chorister, '자매님'), person_(m.organist, '자매님'),
-      m.hymns.openingHymn, m.hymns.sacramentHymn, m.fast ? '(금식간증)' : m.hymns.restHymn, m.hymns.closingHymn]);
+    const date = fmt_(d, 'MM/dd');
+    if (!m || m.special) {                                 // 시트에 없거나 연차대회·스테이크 대회 주
+      rows.push([date, ...header.slice(1).map(() => ORG_EMPTY)]);
+      continue;
+    }
+    rows.push([date, na(person_(m.chorister, '자매님')), na(person_(m.organist, '자매님')),
+      na(m.hymns.openingHymn), na(m.hymns.sacramentHymn), m.fast ? ORG_EMPTY : na(m.hymns.restHymn), na(m.hymns.closingHymn)]);
   }
-  const title = `${fmt_(first, 'yyyy년 M월')} 성찬식 지휘·반주·찬송표`;
-  const image = tableImage_(title, header, rows);
-  const text = rows.map(r => `${r[0]}  지휘 ${r[1]} · 반주 ${r[2]}\n   ${r.slice(3).filter(Boolean).join(' / ')}`).join('\n');
+
+  const title = `${month + 1}월 성찬식 지휘/반주/찬송가표`;
+  const subtitle = `녹번와드 · ${first.getFullYear()}년 ${month + 1}월 · 매주 일요일`;
+  const image = organistImage_(title, subtitle, header, rows);
+  const text = rows.map(r => `${r[0]}  지휘 ${r[1]} · 반주 ${r[2]}\n   개회 ${r[3]} / 성찬 ${r[4]} / 회중 ${r[5]} / 폐회 ${r[6]}`).join('\n');
   MailApp.sendEmail({
     to: Session.getEffectiveUser().getEmail(),
     subject: `[반주표] ${title}`,
@@ -614,19 +624,44 @@ function 반주표보내기(base) {
 }
 
 /** 구글 슬라이드에 표를 그려 PNG 이미지로 내보내고, 슬라이드는 휴지통으로 */
-function tableImage_(title, header, rows) {
+function organistImage_(title, subtitle, header, rows) {
+  const CENTER = SlidesApp.ParagraphAlignment.CENTER;
+  const MIDDLE = SlidesApp.ContentAlignment.MIDDLE;
+  const font = style => { try { style.setFontFamily('Noto Sans KR'); } catch (e) { /* 글꼴이 없으면 기본 글꼴 */ } return style; };
+
   const pres = SlidesApp.create(title);
   const slide = pres.getSlides()[0];
   slide.getPageElements().forEach(e => e.remove());
-  const W = pres.getPageWidth();
-  const box = slide.insertTextBox(title, 20, 10, W - 40, 34);
-  box.getText().getTextStyle().setFontSize(18).setBold(true);
-  const table = slide.insertTable(rows.length + 1, header.length, 20, 50, W - 40, (rows.length + 1) * 28);
+  slide.getBackground().setSolidFill(ORG_COLORS.plain);
+  const W = pres.getPageWidth(), H = pres.getPageHeight(), M = 24;
+
+  // 제목 · 부제목
+  const t = slide.insertTextBox(title, M, 12, W - 2 * M, 34);
+  font(t.getText().getTextStyle()).setFontSize(22).setBold(true).setForegroundColor(ORG_COLORS.title);
+  const s = slide.insertTextBox(subtitle, M, 44, W - 2 * M, 18);
+  font(s.getText().getTextStyle()).setFontSize(10).setForegroundColor(ORG_COLORS.muted);
+
+  // 표: 날짜·지휘·반주는 좁게, 찬송 4칸은 넓게
+  const top = 70;
+  const table = slide.insertTable(rows.length + 1, header.length, M, top, W - 2 * M, H - top - M);
+  const fixed = [62, 86, 86];
+  const hymnW = (W - 2 * M - fixed.reduce((a, b) => a + b, 0)) / (header.length - fixed.length);
+  header.forEach((_, j) => table.getColumn(j).setWidth(j < fixed.length ? fixed[j] : hymnW));
+
   [header, ...rows].forEach((r, i) => r.forEach((v, j) => {
     const cell = table.getCell(i, j);
-    cell.getText().setText(String(v || ' '));
-    cell.getText().getTextStyle().setFontSize(i === 0 ? 10 : 9).setBold(i === 0 || j === 0);
-    if (i === 0) cell.getFill().setSolidFill('#E8EEF7');
+    const value = String(v || ORG_EMPTY);
+    const hymn = i > 0 && j >= 3 && value.match(/^(\d+장)\s+(.+)$/);   // '25장 제목' → 번호 / 제목 두 줄
+    const txt = cell.getText();
+    txt.setText(hymn ? `${hymn[1]}\n${hymn[2]}` : value);
+    const style = font(txt.getTextStyle()).setFontSize(i === 0 ? 12 : 10.5).setBold(i === 0)
+      .setForegroundColor(i === 0 ? ORG_COLORS.headerText : ORG_COLORS.text);
+    if (i > 0 && j === 0) style.setBold(true).setFontSize(12).setForegroundColor(ORG_COLORS.title);
+    if (value === ORG_EMPTY) style.setForegroundColor(ORG_COLORS.muted);
+    if (hymn) txt.getRange(0, hymn[1].length).getTextStyle().setBold(true).setFontSize(12).setForegroundColor(ORG_COLORS.title);
+    txt.getParagraphStyle().setParagraphAlignment(CENTER);
+    cell.setContentAlignment(MIDDLE);
+    cell.getFill().setSolidFill(i === 0 ? ORG_COLORS.header : i % 2 ? ORG_COLORS.plain : ORG_COLORS.stripe);
   }));
   pres.saveAndClose();
 
@@ -637,6 +672,12 @@ function tableImage_(title, header, rows) {
   return blob;
 }
 
+/** 월간 작업: 반주표 이미지 · 내년 순서표 초안 */
+const SENDER = '녹번와드 감독단';
+const NOTICE_WEEKS_AHEAD = 4;   // 몇 주 전에 주제 안내를 보낼지
+const DRAFT_YEAR = 2027;        // 내년순서표만들기 로 만들 연도
+
+const NOT_PERSON_RE = /간증|대회|스테이크|발표|선교사|장로님|성찬식|방문|\?/;
 // ───────── ③ 1년치 순서표 초안 ─────────
 
 /**

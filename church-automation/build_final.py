@@ -20,6 +20,10 @@ monthly += "\nfunction 내년순서표만들기() { buildYearDraft_(DRAFT_YEAR);
 talk = talk.replace("// ═══════════════ 개인톡 안내 문구 (Code.gs 맨 아래에 붙여넣기 — 위의 같은 이름 함수를 대신함) ═══════════════",
                     "// ═══════════════ 말씀·기도 안내 문구 ═══════════════")
 monthly += "\n" + josa
+monthly = cut(monthly, "// ───────── ② 반주자", "// ───────── ③ 1년치")  # 반주표는 반주표디자인.gs 로 대체
+organist = (d/'반주표디자인.gs').read_text().replace(
+    "// ═══════════════ 반주표 이미지 (새 디자인) — Code.gs 맨 아래에 붙여넣기 (위의 반주표보내기를 대신함) ═══════════════",
+    "// ═══════════════ 반주표 이미지 ═══════════════")
 kakao = kakao.replace("// ═══════════════ 카카오톡 '나에게 보내기' (Code.gs 맨 아래에 붙여넣기) ═══════════════",
                       "// ═══════════════ 카카오톡 '나에게 보내기' ═══════════════")
 kakao = kakao.replace("/** (위의 sendTalkNotices 를 대신함) 메일 한 통 + 내 카톡으로 사람마다 한 통씩 */",
@@ -52,7 +56,7 @@ header = '''/**
  */'''
 agenda = re.sub(r"^/\*\*\n \* 성찬식 아젠다 자동 생성.*?\*/", header, agenda, count=1, flags=re.S)
 
-out = agenda + "\n\n" + talk + "\n" + kakao + "\n\n" + monthly
+out = agenda + "\n\n" + talk + "\n" + kakao + "\n\n" + organist + "\n" + monthly
 names = {
   'testSundayAfterNext': '다다음주아젠다만들기', 'testNextSunday': '다음주아젠다만들기', 'updateAgenda': '이번주아젠다만들기',
   'sendTalkNotices': '말씀안내보내기', 'sendOrganistList': '반주표보내기',
