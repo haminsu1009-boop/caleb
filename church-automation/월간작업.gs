@@ -9,7 +9,7 @@
  * 미리 보기: 'testTalkNotices', 'testOrganistList' 실행 → 지금 바로 메일로 받아 보기
  */
 const SENDER = '녹번와드 감독단';
-const NOTICE_WEEKS_AHEAD = 4;   // 몇 주 전에 주제 안내를 보낼지
+const NOTICE_WEEKS_AHEAD = 5;   // 몇 주 전에 말씀·기도 부탁을 보낼지 (5 = 한 달 + 한 주)
 const DRAFT_YEAR = 2027;        // makeYearDraft 로 만들 연도
 
 // 말씀 주제 — 시트에 '말씀 주제' 열이 있으면 그 값을 쓰고, 없으면 아래 목록을 주마다 돌아가며 사용

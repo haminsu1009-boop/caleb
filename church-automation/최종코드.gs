@@ -702,7 +702,7 @@ function organistImage_(title, subtitle, header, rows) {
 
 /** 월간 작업: 반주표 이미지 · 내년 순서표 초안 */
 const SENDER = '녹번와드 감독단';
-const NOTICE_WEEKS_AHEAD = 4;   // 몇 주 전에 주제 안내를 보낼지
+const NOTICE_WEEKS_AHEAD = 5;   // 몇 주 전에 말씀·기도 부탁을 보낼지 (5 = 한 달 + 한 주)
 const DRAFT_YEAR = 2027;        // 내년순서표만들기 로 만들 연도
 
 const NOT_PERSON_RE = /간증|대회|스테이크|발표|선교사|장로님|성찬식|방문|\?/;
