@@ -667,13 +667,26 @@ function 반주표보내기(base) {
   const subtitle = `녹번와드 · ${first.getFullYear()}년 ${month + 1}월 · 매주 일요일`;
   const image = organistImage_(title, subtitle, header, rows);
   const text = rows.map(r => `${r[0]}  지휘 ${r[1]} · 반주 ${r[2]}\n   개회 ${r[3]} / 성찬 ${r[4]} / 회중 ${r[5]} / 폐회 ${r[6]}`).join('\n');
+  const greeting = ORG_GREETING(month + 1);
   MailApp.sendEmail({
     to: Session.getEffectiveUser().getEmail(),
     subject: `[반주표] ${title}`,
-    body: `첨부한 이미지를 저장해서 반주자 톡방에 올려 주세요.\n\n${text}`,
+    body: `첨부한 이미지를 저장해서 아래 멘트와 함께 반주자 톡방에 올려 주세요.\n\n`
+      + `▼ 반주자 톡방 멘트\n\n${greeting}\n\n────────────\n\n▼ 표 내용\n${text}`,
     attachments: [image],
   });
-  console.log(`[반주표] ${title} 메일 보냄\n${text}`);
+  // 내 카톡에도 멘트 한 통 → 길게 눌러 [전달] → 반주자 톡방 (이미지는 메일에서 저장)
+  if (kakaoReady_()) kakaoSend_(greeting, 'https://mail.google.com', '메일에서 반주표 이미지 보기');
+  console.log(`[반주표] ${title} 메일 보냄\n\n${greeting}\n\n${text}`);
+}
+
+/** 반주자 톡방에 올릴 멘트 ({월} 자리에 다음 달) */
+function ORG_GREETING(month) {
+  return '안녕하세요 여러분!\n\n'
+    + '한주 잘 보내고 계실까요?\n'
+    + `${month}월 반주 순서표 전달 드립니다.\n\n`
+    + '참고 부탁드리고, 변경 필요하면 안내 부탁드립니다~\n'
+    + '여러분의 헌신과 봉사에 항상 감사드립니다!';
 }
 
 /** 구글 슬라이드에 표를 그려 PNG 이미지로 내보내고, 슬라이드는 휴지통으로 */
