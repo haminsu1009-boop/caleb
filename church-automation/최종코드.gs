@@ -447,7 +447,7 @@ const GUIDE_TEXT =
   + '가능하다면 직접 겪으신 경험을 나눠주시면 감사하겠으며, 설득이나 권유보다는 예수 그리스도가 중심이 되는 간증을 전해주시면 감사하겠습니다.\n\n'
   + '영감에 따라서 말씀 주제는 얼마든지 변경 가능하며 다른 분들도 준비해온 말씀을 할 수 있도록 꼭 주어진 시간을 준수해주시면 감사하겠습니다.';
 
-/** kind: 'notice' = 4주 전 부탁(주제·링크) / 'remind' = 그 주 리마인드(짧게) */
+/** kind: 'notice' = 5주 전 부탁(주제·링크) / 'remind' = 그 주 리마인드(짧게) */
 function noticeMessages_(sunday, kind) {
   const m = getMeeting_(sunday);
   if (!m || m.special) return [];
