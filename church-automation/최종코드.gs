@@ -816,7 +816,10 @@ function buildYearDraft_(year) {
     const r = firstRow + rows.length; // 시트 행 번호
     const row = new Array(COLS).fill('');
     const info = { special: false, note: '' };
-    row[2] = dateIsDate ? new Date(d) : fmt_(d, 'MM/dd');
+    // 날짜는 DATE 수식으로 써서 시트의 시간대 기준으로 정확히 그 날이 되게 함 (아래 4)에서 값으로 바꿈)
+    // (new Date 를 그대로 쓰면 스크립트 시간대와 시트 시간대가 다를 때 하루 앞당겨짐)
+    const [yy, mm, dd] = [d.getFullYear(), d.getMonth() + 1, d.getDate()];
+    row[2] = dateIsDate ? `=DATE(${yy},${mm},${dd})` : `${String(mm).padStart(2, '0')}/${String(dd).padStart(2, '0')}`;
 
     const special = (month === 4 || month === 10) && nth === 2 ? '연차대회 시청'
       : (month === 3 || month === 9) && nth === 2 ? '스테이크 대회' : '';
@@ -885,6 +888,9 @@ function buildYearDraft_(year) {
   area.clearContent();
   area.clearNote();
   sheet.getRange(firstRow, 1, rows.length, COLS).setValues(rows);
+  SpreadsheetApp.flush();
+  const dates = sheet.getRange(firstRow, 3, rows.length, 1);
+  dates.copyTo(dates, { contentsOnly: true }); // =DATE(…) 수식 → 날짜 값
   rows.forEach((row, i) => {
     if (meta[i].special) return;
     Object.keys(formulaCols).forEach(c => sheet.getRange(firstRow + i, Number(c) + 1).setFormulaR1C1(formulaCols[c]));
