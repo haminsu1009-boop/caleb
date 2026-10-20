@@ -60,12 +60,9 @@ function organistImage_(title, subtitle, header, rows) {
   const s = slide.insertTextBox(subtitle, M, 44, W - 2 * M, 18);
   font(s.getText().getTextStyle()).setFontSize(10).setForegroundColor(ORG_COLORS.muted);
 
-  // 표: 날짜·지휘·반주는 좁게, 찬송 4칸은 넓게
+  // 표 (구글 슬라이드는 열 너비를 코드로 못 바꿔서 칸 너비는 같게)
   const top = 70;
   const table = slide.insertTable(rows.length + 1, header.length, M, top, W - 2 * M, H - top - M);
-  const fixed = [62, 86, 86];
-  const hymnW = (W - 2 * M - fixed.reduce((a, b) => a + b, 0)) / (header.length - fixed.length);
-  header.forEach((_, j) => table.getColumn(j).setWidth(j < fixed.length ? fixed[j] : hymnW));
 
   [header, ...rows].forEach((r, i) => r.forEach((v, j) => {
     const cell = table.getCell(i, j);
