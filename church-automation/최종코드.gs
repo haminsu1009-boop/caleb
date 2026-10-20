@@ -5,7 +5,9 @@
  *  · 자동실행설치        처음 한 번: 매주 월 9시 아젠다 / 월 10시 말씀 안내 / 매달 25일 반주표 예약
  *  · 이번주아젠다만들기   「성찬식 아젠다」 문서 맨 위에 이번 주 칸 추가 (이미 있으면 값만 다시 맞춤)
  *  · 다음주아젠다만들기 · 다다음주아젠다만들기   미리 만들어 보기
- *  · 말씀안내보내기       5주 뒤 말씀·기도 부탁 + 이번 주 리마인드 → 메일 + 내 카톡
+ *  · 말씀안내보내기       (자동) NOTICE_WEEKS 주 뒤 주제 안내 + REMIND_WEEKS 리마인드 → 메일 + 내 카톡
+ *  · 주제안내_1주뒤 ~ 주제안내_6주뒤     원하는 주의 말씀·기도 부탁 문구만 지금 바로 받기
+ *  · 리마인드_이번주 ~ 리마인드_6주뒤    원하는 주의 리마인드 문구만 지금 바로 받기
  *  · 반주표보내기         다음 달 지휘·반주·찬송표 이미지 → 메일
  *  · 내년순서표만들기     감독단 시트에 내년 순서표 초안 탭
  *  · 카톡로그인주소 → 카톡연결   카카오톡 '나에게 보내기' 연결 (처음 한 번)
@@ -404,32 +406,35 @@ const SENDER_NAME = '녹번와드 하민수 형제';
 const WARD_NAME = '녹번와드';
 
 // [말씀 주제, 참고 연차대회 말씀 연사, 말씀 제목(영어 원제), 링크]
-// 링크를 비워 두면 교회 사이트에서 그 말씀을 검색하는 링크가 들어갑니다.
-// 복음자료실 앱 → 그 말씀 → 공유 → 링크 복사 → 마지막 '' 안에 붙여넣으면 그 링크가 우선입니다.
+// 링크: talk_('29eyring') = 2026년 10월 연차대회 그 말씀 주소 (…/2026/10/29eyring?lang=kor)
+//   주소 끝의 숫자 = 모임 번호(1 토 오전, 2 토 오후, 4 일 오전, 5 일 오후) + 몇 번째 말씀, 그 뒤 = 연사 성
+//   다른 말씀으로 바꾸려면 복음자료실 앱 → 그 말씀 → 공유 → 링크 복사 → '' 안에 통째로 붙여넣기
+const TALK_BASE = 'https://www.churchofjesuschrist.org/study/general-conference/2026/10/';
+function talk_(slug) { return TALK_BASE + slug + '?lang=kor'; }
 const TOPICS = [
-  ['성신과 함께 하기 위해서 어떻게 하고 있는지', '매튜 J. 아이어링 장로', 'Comfort From the Holy Ghost', ''],
-  ['주님의 집인 성전을 통해 어떻게 주님께 더 가까이 나아가고 있는지', '게리 W. 공 장로', 'Come to the Lord in His Holy House', ''],
-  ['나의 간증을 어떻게 얻었고, 어떻게 키워 가고 있는지', '제라드 코세 장로', 'The Gift of Testimony', ''],
-  ['살아 있는 선지자의 권고를 따르며 받은 축복', '바이앙기나 시카헤마 장로', 'Prophets, Seers and Revelators', ''],
-  ['예수 그리스도께서 나를 건져 주신 경험', '케빈 J. 해서웨이 장로', 'Jesus Christ Is the Great Deliverer', ''],
-  ['금식을 통해 받은 축복과 더 거룩한 금식을 하는 방법', '울리세스 소아레스 장로', 'A Higher and Holier Fast', ''],
-  ['복음을 나누기 위해 내가 할 수 있는 일', '션 더글러스 감독', 'The Hour of Your Mission Is Come', ''],
-  ['주님의 권고에 지혜롭게 순종하며 받은 축복', 'D. 토드 크리스토퍼슨 회장', 'O Be Wise', ''],
-  ['하나님의 약속을 믿고 의지했던 경험', '데일 G. 렌런드 장로', 'How Long Will It Be Ere They Believe Me', ''],
-  ['십일조와 헌금을 통해 주님을 신뢰하게 된 경험', '파트리시오 M. 주프라 장로', 'Trusting the Lord Through Tithes and Offerings', ''],
-  ['성약을 지키며 경험한 하나님의 권능', '제레마이아 J. 모건 장로', 'The Infinite Power of God in Our Covenants', ''],
-  ['내가 하나님의 자녀임을 어떻게 느끼고 있는지', '허치 U. 팔레 장로', 'I Am a Child of God', ''],
-  ['어려울 때 예수님께서 나를 일으켜 주신 경험', '패트릭 키어런 장로', 'Jesus Lives to Lift', ''],
-  ['예수님처럼 사랑하기 위해 노력하고 있는 것', '로널드 A. 래스번드 장로', 'Love Like Jesus', ''],
-  ['두려움 속에서 주님께서 함께하심을 느낀 경험', '헨리 B. 아이어링 회장', 'Fear Not, I Am With Thee', ''],
-  ['예수 그리스도를 믿는 신앙으로 용기를 낸 경험', '닐 L. 앤더슨 장로', 'Courage Born of Our Faith in Jesus Christ', ''],
-  ['그리스도의 이름을 받들어 살아가기 위해 하고 있는 일', '제임스 G. O. 판톤 장로', 'Take Upon Us His Name', ''],
-  ['매일 그리스도께 나아가기 위해 하고 있는 일', '에드워드 두베 장로', 'Come Unto Christ', ''],
-  ['정직과 덕을 지키며 얻은 행복', '쿠엔틴 L. 쿡 장로', 'Integrity and Virtue Lead to Happiness', ''],
-  ['가정과 와드에서 화평케 하는 자가 되는 방법', '알프레드 쿵구 장로', 'Using the Language of Peacemakers', ''],
-  ['나의 생활을 돌아보고 변화하며 받은 축복', '시루 슈마일 장로', 'Consider Your Ways, and From This Day Will I Bless You', ''],
-  ['복음이 모든 사람을 위한 것임을 느낀 경험', '댈린 H. 옥스 회장', 'The Gospel of Jesus Christ Is For All', ''],
-  ['그리스도를 중심으로 하나 되기 위해 할 수 있는 일', '디이터 F. 우흐트도르프 회장', 'Christ-centered Unity', ''],
+  ['성신과 함께 하기 위해서 어떻게 하고 있는지', '매튜 J. 아이어링 장로', 'Comfort From the Holy Ghost', talk_('29eyring')],
+  ['주님의 집인 성전을 통해 어떻게 주님께 더 가까이 나아가고 있는지', '게리 W. 공 장로', 'Come to the Lord in His Holy House', talk_('12gong')],
+  ['나의 간증을 어떻게 얻었고, 어떻게 키워 가고 있는지', '제라드 코세 장로', 'The Gift of Testimony', talk_('14causse')],
+  ['살아 있는 선지자의 권고를 따르며 받은 축복', '바이앙기나 시카헤마 장로', 'Prophets, Seers and Revelators', talk_('15sikahema')],
+  ['예수 그리스도께서 나를 건져 주신 경험', '케빈 J. 해서웨이 장로', 'Jesus Christ Is the Great Deliverer', talk_('16hathaway')],
+  ['금식을 통해 받은 축복과 더 거룩한 금식을 하는 방법', '울리세스 소아레스 장로', 'A Higher and Holier Fast', talk_('17soares')],
+  ['복음을 나누기 위해 내가 할 수 있는 일', '션 더글러스 감독', 'The Hour of Your Mission Is Come', talk_('18douglas')],
+  ['주님의 권고에 지혜롭게 순종하며 받은 축복', 'D. 토드 크리스토퍼슨 회장', 'O Be Wise', talk_('19christofferson')],
+  ['하나님의 약속을 믿고 의지했던 경험', '데일 G. 렌런드 장로', 'How Long Will It Be Ere They Believe Me', talk_('21renlund')],
+  ['십일조와 헌금을 통해 주님을 신뢰하게 된 경험', '파트리시오 M. 주프라 장로', 'Trusting the Lord Through Tithes and Offerings', talk_('24giuffra')],
+  ['성약을 지키며 경험한 하나님의 권능', '제레마이아 J. 모건 장로', 'The Infinite Power of God in Our Covenants', talk_('25morgan')],
+  ['내가 하나님의 자녀임을 어떻게 느끼고 있는지', '허치 U. 팔레 장로', 'I Am a Child of God', talk_('26fale')],
+  ['어려울 때 예수님께서 나를 일으켜 주신 경험', '패트릭 키어런 장로', 'Jesus Lives to Lift', talk_('27kearon')],
+  ['예수님처럼 사랑하기 위해 노력하고 있는 것', '로널드 A. 래스번드 장로', 'Love Like Jesus', talk_('210rasband')],
+  ['두려움 속에서 주님께서 함께하심을 느낀 경험', '헨리 B. 아이어링 회장', 'Fear Not, I Am With Thee', talk_('41eyring')],
+  ['예수 그리스도를 믿는 신앙으로 용기를 낸 경험', '닐 L. 앤더슨 장로', 'Courage Born of Our Faith in Jesus Christ', talk_('43andersen')],
+  ['그리스도의 이름을 받들어 살아가기 위해 하고 있는 일', '제임스 G. O. 판톤 장로', 'Take Upon Us His Name', talk_('44fantone')],
+  ['매일 그리스도께 나아가기 위해 하고 있는 일', '에드워드 두베 장로', 'Come Unto Christ', talk_('45dube')],
+  ['정직과 덕을 지키며 얻은 행복', '쿠엔틴 L. 쿡 장로', 'Integrity and Virtue Lead to Happiness', talk_('46cook')],
+  ['가정과 와드에서 화평케 하는 자가 되는 방법', '알프레드 쿵구 장로', 'Using the Language of Peacemakers', talk_('47kyungu')],
+  ['나의 생활을 돌아보고 변화하며 받은 축복', '시루 슈마일 장로', 'Consider Your Ways, and From This Day Will I Bless You', talk_('48schmeil')],
+  ['복음이 모든 사람을 위한 것임을 느낀 경험', '댈린 H. 옥스 회장', 'The Gospel of Jesus Christ Is For All', talk_('49oaks')],
+  ['그리스도를 중심으로 하나 되기 위해 할 수 있는 일', '디이터 F. 우흐트도르프 회장', 'Christ-centered Unity', talk_('51uchtdorf')],
   ['하나님께서 내 곁에 계심을 느낀 경험', '안드레아 무뇨스 스파나우스 자매', 'God Is at Your Side', ''],
 ];
 
@@ -447,11 +452,12 @@ const GUIDE_TEXT =
   + '가능하다면 직접 겪으신 경험을 나눠주시면 감사하겠으며, 설득이나 권유보다는 예수 그리스도가 중심이 되는 간증을 전해주시면 감사하겠습니다.\n\n'
   + '영감에 따라서 말씀 주제는 얼마든지 변경 가능하며 다른 분들도 준비해온 말씀을 할 수 있도록 꼭 주어진 시간을 준수해주시면 감사하겠습니다.';
 
-/** kind: 'notice' = 5주 전 부탁(주제·링크) / 'remind' = 그 주 리마인드(짧게) */
-function noticeMessages_(sunday, kind) {
+/** kind: 'notice' = 미리 부탁(주제·링크) / 'remind' = 리마인드(짧게), weeks = 이번 주에서 몇 주 뒤인지 */
+function noticeMessages_(sunday, kind, weeks) {
   const m = getMeeting_(sunday);
   if (!m || m.special) return [];
   const date = fmt_(sunday, 'M월 d일');
+  const when = `${weeks === 0 ? '이번주인' : weeks === 1 ? '다음주인' : weeks + '주 뒤인'} ${fmt_(sunday, 'M/d')}일`; // '이번주인 10/25일'
   const week = Math.floor((sunday - new Date(2026, 0, 4)) / (7 * 86400000));
   let n = 0; // 같은 주 말씀하시는 분들은 서로 다른 주제로
 
@@ -464,8 +470,8 @@ function noticeMessages_(sunday, kind) {
       if (kind === 'remind') {
         return `${name}, 안녕하세요, ${SENDER_NAME}입니다.\n`
           + (isTalk
-            ? `${date} ${WARD_NAME} ${nth} 순서로 ${min} 말씀이십니다. 감사합니다.`
-            : `${date} ${WARD_NAME} 성찬식 ${role}${josa_(role, '이십니다', '십니다')}. 감사합니다.`);
+            ? `${when} ${WARD_NAME} ${nth} 순서로 ${min} 말씀이십니다. 감사합니다.`
+            : `${when} ${WARD_NAME} 성찬식 ${role}${josa_(role, '이십니다', '십니다')}. 감사합니다.`);
       }
 
       if (!isTalk) {
@@ -478,7 +484,7 @@ function noticeMessages_(sunday, kind) {
         + '주제는 아래와 같으며, 참고하실 연차대회 말씀 공유드립니다.\n\n'
         + `'${topic}'\n`
         + (speaker ? `(참고: ${speaker} 말씀)\n` : '')
-        + `${link || talkSearchUrl_(title)}\n\n`
+        + `${link || conferenceUrl_()}\n\n`
         + GUIDE_TEXT;
     });
 }
@@ -490,13 +496,6 @@ function topicFor_(sunday, i) {
   const own = row && (row.get('말씀 주제')[0] || row.get('주제')[0]);
   if (own) return [own, '', '', conferenceUrl_()];
   return TOPICS[((i % TOPICS.length) + TOPICS.length) % TOPICS.length];
-}
-
-/** 교회 사이트에서 그 말씀(영어 원제)을 찾는 검색 링크 */
-function talkSearchUrl_(title) {
-  return title
-    ? `https://www.churchofjesuschrist.org/search?lang=kor&query=${encodeURIComponent('"' + title + '"')}`
-    : conferenceUrl_();
 }
 
 // ═══════════════ 카카오톡 '나에게 보내기' ═══════════════
@@ -581,33 +580,56 @@ function conferenceUrl_() {
     : 'https://www.churchofjesuschrist.org/study/general-conference/2026/10?lang=kor';
 }
 
-/** 매주 월요일 10시: 5주 뒤 말씀·기도 부탁 + 이번 주 리마인드 → 메일 한 통 + 내 카톡으로 사람마다 한 통씩 */
+/** 매주 월요일 10시 자동: NOTICE_WEEKS 주 뒤 주제 안내 + REMIND_WEEKS 주 뒤 리마인드 */
 function 말씀안내보내기(base) {
-  const today = base instanceof Date ? base : new Date();
-  const thisSunday = upcomingSunday_(today);
-  const ahead = plusDays_(thisSunday, 7 * NOTICE_WEEKS_AHEAD);
-  const notices = noticeMessages_(ahead, 'notice');
-  const reminds = noticeMessages_(thisSunday, 'remind');
-  if (!notices.length && !reminds.length) return console.log('보낼 안내가 없습니다.');
+  sendNotices_(NOTICE_WEEKS, REMIND_WEEKS, base instanceof Date ? base : new Date());
+}
+
+// 원하는 주만 지금 바로 받기 (실행 메뉴에서 골라 실행)
+function 주제안내_1주뒤() { sendNotices_([1], []); }
+function 주제안내_2주뒤() { sendNotices_([2], []); }
+function 주제안내_3주뒤() { sendNotices_([3], []); }
+function 주제안내_4주뒤() { sendNotices_([4], []); }
+function 주제안내_5주뒤() { sendNotices_([5], []); }
+function 주제안내_6주뒤() { sendNotices_([6], []); }
+function 리마인드_이번주() { sendNotices_([], [0]); }
+function 리마인드_1주뒤() { sendNotices_([], [1]); }
+function 리마인드_2주뒤() { sendNotices_([], [2]); }
+function 리마인드_3주뒤() { sendNotices_([], [3]); }
+function 리마인드_4주뒤() { sendNotices_([], [4]); }
+function 리마인드_5주뒤() { sendNotices_([], [5]); }
+function 리마인드_6주뒤() { sendNotices_([], [6]); }
+
+/** 주제 안내·리마인드 문구 → 메일 한 통 + 내 카톡으로 사람마다 한 통씩 */
+function sendNotices_(noticeWeeks, remindWeeks, today) {
+  const thisSunday = upcomingSunday_(today || new Date());
+  const groups = [
+    ...noticeWeeks.map(w => ['주제 안내', w, 'notice']),
+    ...remindWeeks.map(w => ['리마인드', w, 'remind']),
+  ].map(([label, w, kind]) => {
+    const sunday = plusDays_(thisSunday, 7 * w);
+    const when = w === 0 ? '이번 주' : `${w}주 뒤`;
+    return { title: `${fmt_(sunday, 'M/d')} ${label} (${when})`, list: noticeMessages_(sunday, kind, w) };
+  });
+  const all = [].concat(...groups.map(g => g.list));
+  if (!all.length) return console.log('보낼 안내가 없습니다. (그 주가 시트에 없거나 대회·특별 모임 주)');
 
   // 1) 메일 (전체 모음)
-  const block = (title, list) => `■ ${title}\n\n` + (list.length ? list.join('\n\n────────────\n\n') : '(보낼 분 없음)') + '\n\n';
-  report_(`[말씀·기도 안내] ${fmt_(ahead, 'M/d')} 주제 안내 · ${fmt_(thisSunday, 'M/d')} 리마인드`,
-    '아래 문구를 복사해서 각자 개인톡으로 보내 주세요.\n\n'
-    + block(`${fmt_(ahead, 'M/d')} 주제 안내 (${NOTICE_WEEKS_AHEAD}주 전)`, notices)
-    + block(`${fmt_(thisSunday, 'M/d')} 리마인드 (이번 주)`, reminds));
+  const block = g => `■ ${g.title}\n\n` + (g.list.length ? g.list.join('\n\n────────────\n\n') : '(보낼 분 없음)') + '\n\n';
+  report_(`[말씀·기도 안내] ${groups.map(g => g.title).join(' · ')}`,
+    '아래 문구를 복사해서 각자 개인톡으로 보내 주세요.\n\n' + groups.map(block).join(''));
 
   // 2) 내 카톡 — 사람마다 한 통 (링크는 글에서 빼고 버튼으로)
   if (!kakaoReady_()) return console.log('카카오톡이 연결되지 않아 메일로만 보냈습니다. (카톡연결 참고)');
-  kakaoSend_(`📋 이번 주 보낼 안내\n· ${fmt_(ahead, 'M/d')} 주제 안내 ${notices.length}통\n· ${fmt_(thisSunday, 'M/d')} 리마인드 ${reminds.length}통\n\n아래 메시지를 하나씩 길게 눌러 [전달] → 그분을 선택하세요.`,
+  kakaoSend_(`📋 보낼 안내\n${groups.map(g => `· ${g.title} ${g.list.length}통`).join('\n')}\n\n아래 메시지를 하나씩 길게 눌러 [전달] → 그분을 선택하세요.`,
     conferenceUrl_(), '연차대회 보기');
-  [...notices, ...reminds].forEach(msg => {
+  all.forEach(msg => {
     const url = (msg.match(/https?:\/\/\S+/) || [])[0];
-    const text = msg.replace(/\n?https?:\/\/\S+/, '').replace(/링크 공유드립니다\./, '말씀을 아래 버튼으로 공유드립니다.').trim();
+    const text = msg.replace(/\n?https?:\/\/\S+/, '').replace('말씀 공유드립니다.', '말씀을 아래 버튼으로 공유드립니다.').trim();
     kakaoSend_(text, url || conferenceUrl_(), url ? '연차대회 말씀 보기' : '확인');
     Utilities.sleep(300);
   });
-  console.log(`카톡으로 ${notices.length + reminds.length + 1}통 보냈습니다.`);
+  console.log(`카톡으로 ${all.length + 1}통 보냈습니다.`);
 }
 
 // ═══════════════ 반주표 이미지 ═══════════════
@@ -702,7 +724,9 @@ function organistImage_(title, subtitle, header, rows) {
 
 /** 월간 작업: 반주표 이미지 · 내년 순서표 초안 */
 const SENDER = '녹번와드 감독단';
-const NOTICE_WEEKS_AHEAD = 5;   // 몇 주 전에 말씀·기도 부탁을 보낼지 (5 = 한 달 + 한 주)
+// 매주 월요일 자동 발송: 몇 주 뒤 주일을 보낼지 (여러 개 가능 → [4, 5])
+const NOTICE_WEEKS = [5];       // 주제 안내 (말씀·기도 부탁)   1~6 중 선택
+const REMIND_WEEKS = [0];       // 리마인드   0 = 이번 주, 1 = 다음 주 …
 const DRAFT_YEAR = 2027;        // 내년순서표만들기 로 만들 연도
 
 const NOT_PERSON_RE = /간증|대회|스테이크|발표|선교사|장로님|성찬식|방문|\?/;
