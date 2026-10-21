@@ -368,6 +368,9 @@ function roster_() {
       if (name && title && !ROSTER_[name]) ROSTER_[name] = title;
     });
   });
+  if (typeof NEW_MEMBERS !== 'undefined') NEW_MEMBERS.forEach(([name, g]) => {
+    if (!ROSTER_[name]) ROSTER_[name] = g === 'F' ? '자매님' : '형제님';
+  });
   return ROSTER_;
 }
 
@@ -743,6 +746,15 @@ const REMIND_WEEKS = [0];       // 리마인드   0 = 이번 주, 1 = 다음 주
 const DRAFT_YEAR = 2027;        // 내년순서표만들기 로 만들 연도
 
 const NOT_PERSON_RE = /간증|대회|스테이크|발표|선교사|장로님|성찬식|방문|\?/;
+
+// 내년 순서표 사람 설정
+const DRAFT_EXCLUDE = ['이선득', '윤석주', '조선희'];          // 말씀·기도 모두 빼기
+const LAST_SPEAKERS = ['김형태', '하민수', '이희언', '조해준',  // 마지막 말씀은 이분들만 돌아가며
+  '하태완', '손정균', '안영태', '손병호'];                      // (서라정·유지선 자매님 등 다른 분은 마지막 말씀 제외)
+const NEW_MEMBERS = [                                           // 새로 추가 — 1분기 안에 한 번씩 꼭 넣음
+  ['조윤', 'M'], ['임만권', 'M'], ['지준원', 'M'], ['고남현', 'M'],  // M = 형제님
+  ['김명희', 'F'], ['서라정', 'F'],                                  // F = 자매님
+];
 // ───────── ③ 1년치 순서표 초안 ─────────
 
 /**
@@ -754,6 +766,8 @@ const NOT_PERSON_RE = /간증|대회|스테이크|발표|선교사|장로님|성
  *  · 4·10월 둘째 주: 연차대회 시청 / 3·9월 둘째 주: 스테이크 대회 (날짜 확인 필요)
  *  · 그 밖의 둘째 주: 마지막 연사 = 스테이크
  *  · 5월 셋째 주: 와드대회, 11월 마지막 주: 초등회 발표 (확인 필요)
+ *  · 마지막 말씀: LAST_SPEAKERS 분들만 작년 횟수와 비슷한 비율로 (사회 보는 주에는 안 넣음)
+ *  · 새로 추가한 분(NEW_MEMBERS): 1분기 안에 한 번씩 먼저 넣고, 그 뒤로는 보통 빈도로
  *  · 말씀·기도: 장로정원회·상호부조회 탭의 '활동' 회원 중, 작년에 맡은 횟수(역할별)와 비슷하게.
  *    한 주 안에서 형제·자매를 섞고, 8주 안에는 같은 분을 다시 넣지 않음.
  *    감독단과 '기도 & 말씀 어렵다고 하신분' 메모의 분들은 뺌.
@@ -798,7 +812,12 @@ function buildYearDraft_(year) {
   const prev = readTable_(prevTab);
   const bishopric = bishopric_();
   const music = musicRule_(prev);
-  const people = memberPool_(new Set([...bishopric, ...hardToAsk_(prevTab)]));
+  const newNames = NEW_MEMBERS.map(([n]) => n);
+  const hard = hardToAsk_(prevTab).filter(n => !newNames.includes(n));  // 새로 추가한 분은 '어렵다' 메모에 있어도 넣음
+  const people = memberPool_(new Set([...bishopric, ...hard, ...DRAFT_EXCLUDE]));
+  addNewMembers_(people);
+  const lastPool = LAST_SPEAKERS.map(name => people.find(p => p.name === name)
+    || { name, g: 'M', w: {}, used: {}, total: 0, wTotal: 0, lastWeek: -99 });   // 감독단은 일반 순서에는 안 들어감
   const book = hymnBook_();
   const range = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i).filter(n => book[n]);
   const hymn = {
@@ -842,7 +861,8 @@ function buildYearDraft_(year) {
     // 말씀 · 기도 (한 주 안에서 형제·자매 섞기)
     const g1 = w % 2 ? 'M' : 'F', g2 = g1 === 'M' ? 'F' : 'M';
     const taken = new Set(row.slice(3, 6));
-    const assign = (role, g) => pickPerson_(people, role, g, w, taken, rand);
+    const q1 = month <= 3;
+    const assign = (role, g) => pickPerson_(people, role, g, w, taken, rand, q1);
     if (fast || program) {
       row[6] = fast ? '금식간증' : program;
       merges.push([r, 7, 1, 3]);
@@ -850,7 +870,7 @@ function buildYearDraft_(year) {
     } else {
       row[6] = assign('talk5', g1);
       row[7] = assign('talk10', g2);
-      row[8] = nth === 2 ? '스테이크' : assign('last', g1);
+      row[8] = nth === 2 ? '스테이크' : pickLast_(lastPool, w, taken, rand, prevLastCount_(prev));
     }
     row[9] = assign('open', g2);
     row[10] = assign('close', g1);
@@ -915,10 +935,12 @@ function sundayOf_(year, i) {
 
 /** 사람 고르기: '올해 맡은 횟수 ÷ 작년 맡은 횟수'가 가장 작은 분 먼저 → 작년과 비슷한 비율로 돌아감
  *  같은 역할을 작년에 해 본 분을 조금 더 우선, 8주 안에 맡은 분은 건너뜀 */
-function pickPerson_(people, role, gender, week, taken, rand) {
+function pickPerson_(people, role, gender, week, taken, rand, q1) {
   const free = gap => people.filter(p => p.g === gender && !taken.has(p.name) && week - p.lastWeek >= gap);
-  const list = [8, 4, 1].map(free).find(l => l.length) || [];
+  let list = [8, 4, 1].map(free).find(l => l.length) || [];
   if (!list.length) return '';
+  const fresh = list.filter(p => p.isNew && !p.total);   // 1분기: 아직 한 번도 안 맡은 새 분 먼저
+  if (q1 && fresh.length) list = fresh;
   const score = p => (p.total + 1) / (p.wTotal + 0.4) - (p.w[role] > 0 ? 0.2 : 0) + rand() * 0.05;
   const best = list.reduce((a, b) => (score(b) < score(a) ? b : a));
   best.used[role]++;
@@ -926,6 +948,45 @@ function pickPerson_(people, role, gender, week, taken, rand) {
   best.lastWeek = week;
   taken.add(best.name);
   return best.name;
+}
+
+/** 마지막 말씀: LAST_SPEAKERS 중에서 작년 마지막 말씀 횟수와 비슷한 비율로, 4주 안에 맡은 분은 건너뜀 */
+function pickLast_(pool, week, taken, rand, prevCount) {
+  const free = gap => pool.filter(p => !taken.has(p.name) && week - p.lastWeek >= gap);
+  const list = [6, 4, 1].map(free).find(l => l.length) || [];
+  if (!list.length) return '';
+  const score = p => ((p.used.last || 0) + 1) / ((prevCount[p.name] || 0) + 1.5) + rand() * 0.05;
+  const best = list.reduce((a, b) => (score(b) < score(a) ? b : a));
+  best.used.last = (best.used.last || 0) + 1;
+  best.total++;
+  best.lastWeek = week;
+  taken.add(best.name);
+  return best.name;
+}
+
+/** 작년 탭에서 사람별 '마지막 연사' 횟수 */
+function prevLastCount_(prevRows) {
+  const n = {};
+  prevRows.forEach(r => {
+    const v = r.get('마지막 연사')[0];
+    if (v && !NOT_PERSON_RE.test(v)) n[v] = (n[v] || 0) + 1;
+  });
+  return n;
+}
+
+/** NEW_MEMBERS 를 명단에 넣기 (작년 기록이 없으니 빈도는 다른 분들의 보통 횟수로) */
+function addNewMembers_(people) {
+  const totals = people.map(p => p.wTotal).filter(Boolean).sort((a, b) => a - b);
+  const typical = totals.length ? totals[Math.floor(totals.length / 2)] : 2;
+  NEW_MEMBERS.forEach(([name, g]) => {
+    let p = people.find(x => x.name === name);
+    if (!p) {
+      p = { name, g, w: {}, used: { talk5: 0, talk10: 0, last: 0, open: 0, close: 0 }, total: 0, lastWeek: -99 };
+      people.push(p);
+    }
+    p.isNew = true;
+    p.wTotal = Math.max(p.wTotal || 0, typical);
+  });
 }
 
 /** 장로정원회(형제) · 상호부조회(자매) 탭에서 '활동' 회원과 작년 역할별 횟수 */
@@ -949,7 +1010,7 @@ function memberPool_(exclude) {
         p.w[k] = c >= 0 ? Number(row[c]) || 0 : 0;
         p.used[k] = 0;
       });
-      p.wTotal = Object.keys(p.w).reduce((sum, k) => sum + p.w[k], 0);
+      p.wTotal = Object.keys(p.w).filter(k => k !== 'last').reduce((sum, k) => sum + p.w[k], 0); // 마지막 말씀은 따로 돌림
       out.push(p);
     });
   });
