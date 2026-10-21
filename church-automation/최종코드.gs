@@ -9,6 +9,8 @@
  *  · 주제안내_1주뒤 ~ 주제안내_6주뒤     원하는 주의 말씀·기도 부탁 문구만 지금 바로 받기
  *  · 리마인드_이번주 ~ 리마인드_6주뒤    원하는 주의 리마인드 문구만 지금 바로 받기
  *  · 반주표보내기         다음 달 지휘·반주·찬송표 이미지 → 메일
+ *  · 순서표보내기_다음분기 · 순서표보내기_이번분기   '주일 예배 순서표' 이미지 → 메일
+ *       (자동: 2·5·8·11월 28일에 다음 분기 순서표)
  *  · 내년순서표만들기     감독단 시트에 내년 순서표 초안 탭
  *  · 카톡로그인주소 → 카톡연결   카카오톡 '나에게 보내기' 연결 (처음 한 번)
  */
@@ -54,7 +56,9 @@ function 자동실행설치() {
   ScriptApp.newTrigger('이번주아젠다만들기').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(9).create();
   ScriptApp.newTrigger('말씀안내보내기').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(10).create();
   ScriptApp.newTrigger('반주표보내기').timeBased().onMonthDay(25).atHour(9).create();
-  console.log('예약 완료\n· 매주 월 9시: 이번주아젠다만들기\n· 매주 월 10시: 말씀안내보내기 (메일 + 카톡)\n· 매달 25일 9시: 반주표보내기');
+  ScriptApp.newTrigger('분기순서표자동발송').timeBased().onMonthDay(28).atHour(9).create();
+  console.log('예약 완료\n· 매주 월 9시: 이번주아젠다만들기\n· 매주 월 10시: 말씀안내보내기 (메일 + 카톡)\n· 매달 25일 9시: 반주표보내기'
+    + '\n· 2·5·8·11월 28일 9시: 다음 분기 주일 예배 순서표');
 }
 
 /** 테스트용: 다음 주일 아젠다를 지금 바로 만들기 (일요일에 실행하면 7일 뒤 주일) */
@@ -736,6 +740,183 @@ function organistImage_(title, subtitle, header, rows) {
     .getBlob().setName(`${title}.png`);
   DriveApp.getFileById(pres.getId()).setTrashed(true);
   return blob;
+}
+
+// ═══════════════ 분기 '주일 예배 순서표' 이미지 ═══════════════
+
+const QUARTER_TITLE = '주일 예배 순서표';
+const QUARTER_REMARKS = [
+  '순서상에 일정이나 개인적인 사정이 있으시면 하민수 형제에게 미리 말씀해 주시면 수정해 드리겠습니다.',
+  '말씀 주제는 대략 한 달 전에 전달드릴 예정입니다. 그 전에 주제를 받아보길 희망하시거나 꼭 하시고 싶은 주제가 있으시면 하민수 형제에게 말씀해 주세요.',
+];
+const QUARTER_SEND_MONTHS = [2, 5, 8, 11];   // 이 달 28일에 다음 분기 순서표를 보냄 (분기의 둘째 달 끝)
+const EVENT_RE = /발표|대회|행사|프로그램|시청/;   // 짙은 칸(교회 행사)으로 칠할 내용
+
+/** 매달 28일 자동 실행 → 2·5·8·11월에만 다음 분기 순서표 발송 */
+function 분기순서표자동발송() {
+  const now = new Date();
+  if (QUARTER_SEND_MONTHS.includes(now.getMonth() + 1)) 순서표보내기_다음분기();
+}
+
+function 순서표보내기_다음분기() { sendQuarter_(1); }
+function 순서표보내기_이번분기() { sendQuarter_(0); }
+
+/** offset 0 = 이번 분기, 1 = 다음 분기 */
+function sendQuarter_(offset) {
+  const now = new Date();
+  const q = Math.floor(now.getMonth() / 3) + offset;
+  const start = new Date(now.getFullYear(), q * 3, 1);          // 분기 첫날 (12월 넘어가면 자동으로 다음 해)
+  const end = new Date(start.getFullYear(), start.getMonth() + 3, 0); // 분기 마지막 날
+  const rows = quarterRows_(start, end);
+  if (!rows.length) return report_('[순서표] 보낼 주가 없습니다', `${fmt_(start, 'yyyy년 M월')} 분기 주일을 시트에서 찾지 못했습니다.`);
+
+  const first = rows[0].sunday, last = rows[rows.length - 1].sunday;
+  const subtitle = `${fmt_(first, 'yyyy년 M월 d일')} ~ ${fmt_(last, first.getFullYear() === last.getFullYear() ? 'M월 d일' : 'yyyy년 M월 d일')}`;
+  const image = quarterImage_(QUARTER_TITLE, subtitle, rows);
+  const text = rows.map(r => `${r.date}  ${r.cells.join(' / ')}`).join('\n');
+  MailApp.sendEmail({
+    to: Session.getEffectiveUser().getEmail(),
+    subject: `[순서표] ${QUARTER_TITLE} ${subtitle}`,
+    body: `첨부한 이미지를 저장해서 공유해 주세요.\n\n${text}`,
+    attachments: [image],
+  });
+  console.log(`[순서표] ${subtitle} 메일 보냄\n${text}`);
+}
+
+/** 분기 안의 주일마다 한 줄: { date, cells[5칸], span(합칠 칸 수), event(짙은 줄) } */
+function quarterRows_(start, end) {
+  const rows = [];
+  for (let d = upcomingSunday_(start); d <= end; d = plusDays_(d, 7)) {
+    const m = getMeeting_(d);
+    const date = fmt_(d, 'MM/dd');
+    if (!m) continue;                                        // 시트에 없는 주는 뺌
+    if (m.special) {                                         // 연차대회 · 스테이크 대회: 줄 전체
+      rows.push({ sunday: new Date(d), date, cells: [m.special, '', '', '', ''], span: 5, event: true });
+      continue;
+    }
+    const pray = [m.openingPrayer || '-', m.closingPrayer || '-'];
+    if (m.fast || EVENT_RE.test(m.talk5)) {                  // 금식간증 · 초등회 발표 등: 말씀 3칸 합침
+      const label = m.fast ? '금식간증' : m.talk5.replace(/\?$/, '');
+      rows.push({ sunday: new Date(d), date, cells: [label, '', '', ...pray], span: 3, event: !m.fast });
+      continue;
+    }
+    rows.push({ sunday: new Date(d), date, cells: [m.talk5 || '-', m.talk10 || '-', m.lastSpeaker || '-', ...pray], span: 1, event: false });
+  }
+  return rows;
+}
+
+/** 슬라이드에 표를 그려 PNG 로 (칸 합치기·열 너비는 Slides API 로, 안 되면 가운데 칸에 글자만) */
+function quarterImage_(title, subtitle, rows) {
+  const BLACK = '#000000', DARK = '#262626', WHITE = '#FFFFFF', TEXT = '#111111', MUTED = '#555555';
+  const CENTER = SlidesApp.ParagraphAlignment.CENTER;
+  const MIDDLE = SlidesApp.ContentAlignment.MIDDLE;
+  const font = st => { try { st.setFontFamily('Noto Sans KR'); } catch (e) { /* 기본 글꼴 */ } return st; };
+  const header = ['날짜', '5분 말씀', '10분 말씀', '마지막 연사', '개회기도', '폐회기도'];
+
+  let pres = SlidesApp.create(title);
+  const id = pres.getId();
+  let slide = pres.getSlides()[0];
+  slide.getPageElements().forEach(e => e.remove());
+  const W = pres.getPageWidth(), H = pres.getPageHeight(), M = 18;
+  const top = 52, remarkH = 16 + QUARTER_REMARKS.length * 15, legendH = 14;
+  const tableH = H - top - legendH - remarkH - 10;
+  const table = slide.insertTable(rows.length + 1, header.length, M, top, W - 2 * M, tableH);
+  const tableId = table.getObjectId();
+  pres.saveAndClose();
+
+  // 1) 열 너비 + 칸 합치기 (Slides API)
+  const widths = [60, 135, 135, 105, 115, 115];
+  const scale = (W - 2 * M) / widths.reduce((a, b) => a + b, 0);
+  const requests = widths.map((w, c) => ({
+    updateTableColumnProperties: {
+      objectId: tableId, columnIndices: [c],
+      tableColumnProperties: { columnWidth: { magnitude: w * scale, unit: 'PT' } }, fields: 'columnWidth',
+    },
+  }));
+  rows.forEach((r, i) => {
+    if (r.span > 1) requests.push({ mergeTableCells: { objectId: tableId,
+      tableRange: { location: { rowIndex: i + 1, columnIndex: 1 }, rowSpan: 1, columnSpan: r.span } } });
+  });
+  const merged = slidesBatch_(id, requests);
+
+  // 2) 글자 · 색
+  pres = SlidesApp.openById(id);
+  slide = pres.getSlides()[0];
+  const t = slide.getTables()[0];
+  const paint = (cell, value, bg, color, bold, size) => {
+    const txt = cell.getText();
+    txt.setText(value);
+    font(txt.getTextStyle()).setFontSize(size).setBold(bold).setForegroundColor(color);
+    txt.getParagraphStyle().setParagraphAlignment(CENTER);
+    cell.setContentAlignment(MIDDLE);
+    cell.getFill().setSolidFill(bg);
+  };
+  header.forEach((h, j) => paint(t.getCell(0, j), h, BLACK, WHITE, true, 11));
+  rows.forEach((r, i) => {
+    const bg = r.event ? DARK : WHITE, color = r.event ? WHITE : TEXT;
+    let cells = [r.date, ...r.cells];
+    if (!merged && r.span > 1) {                       // 합치기가 안 됐으면 글자를 가운데 칸으로
+      const spanText = cells[1];
+      cells = cells.map((v, j) => (j >= 1 && j <= r.span ? '' : v));
+      cells[1 + Math.floor((r.span - 1) / 2)] = spanText;
+    }
+    cells.forEach((v, j) => {
+      const cell = t.getCell(i + 1, j);
+      if (merged && cell.getMergeState() === SlidesApp.CellMergeState.MERGED) return; // 합쳐진 칸의 나머지
+      paint(cell, v, bg, color, r.event, 11);
+    });
+  });
+
+  // 3) 제목 · 기간 · 표시 안내 · 리마크
+  const box = (text, x, y, w, h, size, bold, color) => {
+    const b = slide.insertTextBox(text, x, y, w, h);
+    font(b.getText().getTextStyle()).setFontSize(size).setBold(bold).setForegroundColor(color);
+    b.getText().getParagraphStyle().setParagraphAlignment(CENTER);
+    return b;
+  };
+  box(title, M, 2, W - 2 * M, 30, 20, true, TEXT);
+  box(subtitle, M, 30, W - 2 * M, 18, 10, true, TEXT);
+  let y = top + tableH + 2;
+  const legend = box('표시 안내    ■ 짙은 칸 = 교회 행사', M, y, W - 2 * M, legendH, 8, false, MUTED);
+  legend.getText().getParagraphStyle().setParagraphAlignment(SlidesApp.ParagraphAlignment.START);
+  y += legendH + 2;
+  const bar = slide.insertShape(SlidesApp.ShapeType.RECTANGLE, M, y, W - 2 * M, 14);
+  bar.getFill().setSolidFill(BLACK);
+  bar.getBorder().setTransparent();
+  bar.getText().setText('리마크 (Remark)');
+  font(bar.getText().getTextStyle()).setFontSize(8).setBold(true).setForegroundColor(WHITE);
+  y += 15;
+  QUARTER_REMARKS.forEach((line, i) => {
+    const b = box(`${i + 1}.  ${line}`, M, y, W - 2 * M, 14, 7.5, false, TEXT);
+    b.getText().getParagraphStyle().setParagraphAlignment(SlidesApp.ParagraphAlignment.START);
+    y += 15;
+  });
+  pres.saveAndClose();
+
+  const blob = UrlFetchApp.fetch(`https://docs.google.com/presentation/d/${id}/export/png?pageid=${slide.getObjectId()}`,
+    { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() } }).getBlob().setName(`${title}.png`);
+  DriveApp.getFileById(id).setTrashed(true);
+  return blob;
+}
+
+/** Slides API 일괄 요청 — 성공하면 true (서비스 'Google Slides API' 를 추가해 두면 그걸 씀) */
+function slidesBatch_(id, requests) {
+  try {
+    if (typeof Slides !== 'undefined') {
+      Slides.Presentations.batchUpdate({ requests: requests }, id);
+      return true;
+    }
+    const res = UrlFetchApp.fetch(`https://slides.googleapis.com/v1/presentations/${id}:batchUpdate`, {
+      method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+      headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+      payload: JSON.stringify({ requests: requests }),
+    });
+    if (res.getResponseCode() === 200) return true;
+    console.log('칸 합치기 실패 (가운데 칸에 글자만 넣습니다): ' + res.getContentText().slice(0, 300));
+  } catch (e) {
+    console.log('칸 합치기 실패 (가운데 칸에 글자만 넣습니다): ' + e.message);
+  }
+  return false;
 }
 
 /** 월간 작업: 반주표 이미지 · 내년 순서표 초안 */
