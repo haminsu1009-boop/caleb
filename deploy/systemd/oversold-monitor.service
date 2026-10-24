@@ -1,0 +1,29 @@
+# 실거래 봇 감시 — 이상할 때만 텔레그램으로 알린다 (bot/oversold/monitor.py)
+# 타이머(oversold-monitor.timer)가 1시간마다 부른다. 주문은 내지 않는다.
+#
+# 설치
+#   sudo cp deploy/systemd/oversold-monitor.* /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now oversold-monitor.timer
+# 확인
+#   systemctl list-timers oversold-monitor.timer
+#   journalctl -u oversold-monitor -n 30 --no-pager
+
+[Unit]
+Description=Oversold bot monitor (Telegram alerts)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=opc
+# 봇 로그(journalctl)를 읽어야 한다
+SupplementaryGroups=systemd-journal
+WorkingDirectory=/home/opc/caleb
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/opc/caleb/.venv/bin/python -m bot.oversold.monitor
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/opc/caleb/state
