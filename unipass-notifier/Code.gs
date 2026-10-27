@@ -367,6 +367,7 @@ function checkBL_(chatId, blNo, forceNotify) {
   if (!records || records.length === 0) return;
 
   var latest = pickLatest_(records);
+  Logger.log('[DEBUG] ' + blNo + ' latest fields: ' + JSON.stringify(latest));
   var sl = summaryLine_(latest);
   var prevRaw = props.getProperty(stateKey);
   var prev = prevRaw ? JSON.parse(prevRaw) : null;
