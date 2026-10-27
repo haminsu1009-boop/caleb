@@ -355,6 +355,11 @@ function checkAndNotifyUser_(chatId, forceNotify) {
 }
 
 function checkBL_(chatId, blNo, forceNotify) {
+  // race condition 방지: 삭제된 BL이면 스킵
+  var currentData = getUserData_(chatId);
+  var blExists = (currentData.bls || []).some(function(b) { return b.blNo === blNo; });
+  if (!blExists && !forceNotify) return;
+
   var stateKey = 'STATE_' + chatId + '_' + blNo;
   var props = PropertiesService.getScriptProperties();
   var records;
@@ -431,13 +436,34 @@ function summaryLine_(r) {
   return parts.join(',');
 }
 
+function getTerminalName_(r) {
+  // 유니패스 API 장치장 관련 필드명 후보
+  var candidates = [
+    'lodgOrgNm',      // 장치기관명
+    'trmnNm',         // 터미널명
+    'cargMtTrmnNm',   // 화물 보관 터미널명
+    'mtTrmnNm',       // 보관 터미널명
+    'lodgPlcNm',      // 장치장명
+    'blSttsNm',       // BL 상태명
+    'trmnOprBsnNm',   // 터미널 운영 사업체명
+  ];
+  for (var i = 0; i < candidates.length; i++) {
+    if (r[candidates[i]]) return r[candidates[i]];
+  }
+  return null;
+}
+
 function formatMessage_(blNo, isFirst, prevLine, latest) {
   var status = latest.cargTrcnRelaBsopTpcd || latest.csclPrgsStts || latest.prgsStts || latest.cargTrcnRsltNm || '-';
   var statusAt = formatDttm_(latest.prcsDttm || latest.cargTrcnPrcsDttm || latest.prcsDt);
   var checkedAt = Utilities.formatDate(new Date(), 'Asia/Seoul', 'MM월 dd일 HH시 mm분');
   var header = isFirst ? '📦 모니터링 시작' : (prevLine === null ? '📌 현재 상태' : '🔔 상태 변경!');
-  return ['<b>' + header + '</b>', '', '🚢 BL번호: <code>' + blNo + '</code>', '',
-    '📌 현재 상태: <b>' + status + '</b>', '🕐 상태 발생: ' + statusAt, '조회: ' + checkedAt].join('\n');
+  var terminal = getTerminalName_(latest);
+  var lines = ['<b>' + header + '</b>', '', '🚢 BL번호: <code>' + blNo + '</code>', '',
+    '📌 현재 상태: <b>' + status + '</b>', '🕐 상태 발생: ' + statusAt];
+  if (terminal) lines.push('🏭 장치장: ' + terminal);
+  lines.push('조회: ' + checkedAt);
+  return lines.join('\n');
 }
 
 function formatDttm_(raw) {
