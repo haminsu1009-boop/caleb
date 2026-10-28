@@ -1,5 +1,5 @@
 /**
- * 주문 확인 → 발주 목록 작성 → 알림 (30분마다)
+ * 주문 확인(쇼피 + 큐텐) → 발주 목록 작성 → 알림 (30분마다)
  *
  * 국내 도매처 결제는 자동으로 하지 않는다. 돈이 나가는 마지막 버튼은 사람이 누른다.
  * 대신 "어디서 · 무엇을 · 몇 개 · 얼마에" 사야 하는지 발주 목록과 메일로 바로 정리해 준다.
@@ -15,7 +15,7 @@ function ordersJob() {
     const now = Math.floor(Date.now() / 1000);
     const newLines = [];
 
-    markets_().filter(m => m.shopId).forEach(m => {
+    shopeeMarkets_().filter(m => m.shopId).forEach(m => {
       const list = shopee_('/api/v2/order/get_order_list', {
         shopId: m.shopId,
         params: {
@@ -49,6 +49,8 @@ function ordersJob() {
               '소싱URL': p['소싱URL'] || '',
               '예상원가(원)': p['원가(원)'] ? Number(p['원가(원)']) * qty : '',
               '발주상태': '미발주',
+              '플랫폼': 'shopee',
+              'shop_id': m.shopId,
             };
             appendRow_(SHEETS.ORDERS, line);
             newLines.push(line);
@@ -56,6 +58,30 @@ function ordersJob() {
         });
       }
     });
+
+    // 큐텐 재팬 주문
+    const jp = markets_().find(m => m.platform === 'qoo10');
+    if (jp && qoo10Enabled_()) {
+      try {
+        qoo10NewOrders_().forEach(o => {
+          const key = `${o.orderNo}|${o.sku}`;
+          if (known[key]) return;
+          known[key] = true;
+          const p = products[o.sku] || {};
+          const line = {
+            '주문번호': o.orderNo, '국가': 'JP', '주문시각': toDate_(o.orderDate) || new Date(),
+            '발송기한': toDate_(o.shipBy) || '', 'SKU': o.sku, '상품명': o.title,
+            '수량': o.qty, '판매가': `${o.price} JPY`, '소싱URL': p['소싱URL'] || '',
+            '예상원가(원)': p['원가(원)'] ? Number(p['원가(원)']) * o.qty : '',
+            '발주상태': '미발주', '플랫폼': 'qoo10',
+          };
+          appendRow_(SHEETS.ORDERS, line);
+          newLines.push(line);
+        });
+      } catch (e) {
+        log_('주문확인', '큐텐 주문 조회 실패: ' + (e.message || e));
+      }
+    }
 
     if (newLines.length) {
       const body = newLines.map(l =>
@@ -68,6 +94,13 @@ function ordersJob() {
     }
     remindUnordered_();
   });
+}
+
+/** 문자열 날짜를 Date 로. 해석 못 하면 null (잘못된 날짜로 메일 작성이 깨지지 않게) */
+function toDate_(v) {
+  if (!v) return null;
+  const d = v instanceof Date ? v : new Date(String(v).replace(' ', 'T'));
+  return isNaN(d.getTime()) ? null : d;
 }
 
 /** 발송기한 24시간 안쪽인데 아직 미발주인 건은 다시 알림 (하루 한 번) */

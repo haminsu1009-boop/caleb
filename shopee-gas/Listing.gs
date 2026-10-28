@@ -4,23 +4,27 @@
  * Apps Script 는 실행 1회당 6분 제한이 있어 30개를 한 번에 못 한다.
  * 그래서 1시간마다 몇 개씩(회당처리수) 나눠 처리하고, 오늘 처리 수가 하루등록수에 닿으면 멈춘다.
  *
- * verified=FALSE 이면 업로드 없이 '미리보기'(가격 + AI 상품글)만 채운다.
+ * 쇼피는 verified, 큐텐은 큐텐verified 를 체크해야 실제로 올라간다.
+ * 둘 다 꺼져 있으면 업로드 없이 '미리보기'(가격 + 시장가 점검 + AI 상품글)만 채운다.
  */
 
 const LANGUAGE_NAMES = {
   en: 'English', th: 'Thai', vi: 'Vietnamese', 'zh-Hant': 'Traditional Chinese (Taiwan)',
-  'pt-BR': 'Brazilian Portuguese', id: 'Indonesian', ms: 'Malay',
+  'pt-BR': 'Brazilian Portuguese', id: 'Indonesian', ms: 'Malay', ja: 'Japanese',
 };
 const TITLE_MAX = 120;
 const RUN_BUDGET_MS = 4.5 * 60 * 1000;
 
-const LISTING_SYSTEM = `You write product listings for a Korean cross-border seller on Shopee.
+const LISTING_SYSTEM = `You write product listings for a Korean cross-border seller on Shopee and Qoo10 Japan.
 The seller buys from Korean suppliers after each order, so never promise same-day shipping.
 For each requested market, write in that market's language:
 - title: lead with words buyers search, include "Korea"/"Korean" when it helps, key spec
   (size, volume, count). No ALL CAPS, no emoji spam, no other brands' names unless it is that brand's genuine product.
 - description: benefit-first intro, then specs, contents, how to use, and that it ships from Korea. Plain text.
 - keywords: 5-10 search keywords buyers in that market use.
+- highlights: 3-5 short selling points (one line each) for the product detail page.
+For JP (Qoo10 Japan): natural, polite Japanese like top Qoo10 beauty listings; put 【韓国コスメ】-style tags
+and the product type/volume in the title; mention 韓国から発送.
 Judge selling risk:
 - "block": counterfeit/brand-infringement risk, medicine, weapons, adult items, Shopee-prohibited items.
 - "caution": cosmetics/food/supplements (registration rules vary), batteries/liquids/aerosols, licensed characters, fragile.
@@ -41,8 +45,9 @@ const LISTING_SCHEMA = {
           title: { type: 'STRING' },
           description: { type: 'STRING' },
           keywords: { type: 'ARRAY', items: { type: 'STRING' } },
+          highlights: { type: 'ARRAY', items: { type: 'STRING' } },
         },
-        required: ['market', 'title', 'description', 'keywords'],
+        required: ['market', 'title', 'description', 'keywords', 'highlights'],
       },
     },
   },
@@ -53,7 +58,6 @@ function listingJob() {
   withLock_('상품등록', () => {
     const started = Date.now();
     const s = settings_();
-    const live = s['verified'] === true;
     const daily = Number(s['하루등록수'] || 30);
     const perRun = Number(s['회당처리수'] || 5);
 
@@ -69,7 +73,7 @@ function listingJob() {
     rows.filter(r => r['상태'] === '대기').slice(0, quota).forEach(r => {
       if (Date.now() - started > RUN_BUDGET_MS) return;
       try {
-        processProduct_(r, markets, fx, pricing, s, live);
+        processProduct_(r, markets, fx, pricing, s);
       } catch (e) {
         updateRow_(SHEETS.PRODUCTS, r._row, { '상태': '오류', '오류': String(e.message || e).slice(0, 500) });
         log_('상품등록', `${r['SKU']} 실패: ${e.message || e}`);
@@ -82,7 +86,7 @@ function formatDay_(v) {
   return v instanceof Date ? Utilities.formatDate(v, 'Asia/Seoul', 'yyyy-MM-dd') : String(v).slice(0, 10);
 }
 
-function processProduct_(r, markets, fx, pricing, s, live) {
+function processProduct_(r, markets, fx, pricing, s) {
   const product = {
     sku: r['SKU'] || `KR-${r._row}-${Date.now() % 100000}`,
     name: r['상품명'],
@@ -93,6 +97,7 @@ function processProduct_(r, markets, fx, pricing, s, live) {
     notes: r['메모'] || '',
     sourceUrl: r['소싱URL'] || '',
     dims: [r['가로(cm)'], r['세로(cm)'], r['높이(cm)']].map(v => Math.max(1, Math.round(Number(v) || 10))),
+    qoo10Category: r['큐텐카테고리'] || '',
   };
   if (!product.name || !product.cost) throw new Error('상품명과 원가는 필수입니다');
 
@@ -100,6 +105,16 @@ function processProduct_(r, markets, fx, pricing, s, live) {
   markets.forEach(m => {
     prices[m.code] = calcPrice_(m, pricing, fx[m.code], product.cost, product.domesticShip, product.weight);
   });
+
+  // 시장가 점검: 경쟁 판매가를 웹에서 조사해 너무 싸면 올리고, 너무 비싸면 표시
+  let market = { summary: '', verdict: '' };
+  if (s['시장가조사'] === true) {
+    try {
+      market = checkMarketPrices_(product, markets, prices, s['저가면자동인상'] === true);
+    } catch (e) {
+      market.summary = '조사 실패: ' + (e.message || e);
+    }
+  }
 
   const draft = writeListing_(product, markets);
   const priceText = markets.map(m => `${m.code} ${prices[m.code].price}${m.currency}(이익 ${prices[m.code].profitKrw}원)`).join(' / ');
@@ -111,18 +126,38 @@ function processProduct_(r, markets, fx, pricing, s, live) {
     'AI결과': JSON.stringify(draft).slice(0, 45000),
     '등록일': today_(),
     '오류': '',
+    '시장가': market.summary,
+    '가격판단': market.verdict,
   };
 
   const allowCaution = s['주의상품업로드'] === true;
   if (draft.risk_level === 'block' || (draft.risk_level === 'caution' && !allowCaution)) {
     update['상태'] = '건너뜀';
-  } else if (!live) {
-    update['상태'] = '미리보기';
   } else {
-    const result = uploadToShopee_(product, draft, prices, markets, s);
-    update['상태'] = '등록완료';
-    update['global_item_id'] = result.globalItemId;
-    update['메모'] = [product.notes, `게시: ${result.regions.join(',')}`].filter(Boolean).join(' / ');
+    const shopeeTargets = markets.filter(m => m.platform === 'shopee');
+    const jp = markets.find(m => m.platform === 'qoo10');
+    const jpCopy = draft.markets.find(c => c.market === (jp && jp.code));
+    const shopeeLive = s['verified'] === true && shopeeTargets.length > 0;
+    const qoo10Live = s['큐텐verified'] === true && jp && jpCopy && qoo10Enabled_();
+    const posted = [];
+    const errors = [];
+    if (shopeeLive) {
+      try {
+        const result = uploadToShopee_(product, draft, prices, shopeeTargets, s);
+        update['global_item_id'] = result.globalItemId;
+        posted.push(...result.regions);
+      } catch (e) { errors.push('쇼피: ' + (e.message || e)); }
+    }
+    if (qoo10Live) {
+      try {
+        update['큐텐상품번호'] = uploadToQoo10_(product, jpCopy, prices[jp.code], s);
+        posted.push('Qoo10JP');
+      } catch (e) { errors.push('큐텐: ' + (e.message || e)); }
+    }
+    if (!shopeeLive && !qoo10Live) update['상태'] = '미리보기';
+    else update['상태'] = posted.length ? '등록완료' : '오류';
+    if (posted.length) update['메모'] = [product.notes, `게시: ${posted.join(',')}`].filter(Boolean).join(' / ');
+    if (errors.length) update['오류'] = errors.join(' | ').slice(0, 500);
   }
   updateRow_(SHEETS.PRODUCTS, r._row, update);
   log_('상품등록', `${product.sku} → ${update['상태']} (${draft.risk_level})`);

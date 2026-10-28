@@ -34,10 +34,10 @@ function demandJob() {
   withLock_('수요조사', () => {
     const s = settings_();
     const codes = markets_().map(m => m.code).join(', ');
-    const notes = gemini_(`You research demand for a Korean seller on Shopee (cross-border, buys from Korean
+    const notes = gemini_(`You research demand for a Korean seller on Shopee and Qoo10 Japan (market code JP) (cross-border, buys from Korean
 wholesalers after each order). Markets: ${codes}. Focus: ${s['관심카테고리'] || 'any category with good margin and light weight'}.
 Search for recent (last 6 months) evidence of Korean products selling well in these Shopee markets:
-Shopee bestseller/trending pages, campaign news, K-beauty/K-food/K-lifestyle trend articles, TikTok viral items.
+Shopee bestseller/trending pages, Qoo10 Japan rankings and Mega Wari results, campaign news, K-beauty/K-food/K-lifestyle trend articles, TikTok viral items.
 List 20 concrete products (specific, not just "skincare"): markets, why (with source URLs), typical local price,
 a Korean search keyword to find it on Korean wholesale sites, and risks (brand IP, cosmetics/food registration,
 batteries/liquids, heavy weight). Skip counterfeit-prone or restricted items. Today: ${today_()}.`,

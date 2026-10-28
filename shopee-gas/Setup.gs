@@ -3,7 +3,7 @@
  */
 
 function onOpen() {
-  SpreadsheetApp.getUi().createMenu('🛒 쇼피')
+  SpreadsheetApp.getUi().createMenu('🛒 쇼피·큐텐')
     .addItem('① 초기 설정 (시트 만들기)', 'setupSheets')
     .addItem('② 쇼피 인증하기', 'showAuthUrl')
     .addItem('③ 연결된 샵 불러오기', 'loadShops')
@@ -15,6 +15,7 @@ function onOpen() {
     .addItem('지금 실행: 상품 소싱', 'sourcingJob')
     .addItem('지금 실행: 상품 등록', 'listingJob')
     .addItem('지금 실행: 주문 확인', 'ordersJob')
+    .addItem('지금 실행: 발송 처리', 'shippingJob')
     .addItem('지금 실행: 채팅 응대', 'chatJob')
     .addToUi();
 }
@@ -23,31 +24,39 @@ function onOpen() {
 function sheetHeaders_() {
   return {
   [SHEETS.PRODUCTS]: ['SKU', '상태', '상품명', '원가(원)', '국내배송비(원)', '무게(g)', '가로(cm)', '세로(cm)', '높이(cm)',
-    '이미지URL', '소싱URL', '메모', '위험도', '위험사유', '판매가', 'AI결과', 'global_item_id', '등록일', '오류'],
+    '이미지URL', '소싱URL', '메모', '위험도', '위험사유', '판매가', 'AI결과', 'global_item_id', '등록일', '오류',
+    '큐텐카테고리', '큐텐상품번호', '시장가', '가격판단'],
   [SHEETS.ORDERS]: ['주문번호', '국가', '주문시각', '발송기한', 'SKU', '상품명', '수량', '판매가', '소싱URL',
-    '예상원가(원)', '발주상태', '국내송장', '메모'],
+    '예상원가(원)', '발주상태', '국내송장', '메모', '플랫폼', 'shop_id', '택배사', '국제송장', '발송처리'],
   [SHEETS.CHATS]: ['시각', '국가', '대화ID', '메시지ID', '고객', '고객메시지', '분류', '요약', 'AI답변', '처리'],
   [SHEETS.DEMAND]: ['날짜', '점수', '상품', '검색어', '국가', '수요근거', '가격대', '리스크', '출처'],
   [SHEETS.LOG]: ['시각', '작업', '내용'],
   [SHEETS.MARKETS]: ['국가', '사용', '통화', '언어', '가격단위', '판매수수료율', '결제수수료율', '서비스수수료율',
-    '기본배송비(원)', '100g당배송비(원)', '환율대체값', 'shop_id'],
+    '기본배송비(원)', '100g당배송비(원)', '환율대체값', 'shop_id', '플랫폼'],
   };
 }
 
 // 수수료·배송비는 예시값 — 쇼피코리아 요율표로 바꾼 뒤 설정의 verified 를 체크
 const DEFAULT_MARKETS = [
-  ['SG', true, 'SGD', 'en', 0.1, 0.10, 0.03, 0, 3000, 700, 1050, ''],
-  ['MY', true, 'MYR', 'en', 0.1, 0.10, 0.03, 0, 3000, 700, 320, ''],
-  ['PH', true, 'PHP', 'en', 1, 0.10, 0.03, 0, 3000, 700, 24, ''],
-  ['TH', true, 'THB', 'th', 1, 0.10, 0.03, 0, 3000, 700, 41, ''],
-  ['VN', true, 'VND', 'vi', 1000, 0.10, 0.03, 0, 3000, 700, 0.055, ''],
-  ['TW', true, 'TWD', 'zh-Hant', 1, 0.10, 0.03, 0, 3000, 700, 43, ''],
-  ['BR', true, 'BRL', 'pt-BR', 0.1, 0.14, 0.03, 0, 5000, 1200, 250, ''],
-  ['ID', false, 'IDR', 'id', 100, 0.10, 0.03, 0, 3000, 700, 0.085, ''],
+  ['SG', true, 'SGD', 'en', 0.1, 0.10, 0.03, 0, 3000, 700, 1050, '', 'shopee'],
+  ['MY', true, 'MYR', 'en', 0.1, 0.10, 0.03, 0, 3000, 700, 320, '', 'shopee'],
+  ['PH', true, 'PHP', 'en', 1, 0.10, 0.03, 0, 3000, 700, 24, '', 'shopee'],
+  ['TH', true, 'THB', 'th', 1, 0.10, 0.03, 0, 3000, 700, 41, '', 'shopee'],
+  ['VN', true, 'VND', 'vi', 1000, 0.10, 0.03, 0, 3000, 700, 0.055, '', 'shopee'],
+  ['TW', true, 'TWD', 'zh-Hant', 1, 0.10, 0.03, 0, 3000, 700, 43, '', 'shopee'],
+  ['BR', true, 'BRL', 'pt-BR', 0.1, 0.14, 0.03, 0, 5000, 1200, 250, '', 'shopee'],
+  ['ID', false, 'IDR', 'id', 100, 0.10, 0.03, 0, 3000, 700, 0.085, '', 'shopee'],
+  // 큐텐 재팬: 판매수수료 6~10%(결제 포함, 카테고리별). 배송비는 한국→일본 소형 소포 예시값
+  ['JP', true, 'JPY', 'ja', 10, 0.10, 0, 0, 4000, 500, 9.3, '', 'qoo10'],
 ];
 
 const DEFAULT_SETTINGS = [
-  ['verified', false, '체크해야 실제 업로드. 국가 시트의 수수료·배송비를 실제 요율로 바꾼 뒤 체크'],
+  ['verified', false, '체크해야 쇼피 실제 업로드. 국가 시트의 수수료·배송비를 실제 요율로 바꾼 뒤 체크'],
+  ['큐텐verified', false, '체크해야 큐텐 실제 업로드. 큐텐 API 키 연결 + 1개 테스트 후 체크'],
+  ['큐텐기본카테고리', '', '큐텐 카테고리 코드 (상품 시트 큐텐카테고리 칸이 비면 사용)'],
+  ['큐텐배송코드', '', '큐텐 QSM 에서 만든 배송비 정책 번호(ShippingNo)'],
+  ['시장가조사', true, '등록 전 AI가 웹에서 경쟁 판매가를 조사해 가격을 점검'],
+  ['저가면자동인상', true, '시장가보다 많이 싸면 시장 최저가 근처까지 자동 인상 (이익 증가)'],
   ['하루등록수', 30, '하루 최대 처리 상품 수'],
   ['회당처리수', 5, '1시간마다 처리할 개수 (실행 1회 6분 제한 때문)'],
   ['목표마진율', 0.2, '판매가 대비 이익률'],
@@ -77,17 +86,17 @@ function setupSheets() {
     const sh = book.insertSheet(SHEETS.SETTINGS);
     sh.getRange(1, 1, 1, 3).setValues([['항목', '값', '설명']]);
     sh.getRange(2, 1, DEFAULT_SETTINGS.length, 3).setValues(DEFAULT_SETTINGS);
-    ['verified', '예약판매', '주의상품업로드', '채팅자동답변', '키워드자동갱신'].forEach(k => {
-      const row = DEFAULT_SETTINGS.findIndex(r => r[0] === k) + 2;
-      sh.getRange(row, 2).insertCheckboxes();
-      sh.getRange(row, 2).setValue(DEFAULT_SETTINGS[row - 2][1]);
+    DEFAULT_SETTINGS.forEach((r, i) => {
+      if (typeof r[1] !== 'boolean') return;
+      sh.getRange(i + 2, 2).insertCheckboxes();
+      sh.getRange(i + 2, 2).setValue(r[1]);
     });
     styleHeader_(sh);
   }
 
   const SHEET_HEADERS = sheetHeaders_();
   Object.keys(SHEET_HEADERS).forEach(name => {
-    if (book.getSheetByName(name)) return;
+    if (book.getSheetByName(name)) return addMissingHeaders_(book.getSheetByName(name), SHEET_HEADERS[name]);
     const sh = book.insertSheet(name);
     sh.getRange(1, 1, 1, SHEET_HEADERS[name].length).setValues([SHEET_HEADERS[name]]);
     styleHeader_(sh);
@@ -102,7 +111,7 @@ function setupSheets() {
     }
     if (name === SHEETS.ORDERS) {
       sh.getRange('K2:K').setDataValidation(SpreadsheetApp.newDataValidation()
-        .requireValueInList(['미발주', '발주완료', '발송완료', '취소'], true).build());
+        .requireValueInList(['미발주', '발주완료', '발송준비', '발송완료', '취소'], true).build());
     }
   });
 
@@ -112,6 +121,26 @@ function setupSheets() {
   const def = book.getSheetByName('시트1') || book.getSheetByName('Sheet1');
   if (def && book.getSheets().length > 1 && def.getLastRow() === 0) book.deleteSheet(def);
   SpreadsheetApp.getActive().toast('시트 준비 완료. 확장 프로그램 > Apps Script > 프로젝트 설정 에서 스크립트 속성을 넣어 주세요.');
+}
+
+/** 코드 업데이트로 새 열이 생기면 기존 시트 오른쪽 끝에 덧붙인다 (기존 열 위치는 그대로) */
+function addMissingHeaders_(sh, headers) {
+  const have = sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 1)).getValues()[0];
+  headers.filter(h => have.indexOf(h) < 0).forEach(h => {
+    sh.getRange(1, sh.getLastColumn() + 1).setValue(h);
+  });
+  if (sh.getName() === SHEETS.MARKETS) {
+    const codes = sh.getRange(1, 1, sh.getLastRow(), 1).getValues().flat();
+    const platformCol = headers_(SHEETS.MARKETS).indexOf('플랫폼') + 1;
+    DEFAULT_MARKETS.filter(m => codes.indexOf(m[0]) < 0).forEach(m => {
+      sh.appendRow(m);
+      sh.getRange(sh.getLastRow(), 2).insertCheckboxes().setValue(m[1]);
+    });
+    // 예전 행에 플랫폼이 비어 있으면 shopee 로 채움
+    for (let r = 2; r <= sh.getLastRow(); r++) {
+      if (!sh.getRange(r, platformCol).getValue()) sh.getRange(r, platformCol).setValue('shopee');
+    }
+  }
 }
 
 /** 코드 업데이트로 새 설정 항목이 생기면 기존 시트 아래에 덧붙인다 */
@@ -132,13 +161,14 @@ function styleHeader_(sh) {
   sh.getRange(1, 1, 1, sh.getLastColumn()).setFontWeight('bold').setBackground('#fde7d9');
 }
 
-const JOBS = ['listingJob', 'ordersJob', 'chatJob', 'sourcingJob', 'demandJob', 'handleEdit'];
+const JOBS = ['listingJob', 'ordersJob', 'shippingJob', 'chatJob', 'sourcingJob', 'demandJob', 'handleEdit'];
 
 function installTriggers() {
   removeTriggers();
   ScriptApp.newTrigger('listingJob').timeBased().everyHours(1).create();
   ScriptApp.newTrigger('ordersJob').timeBased().everyMinutes(30).create();
   ScriptApp.newTrigger('chatJob').timeBased().everyMinutes(30).create();
+  ScriptApp.newTrigger('shippingJob').timeBased().everyHours(1).create();
   ScriptApp.newTrigger('sourcingJob').timeBased().everyDays(1).atHour(7).create();
   ScriptApp.newTrigger('demandJob').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(6).create();
   ScriptApp.newTrigger('handleEdit').forSpreadsheet(book_()).onEdit().create(); // 모바일 실행 체크박스

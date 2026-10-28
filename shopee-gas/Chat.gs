@@ -30,7 +30,7 @@ function chatJob() {
     readTable_(SHEETS.CHATS).forEach(c => { handled[String(c['메시지ID'])] = true; });
     const escalations = [];
 
-    markets_().filter(m => m.shopId).forEach(m => {
+    shopeeMarkets_().filter(m => m.shopId).forEach(m => {
       let convs;
       try {
         convs = shopee_('/api/v2/sellerchat/get_conversation_list', {
@@ -69,6 +69,15 @@ function chatJob() {
       });
     });
 
+    // 큐텐 재팬 고객 문의 (API 이름이 확인되어 QOO10_METHODS 에 들어간 경우에만)
+    if (QOO10_METHODS.inquiries && qoo10Enabled_()) {
+      try {
+        qoo10Inquiries_(s, autoSend, handled, escalations);
+      } catch (e) {
+        log_('채팅응대', '큐텐 문의 조회 실패: ' + (e.message || e));
+      }
+    }
+
     if (escalations.length) {
       notify_(`고객 문의 ${escalations.length}건 확인 필요`,
         escalations.join('\n\n') + '\n\n쇼피 셀러센터 채팅에서 직접 답변해 주세요.');
@@ -77,7 +86,7 @@ function chatJob() {
 }
 
 function chatSystem_(s) {
-  return `You are the customer service assistant of a Korean seller on Shopee.
+  return `You are the customer service assistant of a Korean seller on Shopee and Qoo10 Japan.
 Reply in the buyer's language, short and polite, as the shop.
 Shop facts (do not invent anything beyond these):
 - Items are sourced in Korea after the order and shipped from Korea via Shopee's logistics.
@@ -88,4 +97,27 @@ Rules:
   will check and reply soon, and classify as cancel_refund / complaint / price.
 - If product details are not known, say you will check with the seller (category other).
 Write summary_ko in Korean for the shop owner.`;
+}
+
+function qoo10Inquiries_(s, autoSend, handled, escalations) {
+  const pick = (o, names) => { for (const n of names) if (o[n] !== undefined && o[n] !== '') return o[n]; return ''; };
+  [].concat(qoo10_(QOO10_METHODS.inquiries, {}) || []).forEach(q => {
+    const id = 'Q10-' + pick(q, ['QnaNo', 'qnaNo', 'InquiryNo', 'seq']);
+    const text = pick(q, ['Question', 'question', 'Contents', 'contents']);
+    if (!text || handled[id]) return;
+    handled[id] = true;
+    const ai = gemini_(`Market: JP (Qoo10 Japan)\nBuyer message:\n${text}`, { system: chatSystem_(s), schema: CHAT_SCHEMA });
+    const safe = AUTO_REPLY_CATEGORIES.indexOf(ai.category) >= 0;
+    let status = '사람확인필요';
+    if (safe && autoSend && QOO10_METHODS.answerInquiry) {
+      qoo10_(QOO10_METHODS.answerInquiry, { QnaNo: id.slice(4), Answer: ai.reply });
+      status = '자동답변';
+    } else {
+      escalations.push(`• [JP 큐텐] ${ai.summary_ko}\n  고객: ${text}\n  답변초안: ${ai.reply}`);
+    }
+    appendRow_(SHEETS.CHATS, {
+      '시각': new Date(), '국가': 'JP', '대화ID': id, '메시지ID': id, '고객': pick(q, ['BuyerName', 'buyer']),
+      '고객메시지': text, '분류': ai.category, '요약': ai.summary_ko, 'AI답변': ai.reply, '처리': status,
+    });
+  });
 }

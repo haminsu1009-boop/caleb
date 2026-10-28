@@ -11,6 +11,7 @@ const SUMMARY_SHEET = '요약';
 const RUN_BUTTONS = {
   '▶ 상품 등록': 'listingJob',
   '▶ 주문 확인': 'ordersJob',
+  '▶ 발송 처리': 'shippingJob',
   '▶ 채팅 응대': 'chatJob',
   '▶ 상품 소싱': 'sourcingJob',
   '▶ 수요 조사': 'demandJob',

@@ -1,4 +1,4 @@
-// 쇼피 자동화 — 전체 코드 (Apps Script 의 Code.gs 에 통째로 붙여넣기)
+// 쇼피·큐텐 자동화 — 전체 코드 (Apps Script 의 Code.gs 에 통째로 붙여넣기)
 // 원본: shopee-gas/*.gs 를 합친 파일. 수정은 원본에서 하고 다시 합치세요.
 
 // ═════════════ Config.gs ═════════════
@@ -81,7 +81,7 @@ function updateRow_(name, rowNum, obj) {
   });
 }
 
-/** 사용(체크)된 국가만 */
+/** 사용(체크)된 국가만. platform: 'shopee' | 'qoo10' */
 function markets_() {
   return readTable_(SHEETS.MARKETS)
     .filter(m => m['사용'] === true)
@@ -97,7 +97,12 @@ function markets_() {
       shipPer100g: Number(m['100g당배송비(원)']),
       fxFallback: Number(m['환율대체값']),
       shopId: m['shop_id'] ? Number(m['shop_id']) : null,
+      platform: String(m['플랫폼'] || 'shopee').toLowerCase(),
     }));
+}
+
+function shopeeMarkets_() {
+  return markets_().filter(m => m.platform === 'shopee');
 }
 
 function today_() {
@@ -116,7 +121,7 @@ function log_(job, message) {
 
 function notify_(subject, body) {
   const to = settings_()['알림이메일'] || Session.getEffectiveUser().getEmail();
-  if (to) MailApp.sendEmail(to, `[쇼피 자동화] ${subject}`, body);
+  if (to) MailApp.sendEmail(to, `[쇼피·큐텐 자동화] ${subject}`, body);
 }
 
 /** 트리거끼리 겹쳐 실행되지 않게 잠금 (토큰 갱신·행 업데이트 충돌 방지) */
@@ -388,6 +393,148 @@ function loadShops() {
   SpreadsheetApp.getActive().toast(`연결된 샵: ${Object.keys(byRegion).join(', ') || '없음'}`);
 }
 
+// ═════════════ Qoo10.gs ═════════════
+/**
+ * 큐텐 재팬(Qoo10) QAPI 클라이언트
+ *
+ * 인증 원리: QSM(셀러 관리 화면)에서 발급받은 API 키 + 셀러 ID/비밀번호로 "판매자 인증키"를 만들고,
+ * 이후 모든 요청 헤더(GiosisCertificationKey)에 그 인증키를 넣는다. 인증키는 스크립트 속성에 보관.
+ *
+ * ⚠️ 공식 문서(api.qoo10.jp)를 직접 대조하지 못했다. 메서드 이름은 공개된 연동 사례 기준이며,
+ *    응답 필드는 여러 후보 이름을 함께 읽도록 짰다. 큐텐verified 체크 전 반드시 1개로 테스트할 것.
+ *    메서드 이름이 다르면 아래 QOO10_METHODS 만 고치면 된다.
+ *
+ * 스크립트 속성:
+ *   QOO10_SELLER_KEY  (QSM 에서 바로 받은 판매자 인증키가 있으면 이것만 넣어도 됨)
+ *   또는 QOO10_API_KEY + QOO10_USER_ID + QOO10_PASSWORD (인증키를 자동 발급)
+ */
+
+const QOO10_BASE = 'https://api.qoo10.jp/GMKT.INC.Front.QAPIService/ebayjapan.qapi';
+
+const QOO10_METHODS = {
+  certify: 'CertificationAPI.CreateCertificationKey',
+  newItem: 'ItemsBasic.SetNewGoods',
+  orders: 'ShippingBasic.GetShippingInfo_v2',
+  sendTracking: 'ShippingBasic.SetSendingInfo',
+  inquiries: '',     // 고객 문의 API 이름 확인 후 입력 (비어 있으면 큐텐 문의는 메일 알림 대상 아님)
+  answerInquiry: '',
+};
+
+function qoo10Enabled_() {
+  const p = PropertiesService.getScriptProperties();
+  return !!(p.getProperty('QOO10_SELLER_KEY') || p.getProperty('QOO10_API_KEY'));
+}
+
+function qoo10SellerKey_() {
+  const props = PropertiesService.getScriptProperties();
+  const key = props.getProperty('QOO10_SELLER_KEY');
+  if (key) return key;
+  const data = qoo10Fetch_(QOO10_METHODS.certify, {
+    user_id: secret_('QOO10_USER_ID'), pwd: secret_('QOO10_PASSWORD'),
+  }, secret_('QOO10_API_KEY'));
+  const created = typeof data === 'string' ? data : (data.CertificationKey || data.Key || data);
+  if (!created || typeof created !== 'string') throw new Error('큐텐 인증키 발급 실패: ' + JSON.stringify(data).slice(0, 200));
+  props.setProperty('QOO10_SELLER_KEY', created);
+  return created;
+}
+
+function qoo10_(method, params) {
+  return qoo10Fetch_(method, params, qoo10SellerKey_());
+}
+
+function qoo10Fetch_(method, params, certKey) {
+  if (!method) throw new Error('큐텐 API 메서드 이름이 설정되지 않았습니다');
+  const payload = Object.assign({ returnType: 'application/json' }, params || {});
+  const res = UrlFetchApp.fetch(`${QOO10_BASE}/${method}`, {
+    method: 'post',
+    headers: { GiosisCertificationKey: certKey, QAPIVersion: '1.1' },
+    payload: payload,   // 폼 형식(x-www-form-urlencoded)으로 전송됨
+    muteHttpExceptions: true,
+  });
+  let data;
+  try {
+    data = JSON.parse(res.getContentText());
+  } catch (e) {
+    throw new Error(`큐텐 HTTP ${res.getResponseCode()}: ${res.getContentText().slice(0, 300)}`);
+  }
+  const code = Number(data.ResultCode);
+  if (code !== 0) throw new Error(`큐텐 ${method} 실패 (${data.ResultCode}): ${data.ResultMsg}`);
+  return data.ResultObject !== undefined ? data.ResultObject : data;
+}
+
+// ── 상품 등록 ───────────────────────────────────────────
+
+/** 큐텐 상세페이지 HTML: 이미지 + 핵심 포인트 + 설명 + 한국 발송 안내 */
+function qoo10DetailHtml_(copy, images, days) {
+  const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const imgs = images.map(u => `<p style="text-align:center"><img src="${esc(u)}" style="max-width:100%"></p>`).join('');
+  const points = (copy.highlights || []).map(h => `<li style="margin:6px 0">${esc(h)}</li>`).join('');
+  const body = esc(copy.description).replace(/\n/g, '<br>');
+  return `<div style="max-width:860px;margin:0 auto;font-size:15px;line-height:1.8;color:#333">
+${imgs}
+${points ? `<h3 style="border-left:4px solid #e4007f;padding-left:8px">おすすめポイント</h3><ul>${points}</ul>` : ''}
+<h3 style="border-left:4px solid #e4007f;padding-left:8px">商品説明</h3><p>${body}</p>
+<h3 style="border-left:4px solid #e4007f;padding-left:8px">配送について</h3>
+<p>韓国からの発送となります。ご注文後、通常${days}営業日以内に発送し、到着まで数日〜1週間程度かかります。</p>
+</div>`;
+}
+
+function uploadToQoo10_(product, copy, price, s) {
+  const category = product.qoo10Category || s['큐텐기본카테고리'];
+  if (!category) throw new Error('큐텐 카테고리 코드가 없습니다 (상품 시트 큐텐카테고리 또는 설정 큐텐기본카테고리)');
+  if (!s['큐텐배송코드']) throw new Error('설정의 큐텐배송코드(ShippingNo)를 입력해 주세요');
+  const days = Number(s['발송준비일수'] || 3);
+  const html = qoo10DetailHtml_(copy, product.images, days);
+  const data = qoo10_(QOO10_METHODS.newItem, {
+    SecondSubCat: category,
+    ItemTitle: copy.title,
+    SellerCode: product.sku,
+    StandardImage: product.images[0],
+    ItemDescription: html,
+    ItemPrice: price.price,
+    RetailPrice: 0,
+    ItemQty: Number(s['기본재고'] || 30),
+    ShippingNo: s['큐텐배송코드'],
+    AvailableDateType: '0',
+    AvailableDateValue: String(days),
+    AdultYN: 'N',
+    TaxRate: 'S',
+  });
+  return (data && (data.GdNo || data.ItemCode || data.gd_no)) || JSON.stringify(data).slice(0, 50);
+}
+
+// ── 주문 · 발송 ─────────────────────────────────────────
+
+function qoo10Ymd_(d) {
+  return Utilities.formatDate(d, 'Asia/Tokyo', 'yyyyMMdd');
+}
+
+/** 배송 대기 중인 주문 목록 → 공통 형식으로 변환 */
+function qoo10NewOrders_() {
+  const now = new Date();
+  const from = new Date(now.getTime() - 3 * 86400 * 1000);
+  const list = qoo10_(QOO10_METHODS.orders, {
+    ShippingStat: '2',          // 배송 요청(=발송 대기) 상태
+    search_Sdate: qoo10Ymd_(from),
+    search_Edate: qoo10Ymd_(now),
+    search_condition: '1',      // 주문일 기준
+  });
+  const pick = (o, names) => { for (const n of names) if (o[n] !== undefined && o[n] !== '') return o[n]; return ''; };
+  return [].concat(list || []).map(o => ({
+    orderNo: String(pick(o, ['orderNo', 'OrderNo', 'order_no'])),
+    sku: String(pick(o, ['sellerItemCode', 'SellerCode', 'seller_item_code'])),
+    title: pick(o, ['itemTitle', 'ItemTitle', 'item_title']),
+    qty: Number(pick(o, ['orderQty', 'OrderQty', 'order_qty']) || 1),
+    price: pick(o, ['orderPrice', 'OrderPrice', 'total']),
+    orderDate: pick(o, ['orderDate', 'OrderDate', 'order_date']),
+    shipBy: pick(o, ['ShippingRequestDate', 'shippingDate', 'Shippingdate']),
+  })).filter(o => o.orderNo);
+}
+
+function qoo10SendTracking_(orderNo, carrier, trackingNo) {
+  return qoo10_(QOO10_METHODS.sendTracking, { OrderNo: orderNo, ShippingCorp: carrier, TrackingNo: trackingNo });
+}
+
 // ═════════════ Gemini.gs ═════════════
 /**
  * Gemini 무료 API 호출
@@ -429,6 +576,87 @@ function gemini_(prompt, opts) {
   throw new Error('Gemini 호출 한도 초과 — 잠시 후 다시 실행됩니다');
 }
 
+// ═════════════ Research.gs ═════════════
+/**
+ * 시장가 점검: 등록 전에 경쟁 판매가를 웹에서 조사해 우리 가격을 판단한다.
+ *
+ * 원가 기반 가격(Pricing.gs)은 "얼마 이상 받아야 남는가"만 알려준다.
+ * 시장가는 "얼마까지 받을 수 있는가"를 알려준다. 둘을 같이 봐야 한다.
+ *  - 우리 가격이 시장 최저가보다 한참 싸면 → 이익을 버리고 있는 것 → 시장가 근처로 올린다(선택).
+ *  - 우리 가격이 시장 최고가보다 한참 비싸면 → 안 팔릴 가능성 → '비쌈'으로 표시해 사람이 판단.
+ */
+
+const MARKET_PRICE_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    markets: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          market: { type: 'STRING' },
+          low: { type: 'NUMBER' },
+          high: { type: 'NUMBER' },
+          currency: { type: 'STRING' },
+        },
+        required: ['market', 'low', 'high', 'currency'],
+      },
+    },
+  },
+  required: ['markets'],
+};
+
+function checkMarketPrices_(product, markets, prices, autoRaise) {
+  const where = markets.map(m => `${m.code} (${m.platform === 'qoo10' ? 'Qoo10 Japan' : 'Shopee ' + m.code}, ${m.currency})`).join(', ');
+  const notes = gemini_(`Find current selling prices for this Korean product (or the closest equivalent:
+same type, size and brand tier) on these marketplaces: ${where}.
+Product: ${product.name}
+Specs: ${product.notes || '-'}
+For each marketplace give the typical low and high price in local currency, from real listings.
+If you find nothing reliable for a marketplace, say so.`, { search: true });
+
+  const data = gemini_('Extract the price ranges from these notes into the schema. ' +
+    'Only include marketplaces with real prices found; use market codes ' + markets.map(m => m.code).join(',') +
+    '.\n\n' + notes, { schema: MARKET_PRICE_SCHEMA });
+
+  const summary = [];
+  const verdict = [];
+  (data.markets || []).forEach(r => {
+    const m = markets.find(x => x.code === r.market);
+    const p = prices[r.market];
+    if (!m || !p || !(r.low > 0) || !(r.high >= r.low)) return;
+    summary.push(`${m.code} ${r.low}~${r.high}${m.currency}`);
+    verdict.push(`${m.code} ${judgePrice_(m, p, r.low, r.high, autoRaise)}`);
+  });
+  return {
+    summary: summary.join(' / ') || '시장가 못 찾음',
+    verdict: verdict.join(', '),
+  };
+}
+
+/** 가격 판단. autoRaise 이면 너무 싼 가격을 시장 최저가의 95% 로 올리고 이익을 다시 계산한다 */
+function judgePrice_(market, p, low, high, autoRaise) {
+  if (p.price > high * 1.15) return `비쌈(우리 ${p.price})`;
+  if (p.price < low * 0.85) {
+    if (!autoRaise) return `쌈(우리 ${p.price}, 인상 여지)`;
+    const before = p.price;
+    reprice_(market, p, roundUp_(low * 0.95, market.priceStep));
+    return `쌈→인상 ${before}→${p.price}`;
+  }
+  return '적정';
+}
+
+/** 판매가를 바꾸고 수수료·이익·이익률을 다시 계산 (원가는 그대로) */
+function reprice_(market, p, newPrice) {
+  const feeRate = market.commission + market.transactionFee + market.serviceFee;
+  const revenue = newPrice * p.fx;
+  p.price = newPrice;
+  p.feesKrw = Math.round(revenue * feeRate);
+  p.profitKrw = Math.round(revenue - p.feesKrw - p.costKrw);
+  p.marginRate = Math.round((p.profitKrw / revenue) * 10000) / 10000;
+  return p;
+}
+
 // ═════════════ Listing.gs ═════════════
 /**
  * 상품 등록: 상품 시트의 '대기' 행을 하루 N개까지 처리한다.
@@ -436,23 +664,27 @@ function gemini_(prompt, opts) {
  * Apps Script 는 실행 1회당 6분 제한이 있어 30개를 한 번에 못 한다.
  * 그래서 1시간마다 몇 개씩(회당처리수) 나눠 처리하고, 오늘 처리 수가 하루등록수에 닿으면 멈춘다.
  *
- * verified=FALSE 이면 업로드 없이 '미리보기'(가격 + AI 상품글)만 채운다.
+ * 쇼피는 verified, 큐텐은 큐텐verified 를 체크해야 실제로 올라간다.
+ * 둘 다 꺼져 있으면 업로드 없이 '미리보기'(가격 + 시장가 점검 + AI 상품글)만 채운다.
  */
 
 const LANGUAGE_NAMES = {
   en: 'English', th: 'Thai', vi: 'Vietnamese', 'zh-Hant': 'Traditional Chinese (Taiwan)',
-  'pt-BR': 'Brazilian Portuguese', id: 'Indonesian', ms: 'Malay',
+  'pt-BR': 'Brazilian Portuguese', id: 'Indonesian', ms: 'Malay', ja: 'Japanese',
 };
 const TITLE_MAX = 120;
 const RUN_BUDGET_MS = 4.5 * 60 * 1000;
 
-const LISTING_SYSTEM = `You write product listings for a Korean cross-border seller on Shopee.
+const LISTING_SYSTEM = `You write product listings for a Korean cross-border seller on Shopee and Qoo10 Japan.
 The seller buys from Korean suppliers after each order, so never promise same-day shipping.
 For each requested market, write in that market's language:
 - title: lead with words buyers search, include "Korea"/"Korean" when it helps, key spec
   (size, volume, count). No ALL CAPS, no emoji spam, no other brands' names unless it is that brand's genuine product.
 - description: benefit-first intro, then specs, contents, how to use, and that it ships from Korea. Plain text.
 - keywords: 5-10 search keywords buyers in that market use.
+- highlights: 3-5 short selling points (one line each) for the product detail page.
+For JP (Qoo10 Japan): natural, polite Japanese like top Qoo10 beauty listings; put 【韓国コスメ】-style tags
+and the product type/volume in the title; mention 韓国から発送.
 Judge selling risk:
 - "block": counterfeit/brand-infringement risk, medicine, weapons, adult items, Shopee-prohibited items.
 - "caution": cosmetics/food/supplements (registration rules vary), batteries/liquids/aerosols, licensed characters, fragile.
@@ -473,8 +705,9 @@ const LISTING_SCHEMA = {
           title: { type: 'STRING' },
           description: { type: 'STRING' },
           keywords: { type: 'ARRAY', items: { type: 'STRING' } },
+          highlights: { type: 'ARRAY', items: { type: 'STRING' } },
         },
-        required: ['market', 'title', 'description', 'keywords'],
+        required: ['market', 'title', 'description', 'keywords', 'highlights'],
       },
     },
   },
@@ -485,7 +718,6 @@ function listingJob() {
   withLock_('상품등록', () => {
     const started = Date.now();
     const s = settings_();
-    const live = s['verified'] === true;
     const daily = Number(s['하루등록수'] || 30);
     const perRun = Number(s['회당처리수'] || 5);
 
@@ -501,7 +733,7 @@ function listingJob() {
     rows.filter(r => r['상태'] === '대기').slice(0, quota).forEach(r => {
       if (Date.now() - started > RUN_BUDGET_MS) return;
       try {
-        processProduct_(r, markets, fx, pricing, s, live);
+        processProduct_(r, markets, fx, pricing, s);
       } catch (e) {
         updateRow_(SHEETS.PRODUCTS, r._row, { '상태': '오류', '오류': String(e.message || e).slice(0, 500) });
         log_('상품등록', `${r['SKU']} 실패: ${e.message || e}`);
@@ -514,7 +746,7 @@ function formatDay_(v) {
   return v instanceof Date ? Utilities.formatDate(v, 'Asia/Seoul', 'yyyy-MM-dd') : String(v).slice(0, 10);
 }
 
-function processProduct_(r, markets, fx, pricing, s, live) {
+function processProduct_(r, markets, fx, pricing, s) {
   const product = {
     sku: r['SKU'] || `KR-${r._row}-${Date.now() % 100000}`,
     name: r['상품명'],
@@ -525,6 +757,7 @@ function processProduct_(r, markets, fx, pricing, s, live) {
     notes: r['메모'] || '',
     sourceUrl: r['소싱URL'] || '',
     dims: [r['가로(cm)'], r['세로(cm)'], r['높이(cm)']].map(v => Math.max(1, Math.round(Number(v) || 10))),
+    qoo10Category: r['큐텐카테고리'] || '',
   };
   if (!product.name || !product.cost) throw new Error('상품명과 원가는 필수입니다');
 
@@ -532,6 +765,16 @@ function processProduct_(r, markets, fx, pricing, s, live) {
   markets.forEach(m => {
     prices[m.code] = calcPrice_(m, pricing, fx[m.code], product.cost, product.domesticShip, product.weight);
   });
+
+  // 시장가 점검: 경쟁 판매가를 웹에서 조사해 너무 싸면 올리고, 너무 비싸면 표시
+  let market = { summary: '', verdict: '' };
+  if (s['시장가조사'] === true) {
+    try {
+      market = checkMarketPrices_(product, markets, prices, s['저가면자동인상'] === true);
+    } catch (e) {
+      market.summary = '조사 실패: ' + (e.message || e);
+    }
+  }
 
   const draft = writeListing_(product, markets);
   const priceText = markets.map(m => `${m.code} ${prices[m.code].price}${m.currency}(이익 ${prices[m.code].profitKrw}원)`).join(' / ');
@@ -543,18 +786,38 @@ function processProduct_(r, markets, fx, pricing, s, live) {
     'AI결과': JSON.stringify(draft).slice(0, 45000),
     '등록일': today_(),
     '오류': '',
+    '시장가': market.summary,
+    '가격판단': market.verdict,
   };
 
   const allowCaution = s['주의상품업로드'] === true;
   if (draft.risk_level === 'block' || (draft.risk_level === 'caution' && !allowCaution)) {
     update['상태'] = '건너뜀';
-  } else if (!live) {
-    update['상태'] = '미리보기';
   } else {
-    const result = uploadToShopee_(product, draft, prices, markets, s);
-    update['상태'] = '등록완료';
-    update['global_item_id'] = result.globalItemId;
-    update['메모'] = [product.notes, `게시: ${result.regions.join(',')}`].filter(Boolean).join(' / ');
+    const shopeeTargets = markets.filter(m => m.platform === 'shopee');
+    const jp = markets.find(m => m.platform === 'qoo10');
+    const jpCopy = draft.markets.find(c => c.market === (jp && jp.code));
+    const shopeeLive = s['verified'] === true && shopeeTargets.length > 0;
+    const qoo10Live = s['큐텐verified'] === true && jp && jpCopy && qoo10Enabled_();
+    const posted = [];
+    const errors = [];
+    if (shopeeLive) {
+      try {
+        const result = uploadToShopee_(product, draft, prices, shopeeTargets, s);
+        update['global_item_id'] = result.globalItemId;
+        posted.push(...result.regions);
+      } catch (e) { errors.push('쇼피: ' + (e.message || e)); }
+    }
+    if (qoo10Live) {
+      try {
+        update['큐텐상품번호'] = uploadToQoo10_(product, jpCopy, prices[jp.code], s);
+        posted.push('Qoo10JP');
+      } catch (e) { errors.push('큐텐: ' + (e.message || e)); }
+    }
+    if (!shopeeLive && !qoo10Live) update['상태'] = '미리보기';
+    else update['상태'] = posted.length ? '등록완료' : '오류';
+    if (posted.length) update['메모'] = [product.notes, `게시: ${posted.join(',')}`].filter(Boolean).join(' / ');
+    if (errors.length) update['오류'] = errors.join(' | ').slice(0, 500);
   }
   updateRow_(SHEETS.PRODUCTS, r._row, update);
   log_('상품등록', `${product.sku} → ${update['상태']} (${draft.risk_level})`);
@@ -629,7 +892,7 @@ function uploadToShopee_(product, draft, prices, markets, s) {
 
 // ═════════════ Orders.gs ═════════════
 /**
- * 주문 확인 → 발주 목록 작성 → 알림 (30분마다)
+ * 주문 확인(쇼피 + 큐텐) → 발주 목록 작성 → 알림 (30분마다)
  *
  * 국내 도매처 결제는 자동으로 하지 않는다. 돈이 나가는 마지막 버튼은 사람이 누른다.
  * 대신 "어디서 · 무엇을 · 몇 개 · 얼마에" 사야 하는지 발주 목록과 메일로 바로 정리해 준다.
@@ -645,7 +908,7 @@ function ordersJob() {
     const now = Math.floor(Date.now() / 1000);
     const newLines = [];
 
-    markets_().filter(m => m.shopId).forEach(m => {
+    shopeeMarkets_().filter(m => m.shopId).forEach(m => {
       const list = shopee_('/api/v2/order/get_order_list', {
         shopId: m.shopId,
         params: {
@@ -679,6 +942,8 @@ function ordersJob() {
               '소싱URL': p['소싱URL'] || '',
               '예상원가(원)': p['원가(원)'] ? Number(p['원가(원)']) * qty : '',
               '발주상태': '미발주',
+              '플랫폼': 'shopee',
+              'shop_id': m.shopId,
             };
             appendRow_(SHEETS.ORDERS, line);
             newLines.push(line);
@@ -686,6 +951,30 @@ function ordersJob() {
         });
       }
     });
+
+    // 큐텐 재팬 주문
+    const jp = markets_().find(m => m.platform === 'qoo10');
+    if (jp && qoo10Enabled_()) {
+      try {
+        qoo10NewOrders_().forEach(o => {
+          const key = `${o.orderNo}|${o.sku}`;
+          if (known[key]) return;
+          known[key] = true;
+          const p = products[o.sku] || {};
+          const line = {
+            '주문번호': o.orderNo, '국가': 'JP', '주문시각': toDate_(o.orderDate) || new Date(),
+            '발송기한': toDate_(o.shipBy) || '', 'SKU': o.sku, '상품명': o.title,
+            '수량': o.qty, '판매가': `${o.price} JPY`, '소싱URL': p['소싱URL'] || '',
+            '예상원가(원)': p['원가(원)'] ? Number(p['원가(원)']) * o.qty : '',
+            '발주상태': '미발주', '플랫폼': 'qoo10',
+          };
+          appendRow_(SHEETS.ORDERS, line);
+          newLines.push(line);
+        });
+      } catch (e) {
+        log_('주문확인', '큐텐 주문 조회 실패: ' + (e.message || e));
+      }
+    }
 
     if (newLines.length) {
       const body = newLines.map(l =>
@@ -700,6 +989,13 @@ function ordersJob() {
   });
 }
 
+/** 문자열 날짜를 Date 로. 해석 못 하면 null (잘못된 날짜로 메일 작성이 깨지지 않게) */
+function toDate_(v) {
+  if (!v) return null;
+  const d = v instanceof Date ? v : new Date(String(v).replace(' ', 'T'));
+  return isNaN(d.getTime()) ? null : d;
+}
+
 /** 발송기한 24시간 안쪽인데 아직 미발주인 건은 다시 알림 (하루 한 번) */
 function remindUnordered_() {
   const cache = CacheService.getScriptCache();
@@ -711,6 +1007,80 @@ function remindUnordered_() {
   notify_(`⚠️ 발송기한 임박 미발주 ${late.length}건`,
     late.map(o => `• ${o['상품명']} × ${o['수량']} (주문 ${o['주문번호']}) ${o['소싱URL']}`).join('\n'));
   cache.put('remind_sent', '1', 6 * 3600);
+}
+
+// ═════════════ Shipping.gs ═════════════
+/**
+ * 발송 처리 (1시간마다): 주문 시트에서 발주상태가 '발송준비'인 줄을 플랫폼에 발송 등록한다.
+ *
+ * 사람(또는 태인 창고)이 하는 일: 물건 받기 → 포장 → 발주상태를 '발송준비'로 바꾸기
+ *   (큐텐은 택배사·국제송장 칸도 채우기)
+ * 프로그램이 하는 일:
+ *   - 쇼피: 발송 요청(ship_order) → 쇼피 물류(SLS) 송장번호 받아 시트에 기록
+ *   - 큐텐: 입력된 송장번호를 큐텐에 등록(발송 처리)
+ * 실물 포장·운송은 코드로 대신할 수 없다. 그 부분은 창고(3PL)에 맡기면 시트 입력만 남는다.
+ */
+
+function shippingJob() {
+  withLock_('발송처리', () => {
+    // '완료'가 아닌 발송준비 줄은 매번 다시 시도 (예: 송장을 나중에 입력한 큐텐 주문)
+    const rows = readTable_(SHEETS.ORDERS).filter(o => o['발주상태'] === '발송준비' && o['발송처리'] !== '완료');
+    const done = [];
+    const problems = [];
+
+    rows.forEach(o => {
+      try {
+        const result = String(o['플랫폼'] || 'shopee') === 'qoo10' ? shipQoo10_(o) : shipShopee_(o);
+        updateRow_(SHEETS.ORDERS, o._row, result);
+        if (result['발주상태'] === '발송완료') done.push(`${o['국가']} ${o['주문번호']}`);
+        // 같은 문제로 매시간 메일이 오지 않게, 상태가 새로 바뀌었을 때만 알림
+        else if (result['발송처리'] !== 'SLS송장대기' && result['발송처리'] !== o['발송처리']) {
+          problems.push(`${o['주문번호']}: ${result['발송처리']}`);
+        }
+      } catch (e) {
+        const msg = '오류: ' + String(e.message || e).slice(0, 200);
+        updateRow_(SHEETS.ORDERS, o._row, { '발송처리': msg });
+        if (msg !== o['발송처리']) problems.push(`${o['주문번호']}: ${e.message || e}`);
+      }
+    });
+
+    if (done.length) log_('발송처리', `발송 완료 ${done.length}건: ${done.join(', ')}`);
+    if (problems.length) notify_(`발송 처리 확인 필요 ${problems.length}건`, problems.join('\n'));
+  });
+}
+
+function shipShopee_(o) {
+  const shopId = Number(o['shop_id']) || null;
+  const sn = String(o['주문번호']);
+
+  if (o['발송처리'] !== 'SLS송장대기') {
+    const param = shopee_('/api/v2/logistics/get_shipping_parameter', { shopId: shopId, params: { order_sn: sn } });
+    const need = param.info_needed || {};
+    const body = { order_sn: sn };
+    if (need.dropoff !== undefined) {
+      body.dropoff = {};
+    } else if (need.pickup !== undefined) {
+      const addr = ((param.pickup || {}).address_list || [])[0];
+      const slot = addr && (addr.time_slot_list || [])[0];
+      if (!addr || !slot) return { '발송처리': '픽업 주소/시간 없음 — 셀러센터 확인' };
+      body.pickup = { address_id: addr.address_id, pickup_time_id: slot.pickup_time_id };
+    }
+    shopee_('/api/v2/logistics/ship_order', { shopId: shopId, method: 'post', body: body });
+  }
+
+  // 송장번호는 발송 요청 직후 바로 안 나올 수 있다 → 다음 실행에서 다시 조회
+  const tr = shopee_('/api/v2/logistics/get_tracking_number', { shopId: shopId, params: { order_sn: sn } });
+  if (!tr.tracking_number) return { '발송처리': 'SLS송장대기' };
+  return {
+    '국제송장': tr.tracking_number, '택배사': 'Shopee SLS', '발송처리': '완료',
+    '발주상태': '발송완료', '메모': [o['메모'], '송장 라벨은 셀러센터에서 출력'].filter(Boolean).join(' / '),
+  };
+}
+
+function shipQoo10_(o) {
+  if (!o['택배사'] || !o['국제송장']) return { '발송처리': '택배사·국제송장 입력 필요' };
+  qoo10SendTracking_(String(o['주문번호']), String(o['택배사']), String(o['국제송장']));
+  return { '발송처리': '완료', '발주상태': '발송완료' };
 }
 
 // ═════════════ Chat.gs ═════════════
@@ -746,7 +1116,7 @@ function chatJob() {
     readTable_(SHEETS.CHATS).forEach(c => { handled[String(c['메시지ID'])] = true; });
     const escalations = [];
 
-    markets_().filter(m => m.shopId).forEach(m => {
+    shopeeMarkets_().filter(m => m.shopId).forEach(m => {
       let convs;
       try {
         convs = shopee_('/api/v2/sellerchat/get_conversation_list', {
@@ -785,6 +1155,15 @@ function chatJob() {
       });
     });
 
+    // 큐텐 재팬 고객 문의 (API 이름이 확인되어 QOO10_METHODS 에 들어간 경우에만)
+    if (QOO10_METHODS.inquiries && qoo10Enabled_()) {
+      try {
+        qoo10Inquiries_(s, autoSend, handled, escalations);
+      } catch (e) {
+        log_('채팅응대', '큐텐 문의 조회 실패: ' + (e.message || e));
+      }
+    }
+
     if (escalations.length) {
       notify_(`고객 문의 ${escalations.length}건 확인 필요`,
         escalations.join('\n\n') + '\n\n쇼피 셀러센터 채팅에서 직접 답변해 주세요.');
@@ -793,7 +1172,7 @@ function chatJob() {
 }
 
 function chatSystem_(s) {
-  return `You are the customer service assistant of a Korean seller on Shopee.
+  return `You are the customer service assistant of a Korean seller on Shopee and Qoo10 Japan.
 Reply in the buyer's language, short and polite, as the shop.
 Shop facts (do not invent anything beyond these):
 - Items are sourced in Korea after the order and shipped from Korea via Shopee's logistics.
@@ -804,6 +1183,29 @@ Rules:
   will check and reply soon, and classify as cancel_refund / complaint / price.
 - If product details are not known, say you will check with the seller (category other).
 Write summary_ko in Korean for the shop owner.`;
+}
+
+function qoo10Inquiries_(s, autoSend, handled, escalations) {
+  const pick = (o, names) => { for (const n of names) if (o[n] !== undefined && o[n] !== '') return o[n]; return ''; };
+  [].concat(qoo10_(QOO10_METHODS.inquiries, {}) || []).forEach(q => {
+    const id = 'Q10-' + pick(q, ['QnaNo', 'qnaNo', 'InquiryNo', 'seq']);
+    const text = pick(q, ['Question', 'question', 'Contents', 'contents']);
+    if (!text || handled[id]) return;
+    handled[id] = true;
+    const ai = gemini_(`Market: JP (Qoo10 Japan)\nBuyer message:\n${text}`, { system: chatSystem_(s), schema: CHAT_SCHEMA });
+    const safe = AUTO_REPLY_CATEGORIES.indexOf(ai.category) >= 0;
+    let status = '사람확인필요';
+    if (safe && autoSend && QOO10_METHODS.answerInquiry) {
+      qoo10_(QOO10_METHODS.answerInquiry, { QnaNo: id.slice(4), Answer: ai.reply });
+      status = '자동답변';
+    } else {
+      escalations.push(`• [JP 큐텐] ${ai.summary_ko}\n  고객: ${text}\n  답변초안: ${ai.reply}`);
+    }
+    appendRow_(SHEETS.CHATS, {
+      '시각': new Date(), '국가': 'JP', '대화ID': id, '메시지ID': id, '고객': pick(q, ['BuyerName', 'buyer']),
+      '고객메시지': text, '분류': ai.category, '요약': ai.summary_ko, 'AI답변': ai.reply, '처리': status,
+    });
+  });
 }
 
 // ═════════════ Demand.gs ═════════════
@@ -843,10 +1245,10 @@ function demandJob() {
   withLock_('수요조사', () => {
     const s = settings_();
     const codes = markets_().map(m => m.code).join(', ');
-    const notes = gemini_(`You research demand for a Korean seller on Shopee (cross-border, buys from Korean
+    const notes = gemini_(`You research demand for a Korean seller on Shopee and Qoo10 Japan (market code JP) (cross-border, buys from Korean
 wholesalers after each order). Markets: ${codes}. Focus: ${s['관심카테고리'] || 'any category with good margin and light weight'}.
 Search for recent (last 6 months) evidence of Korean products selling well in these Shopee markets:
-Shopee bestseller/trending pages, campaign news, K-beauty/K-food/K-lifestyle trend articles, TikTok viral items.
+Shopee bestseller/trending pages, Qoo10 Japan rankings and Mega Wari results, campaign news, K-beauty/K-food/K-lifestyle trend articles, TikTok viral items.
 List 20 concrete products (specific, not just "skincare"): markets, why (with source URLs), typical local price,
 a Korean search keyword to find it on Korean wholesale sites, and risks (brand IP, cosmetics/food registration,
 batteries/liquids, heavy weight). Skip counterfeit-prone or restricted items. Today: ${today_()}.`,
@@ -972,6 +1374,7 @@ const SUMMARY_SHEET = '요약';
 const RUN_BUTTONS = {
   '▶ 상품 등록': 'listingJob',
   '▶ 주문 확인': 'ordersJob',
+  '▶ 발송 처리': 'shippingJob',
   '▶ 채팅 응대': 'chatJob',
   '▶ 상품 소싱': 'sourcingJob',
   '▶ 수요 조사': 'demandJob',
@@ -1031,7 +1434,7 @@ function handleEdit(e) {
  */
 
 function onOpen() {
-  SpreadsheetApp.getUi().createMenu('🛒 쇼피')
+  SpreadsheetApp.getUi().createMenu('🛒 쇼피·큐텐')
     .addItem('① 초기 설정 (시트 만들기)', 'setupSheets')
     .addItem('② 쇼피 인증하기', 'showAuthUrl')
     .addItem('③ 연결된 샵 불러오기', 'loadShops')
@@ -1043,6 +1446,7 @@ function onOpen() {
     .addItem('지금 실행: 상품 소싱', 'sourcingJob')
     .addItem('지금 실행: 상품 등록', 'listingJob')
     .addItem('지금 실행: 주문 확인', 'ordersJob')
+    .addItem('지금 실행: 발송 처리', 'shippingJob')
     .addItem('지금 실행: 채팅 응대', 'chatJob')
     .addToUi();
 }
@@ -1051,31 +1455,39 @@ function onOpen() {
 function sheetHeaders_() {
   return {
   [SHEETS.PRODUCTS]: ['SKU', '상태', '상품명', '원가(원)', '국내배송비(원)', '무게(g)', '가로(cm)', '세로(cm)', '높이(cm)',
-    '이미지URL', '소싱URL', '메모', '위험도', '위험사유', '판매가', 'AI결과', 'global_item_id', '등록일', '오류'],
+    '이미지URL', '소싱URL', '메모', '위험도', '위험사유', '판매가', 'AI결과', 'global_item_id', '등록일', '오류',
+    '큐텐카테고리', '큐텐상품번호', '시장가', '가격판단'],
   [SHEETS.ORDERS]: ['주문번호', '국가', '주문시각', '발송기한', 'SKU', '상품명', '수량', '판매가', '소싱URL',
-    '예상원가(원)', '발주상태', '국내송장', '메모'],
+    '예상원가(원)', '발주상태', '국내송장', '메모', '플랫폼', 'shop_id', '택배사', '국제송장', '발송처리'],
   [SHEETS.CHATS]: ['시각', '국가', '대화ID', '메시지ID', '고객', '고객메시지', '분류', '요약', 'AI답변', '처리'],
   [SHEETS.DEMAND]: ['날짜', '점수', '상품', '검색어', '국가', '수요근거', '가격대', '리스크', '출처'],
   [SHEETS.LOG]: ['시각', '작업', '내용'],
   [SHEETS.MARKETS]: ['국가', '사용', '통화', '언어', '가격단위', '판매수수료율', '결제수수료율', '서비스수수료율',
-    '기본배송비(원)', '100g당배송비(원)', '환율대체값', 'shop_id'],
+    '기본배송비(원)', '100g당배송비(원)', '환율대체값', 'shop_id', '플랫폼'],
   };
 }
 
 // 수수료·배송비는 예시값 — 쇼피코리아 요율표로 바꾼 뒤 설정의 verified 를 체크
 const DEFAULT_MARKETS = [
-  ['SG', true, 'SGD', 'en', 0.1, 0.10, 0.03, 0, 3000, 700, 1050, ''],
-  ['MY', true, 'MYR', 'en', 0.1, 0.10, 0.03, 0, 3000, 700, 320, ''],
-  ['PH', true, 'PHP', 'en', 1, 0.10, 0.03, 0, 3000, 700, 24, ''],
-  ['TH', true, 'THB', 'th', 1, 0.10, 0.03, 0, 3000, 700, 41, ''],
-  ['VN', true, 'VND', 'vi', 1000, 0.10, 0.03, 0, 3000, 700, 0.055, ''],
-  ['TW', true, 'TWD', 'zh-Hant', 1, 0.10, 0.03, 0, 3000, 700, 43, ''],
-  ['BR', true, 'BRL', 'pt-BR', 0.1, 0.14, 0.03, 0, 5000, 1200, 250, ''],
-  ['ID', false, 'IDR', 'id', 100, 0.10, 0.03, 0, 3000, 700, 0.085, ''],
+  ['SG', true, 'SGD', 'en', 0.1, 0.10, 0.03, 0, 3000, 700, 1050, '', 'shopee'],
+  ['MY', true, 'MYR', 'en', 0.1, 0.10, 0.03, 0, 3000, 700, 320, '', 'shopee'],
+  ['PH', true, 'PHP', 'en', 1, 0.10, 0.03, 0, 3000, 700, 24, '', 'shopee'],
+  ['TH', true, 'THB', 'th', 1, 0.10, 0.03, 0, 3000, 700, 41, '', 'shopee'],
+  ['VN', true, 'VND', 'vi', 1000, 0.10, 0.03, 0, 3000, 700, 0.055, '', 'shopee'],
+  ['TW', true, 'TWD', 'zh-Hant', 1, 0.10, 0.03, 0, 3000, 700, 43, '', 'shopee'],
+  ['BR', true, 'BRL', 'pt-BR', 0.1, 0.14, 0.03, 0, 5000, 1200, 250, '', 'shopee'],
+  ['ID', false, 'IDR', 'id', 100, 0.10, 0.03, 0, 3000, 700, 0.085, '', 'shopee'],
+  // 큐텐 재팬: 판매수수료 6~10%(결제 포함, 카테고리별). 배송비는 한국→일본 소형 소포 예시값
+  ['JP', true, 'JPY', 'ja', 10, 0.10, 0, 0, 4000, 500, 9.3, '', 'qoo10'],
 ];
 
 const DEFAULT_SETTINGS = [
-  ['verified', false, '체크해야 실제 업로드. 국가 시트의 수수료·배송비를 실제 요율로 바꾼 뒤 체크'],
+  ['verified', false, '체크해야 쇼피 실제 업로드. 국가 시트의 수수료·배송비를 실제 요율로 바꾼 뒤 체크'],
+  ['큐텐verified', false, '체크해야 큐텐 실제 업로드. 큐텐 API 키 연결 + 1개 테스트 후 체크'],
+  ['큐텐기본카테고리', '', '큐텐 카테고리 코드 (상품 시트 큐텐카테고리 칸이 비면 사용)'],
+  ['큐텐배송코드', '', '큐텐 QSM 에서 만든 배송비 정책 번호(ShippingNo)'],
+  ['시장가조사', true, '등록 전 AI가 웹에서 경쟁 판매가를 조사해 가격을 점검'],
+  ['저가면자동인상', true, '시장가보다 많이 싸면 시장 최저가 근처까지 자동 인상 (이익 증가)'],
   ['하루등록수', 30, '하루 최대 처리 상품 수'],
   ['회당처리수', 5, '1시간마다 처리할 개수 (실행 1회 6분 제한 때문)'],
   ['목표마진율', 0.2, '판매가 대비 이익률'],
@@ -1105,17 +1517,17 @@ function setupSheets() {
     const sh = book.insertSheet(SHEETS.SETTINGS);
     sh.getRange(1, 1, 1, 3).setValues([['항목', '값', '설명']]);
     sh.getRange(2, 1, DEFAULT_SETTINGS.length, 3).setValues(DEFAULT_SETTINGS);
-    ['verified', '예약판매', '주의상품업로드', '채팅자동답변', '키워드자동갱신'].forEach(k => {
-      const row = DEFAULT_SETTINGS.findIndex(r => r[0] === k) + 2;
-      sh.getRange(row, 2).insertCheckboxes();
-      sh.getRange(row, 2).setValue(DEFAULT_SETTINGS[row - 2][1]);
+    DEFAULT_SETTINGS.forEach((r, i) => {
+      if (typeof r[1] !== 'boolean') return;
+      sh.getRange(i + 2, 2).insertCheckboxes();
+      sh.getRange(i + 2, 2).setValue(r[1]);
     });
     styleHeader_(sh);
   }
 
   const SHEET_HEADERS = sheetHeaders_();
   Object.keys(SHEET_HEADERS).forEach(name => {
-    if (book.getSheetByName(name)) return;
+    if (book.getSheetByName(name)) return addMissingHeaders_(book.getSheetByName(name), SHEET_HEADERS[name]);
     const sh = book.insertSheet(name);
     sh.getRange(1, 1, 1, SHEET_HEADERS[name].length).setValues([SHEET_HEADERS[name]]);
     styleHeader_(sh);
@@ -1130,7 +1542,7 @@ function setupSheets() {
     }
     if (name === SHEETS.ORDERS) {
       sh.getRange('K2:K').setDataValidation(SpreadsheetApp.newDataValidation()
-        .requireValueInList(['미발주', '발주완료', '발송완료', '취소'], true).build());
+        .requireValueInList(['미발주', '발주완료', '발송준비', '발송완료', '취소'], true).build());
     }
   });
 
@@ -1140,6 +1552,26 @@ function setupSheets() {
   const def = book.getSheetByName('시트1') || book.getSheetByName('Sheet1');
   if (def && book.getSheets().length > 1 && def.getLastRow() === 0) book.deleteSheet(def);
   SpreadsheetApp.getActive().toast('시트 준비 완료. 확장 프로그램 > Apps Script > 프로젝트 설정 에서 스크립트 속성을 넣어 주세요.');
+}
+
+/** 코드 업데이트로 새 열이 생기면 기존 시트 오른쪽 끝에 덧붙인다 (기존 열 위치는 그대로) */
+function addMissingHeaders_(sh, headers) {
+  const have = sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 1)).getValues()[0];
+  headers.filter(h => have.indexOf(h) < 0).forEach(h => {
+    sh.getRange(1, sh.getLastColumn() + 1).setValue(h);
+  });
+  if (sh.getName() === SHEETS.MARKETS) {
+    const codes = sh.getRange(1, 1, sh.getLastRow(), 1).getValues().flat();
+    const platformCol = headers_(SHEETS.MARKETS).indexOf('플랫폼') + 1;
+    DEFAULT_MARKETS.filter(m => codes.indexOf(m[0]) < 0).forEach(m => {
+      sh.appendRow(m);
+      sh.getRange(sh.getLastRow(), 2).insertCheckboxes().setValue(m[1]);
+    });
+    // 예전 행에 플랫폼이 비어 있으면 shopee 로 채움
+    for (let r = 2; r <= sh.getLastRow(); r++) {
+      if (!sh.getRange(r, platformCol).getValue()) sh.getRange(r, platformCol).setValue('shopee');
+    }
+  }
 }
 
 /** 코드 업데이트로 새 설정 항목이 생기면 기존 시트 아래에 덧붙인다 */
@@ -1160,13 +1592,14 @@ function styleHeader_(sh) {
   sh.getRange(1, 1, 1, sh.getLastColumn()).setFontWeight('bold').setBackground('#fde7d9');
 }
 
-const JOBS = ['listingJob', 'ordersJob', 'chatJob', 'sourcingJob', 'demandJob', 'handleEdit'];
+const JOBS = ['listingJob', 'ordersJob', 'shippingJob', 'chatJob', 'sourcingJob', 'demandJob', 'handleEdit'];
 
 function installTriggers() {
   removeTriggers();
   ScriptApp.newTrigger('listingJob').timeBased().everyHours(1).create();
   ScriptApp.newTrigger('ordersJob').timeBased().everyMinutes(30).create();
   ScriptApp.newTrigger('chatJob').timeBased().everyMinutes(30).create();
+  ScriptApp.newTrigger('shippingJob').timeBased().everyHours(1).create();
   ScriptApp.newTrigger('sourcingJob').timeBased().everyDays(1).atHour(7).create();
   ScriptApp.newTrigger('demandJob').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(6).create();
   ScriptApp.newTrigger('handleEdit').forSpreadsheet(book_()).onEdit().create(); // 모바일 실행 체크박스

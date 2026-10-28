@@ -77,7 +77,7 @@ function updateRow_(name, rowNum, obj) {
   });
 }
 
-/** 사용(체크)된 국가만 */
+/** 사용(체크)된 국가만. platform: 'shopee' | 'qoo10' */
 function markets_() {
   return readTable_(SHEETS.MARKETS)
     .filter(m => m['사용'] === true)
@@ -93,7 +93,12 @@ function markets_() {
       shipPer100g: Number(m['100g당배송비(원)']),
       fxFallback: Number(m['환율대체값']),
       shopId: m['shop_id'] ? Number(m['shop_id']) : null,
+      platform: String(m['플랫폼'] || 'shopee').toLowerCase(),
     }));
+}
+
+function shopeeMarkets_() {
+  return markets_().filter(m => m.platform === 'shopee');
 }
 
 function today_() {
@@ -112,7 +117,7 @@ function log_(job, message) {
 
 function notify_(subject, body) {
   const to = settings_()['알림이메일'] || Session.getEffectiveUser().getEmail();
-  if (to) MailApp.sendEmail(to, `[쇼피 자동화] ${subject}`, body);
+  if (to) MailApp.sendEmail(to, `[쇼피·큐텐 자동화] ${subject}`, body);
 }
 
 /** 트리거끼리 겹쳐 실행되지 않게 잠금 (토큰 갱신·행 업데이트 충돌 방지) */

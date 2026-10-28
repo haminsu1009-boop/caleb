@@ -86,6 +86,32 @@ const tests = {
   '실행 버튼은 모두 실제 함수를 가리킴': () => {
     Object.values(g('RUN_BUTTONS')).forEach(fn => assert.strictEqual(typeof sandbox[fn], 'function', fn));
   },
+  '큐텐 상세페이지 HTML: 이스케이프 + 발송일 + 이미지': () => {
+    const html = g(`qoo10DetailHtml_({description: 'a<b>\\n줄', highlights: ['保湿']}, ['https://x/1.jpg'], 3)`);
+    assert.ok(html.includes('a&lt;b&gt;<br>줄'), html);
+    assert.ok(html.includes('通常3営業日'));
+    assert.ok(html.includes('<img src="https://x/1.jpg"'));
+    assert.ok(html.includes('<li style="margin:6px 0">保湿</li>'));
+  },
+  '시장가보다 많이 싸면 자동 인상하고 이익 재계산': () => {
+    sandbox.__jp = { code: 'JP', currency: 'JPY', priceStep: 10, commission: 0.10, transactionFee: 0, serviceFee: 0, shipBase: 4000, shipPer100g: 500 };
+    sandbox.__p0 = g('calcPrice_(__jp, {marginRate: 0.2, minProfitKrw: 3000, fxBufferRate: 0}, 9.3, 9800, 0, 320)');
+    const before = sandbox.__p0.profitKrw;
+    const v = g('judgePrice_(__jp, __p0, __p0.price * 2, __p0.price * 3, true)');
+    assert.ok(v.startsWith('쌈→인상'), v);
+    assert.ok(sandbox.__p0.profitKrw > before);
+    assert.strictEqual(sandbox.__p0.price % 10, 0);
+  },
+  '시장가보다 많이 비싸면 비쌈 표시, 가격은 그대로': () => {
+    sandbox.__p1 = g('calcPrice_(__jp, {marginRate: 0.2, minProfitKrw: 3000, fxBufferRate: 0}, 9.3, 9800, 0, 320)');
+    const price = sandbox.__p1.price;
+    assert.ok(g('judgePrice_(__jp, __p1, 100, 200, true)').startsWith('비쌈'));
+    assert.strictEqual(sandbox.__p1.price, price);
+  },
+  '큐텐 날짜 파싱 실패해도 null': () => {
+    assert.strictEqual(g("toDate_('잘못된날짜')"), null);
+    assert.ok(g("toDate_('2026-10-28 10:00:00').getTime()") > 0);
+  },
 };
 
 let failed = 0;
