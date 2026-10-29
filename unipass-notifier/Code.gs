@@ -384,7 +384,6 @@ function checkBL_(chatId, blNo, forceNotify) {
   if (!records || records.length === 0) return;
 
   var latest = pickLatest_(records);
-  Logger.log('[DEBUG] ' + blNo + ' latest fields: ' + JSON.stringify(latest));
   var sl = summaryLine_(latest);
   var prevRaw = props.getProperty(stateKey);
   var prev = prevRaw ? JSON.parse(prevRaw) : null;
@@ -455,14 +454,13 @@ function summaryLine_(r) {
 }
 
 function getTerminalName_(r) {
-  // 유니패스 API 장치장 관련 필드명 후보
   var candidates = [
-    'lodgOrgNm',      // 장치기관명
-    'trmnNm',         // 터미널명
-    'cargMtTrmnNm',   // 화물 보관 터미널명
-    'mtTrmnNm',       // 보관 터미널명
-    'lodgPlcNm',      // 장치장명
-    'blSttsNm',       // BL 상태명
+    'shedNm',         // 장치장명 (확인된 필드)
+    'lodgOrgNm',
+    'trmnNm',
+    'cargMtTrmnNm',
+    'mtTrmnNm',
+    'lodgPlcNm',
     'trmnOprBsnNm',   // 터미널 운영 사업체명
   ];
   for (var i = 0; i < candidates.length; i++) {
