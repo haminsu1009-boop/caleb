@@ -395,7 +395,7 @@ select { cursor: pointer; }
 <body>
 
 <!-- Setup Screen -->
-<div id="setupScreen" class="setup-wrap" style="display:none;">
+<div id="setupScreen" class="setup-wrap">
   <div class="setup-box">
     <div class="logo">📦</div>
     <h2>유니패스 통관 알림</h2>
@@ -571,9 +571,9 @@ function init() {
   var invited = localStorage.getItem('invited') || '';
 
   if (userId && invited) {
+    document.getElementById('setupScreen').style.display = 'none';
     showMain();
   } else {
-    document.getElementById('setupScreen').style.display = 'flex';
     google.script.run
       .withSuccessHandler(function(url) { kakaoAuthUrl = url; })
       .getKakaoOAuthUrl();
