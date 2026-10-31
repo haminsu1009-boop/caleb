@@ -1,0 +1,26 @@
+{
+  "symbol": "SOLUSDT",
+  "interval": "4h",
+  "breakeven_wr": 40.0,
+  "tp": 0.02,
+  "sl": 0.01,
+  "net_tp": 0.018,
+  "net_sl": 0.012,
+  "oos_from": "2025-12-04 08:00:00",
+  "oos_to": "2026-10-25 20:00:00",
+  "oos_bars": 1954,
+  "long": {
+    "enabled": true,
+    "pct": 2.0,
+    "cut_score": 0.51827,
+    "wr": 43.36,
+    "wr_raw": 56.41,
+    "n": 39,
+    "wins": 22,
+    "ev_pct": 0.4923
+  },
+  "short": {
+    "enabled": false,
+    "reason": "손익분기 대비 우위 미검증"
+  }
+}
