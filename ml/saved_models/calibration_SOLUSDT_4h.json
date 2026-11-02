@@ -6,18 +6,18 @@
   "sl": 0.01,
   "net_tp": 0.018,
   "net_sl": 0.012,
-  "oos_from": "2025-12-04 08:00:00",
-  "oos_to": "2026-10-25 20:00:00",
-  "oos_bars": 1954,
+  "oos_from": "2025-12-10 04:00:00",
+  "oos_to": "2026-11-01 20:00:00",
+  "oos_bars": 1961,
   "long": {
     "enabled": true,
-    "pct": 2.0,
-    "cut_score": 0.51827,
-    "wr": 43.36,
-    "wr_raw": 56.41,
-    "n": 39,
-    "wins": 22,
-    "ev_pct": 0.4923
+    "pct": 1.0,
+    "cut_score": 0.568842,
+    "wr": 49.55,
+    "wr_raw": 68.42,
+    "n": 19,
+    "wins": 13,
+    "ev_pct": 0.8526
   },
   "short": {
     "enabled": false,
