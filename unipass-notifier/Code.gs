@@ -254,7 +254,7 @@ function addBL(chatId, blNo, interval) {
       var latest = pickLatest_(records);
       var sl = summaryLine_(latest);
       PropertiesService.getScriptProperties().setProperty('STATE_' + chatId + '_' + blNo, JSON.stringify({ summaryLine: sl }));
-      var msg = formatMessage_(blNo, true, null, latest);
+      var msg = formatMessage_(blNo, true, null, latest, records);
       var userData2 = getUserData_(chatId);
       var telegramId = userData2.telegramChatId || (isNaN(String(chatId).replace('-','')) ? null : chatId);
       if (telegramId) { try { sendTelegram_(telegramId, msg); } catch(e) {} }
@@ -390,7 +390,7 @@ function checkBL_(chatId, blNo, forceNotify) {
   var changed = !prev || prev.summaryLine !== sl;
 
   if (changed || forceNotify) {
-    var msg = formatMessage_(blNo, !prev && !forceNotify, forceNotify ? null : (prev ? prev.summaryLine : null), latest);
+    var msg = formatMessage_(blNo, !prev && !forceNotify, forceNotify ? null : (prev ? prev.summaryLine : null), latest, records);
     var data = getUserData_(chatId);
     var telegramId = data.telegramChatId || (isNaN(String(chatId).replace('-','')) ? null : chatId);
     if (telegramId) { try { sendTelegram_(telegramId, msg); } catch(e) {} }
@@ -453,28 +453,24 @@ function summaryLine_(r) {
   return parts.join(',');
 }
 
-function getTerminalName_(r) {
-  var candidates = [
-    'shedNm',         // 장치장명 (확인된 필드)
-    'lodgOrgNm',
-    'trmnNm',
-    'cargMtTrmnNm',
-    'mtTrmnNm',
-    'lodgPlcNm',
-    'trmnOprBsnNm',   // 터미널 운영 사업체명
-  ];
-  for (var i = 0; i < candidates.length; i++) {
-    if (r[candidates[i]]) return r[candidates[i]];
+function getTerminalName_(records) {
+  var candidates = ['shedNm', 'lodgOrgNm', 'trmnNm', 'cargMtTrmnNm', 'mtTrmnNm', 'lodgPlcNm', 'trmnOprBsnNm'];
+  // 전체 레코드를 역순으로 뒤져서 장치장명 반환
+  var pool = Array.isArray(records) ? records.slice().reverse() : [records];
+  for (var i = 0; i < pool.length; i++) {
+    for (var j = 0; j < candidates.length; j++) {
+      if (pool[i][candidates[j]]) return pool[i][candidates[j]];
+    }
   }
   return null;
 }
 
-function formatMessage_(blNo, isFirst, prevLine, latest) {
+function formatMessage_(blNo, isFirst, prevLine, latest, records) {
   var status = latest.cargTrcnRelaBsopTpcd || latest.csclPrgsStts || latest.prgsStts || latest.cargTrcnRsltNm || '-';
   var statusAt = formatDttm_(latest.prcsDttm || latest.cargTrcnPrcsDttm || latest.prcsDt);
   var checkedAt = Utilities.formatDate(new Date(), 'Asia/Seoul', 'MM월 dd일 HH시 mm분');
   var header = isFirst ? '📦 모니터링 시작' : (prevLine === null ? '📌 현재 상태' : '🔔 상태 변경!');
-  var terminal = getTerminalName_(latest);
+  var terminal = getTerminalName_(records || latest);
   var lines = ['<b>' + header + '</b>', '', '🚢 BL번호: <code>' + blNo + '</code>', '',
     '📌 현재 상태: <b>' + status + '</b>', '🕐 상태 발생: ' + statusAt];
   if (terminal) lines.push('🏭 장치장: ' + terminal);
