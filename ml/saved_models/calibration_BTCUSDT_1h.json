@@ -1,0 +1,26 @@
+{
+  "symbol": "BTCUSDT",
+  "interval": "1h",
+  "breakeven_wr": 50.0,
+  "tp": 0.01,
+  "sl": 0.006,
+  "net_tp": 0.008,
+  "net_sl": 0.008,
+  "oos_from": "2025-10-27 06:00:00",
+  "oos_to": "2026-11-01 23:00:00",
+  "oos_bars": 8898,
+  "long": {
+    "enabled": false,
+    "reason": "손익분기 대비 우위 미검증"
+  },
+  "short": {
+    "enabled": true,
+    "pct": 1.0,
+    "cut_score": 0.594051,
+    "wr": 61.94,
+    "wr_raw": 70.45,
+    "n": 88,
+    "wins": 62,
+    "ev_pct": 0.3273
+  }
+}
