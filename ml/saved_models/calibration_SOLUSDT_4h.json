@@ -6,18 +6,12 @@
   "sl": 0.01,
   "net_tp": 0.018,
   "net_sl": 0.012,
-  "oos_from": "2025-12-10 04:00:00",
-  "oos_to": "2026-11-01 20:00:00",
-  "oos_bars": 1961,
+  "oos_from": "2025-12-16 04:00:00",
+  "oos_to": "2026-11-08 20:00:00",
+  "oos_bars": 1967,
   "long": {
-    "enabled": true,
-    "pct": 1.0,
-    "cut_score": 0.568842,
-    "wr": 49.55,
-    "wr_raw": 68.42,
-    "n": 19,
-    "wins": 13,
-    "ev_pct": 0.8526
+    "enabled": false,
+    "reason": "손익분기 대비 우위 미검증"
   },
   "short": {
     "enabled": false,
