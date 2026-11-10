@@ -29,7 +29,7 @@ GRACE_MIN="${GRACE_MIN:-10}"                        # 부팅·시작 직후 여�
 DRY="${DRY:-0}"
 [ "${1:-}" = "--dry" ] && DRY=1
 
-log() { logger -t oversold-watchdog -- "$*"; echo "$*"; }
+log() { logger -t oversold-watchdog -- "$*"; [ -t 1 ] && echo "$*"; true; }   # 화면 출력은 직접 실행할 때만 (systemd 가 stdout 도 저널에 넣어 두 줄이 되던 것 방지)
 
 uptime_s=$(cut -d. -f1 /proc/uptime)
 mem_avail=$(free -m | awk '/^Mem:/{print $7}')
