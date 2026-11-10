@@ -36,8 +36,10 @@ mem_avail=$(free -m | awk '/^Mem:/{print $7}')
 swap_used=$(free -m | awk '/^Swap:/{print $3}')
 load1=$(cut -d' ' -f1 /proc/loadavg)
 
+# 1초 동안의 스왑 입출력(si·so, KB/s)·입출력 대기(wa%)·CPU 뺏김(st%) — 서버가 느려진 이유를 가르는 값
+vm=$(vmstat 1 2 2>/dev/null | tail -1 | awk '{print "si="$7" so="$8" wa="$16" st="$17}')
 state=$(systemctl is-active "$SERVICE" 2>/dev/null || true)
-log "mem_avail=${mem_avail}MB swap_used=${swap_used}MB load=${load1} bot=${state}"
+log "mem_avail=${mem_avail}MB swap_used=${swap_used}MB load=${load1} ${vm} bot=${state}"
 
 [ "$uptime_s" -lt $((GRACE_MIN * 60)) ] && exit 0
 [ "$state" = "active" ] || exit 0
