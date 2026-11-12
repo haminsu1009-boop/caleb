@@ -254,7 +254,9 @@ function addBL(chatId, blNo, interval) {
       var latest = pickLatest_(records);
       var sl = summaryLine_(latest);
       PropertiesService.getScriptProperties().setProperty('STATE_' + chatId + '_' + blNo, JSON.stringify({ summaryLine: sl }));
-      var msg = formatMessage_(blNo, true, null, latest, records);
+      var terminal = getTerminalName_(records);
+      var msg = formatMessage_(blNo, true, null, latest, terminal);
+      PropertiesService.getScriptProperties().setProperty('STATE_' + chatId + '_' + blNo, JSON.stringify({ summaryLine: sl, terminalName: terminal || null }));
       var userData2 = getUserData_(chatId);
       var telegramId = userData2.telegramChatId || (isNaN(String(chatId).replace('-','')) ? null : chatId);
       if (telegramId) { try { sendTelegram_(telegramId, msg); } catch(e) {} }
@@ -389,14 +391,19 @@ function checkBL_(chatId, blNo, forceNotify) {
   var prev = prevRaw ? JSON.parse(prevRaw) : null;
   var changed = !prev || prev.summaryLine !== sl;
 
+  // 장치장명: 현재 레코드에서 찾고, 없으면 이전에 저장된 값 사용
+  var terminalNow = getTerminalName_(records);
+  var cachedTerminal = prev ? (prev.terminalName || null) : null;
+  var terminal = terminalNow || cachedTerminal;
+
   if (changed || forceNotify) {
-    var msg = formatMessage_(blNo, !prev && !forceNotify, forceNotify ? null : (prev ? prev.summaryLine : null), latest, records);
+    var msg = formatMessage_(blNo, !prev && !forceNotify, forceNotify ? null : (prev ? prev.summaryLine : null), latest, terminal);
     var data = getUserData_(chatId);
     var telegramId = data.telegramChatId || (isNaN(String(chatId).replace('-','')) ? null : chatId);
     if (telegramId) { try { sendTelegram_(telegramId, msg); } catch(e) {} }
     if (data.kakaoToken) { try { sendKakao_(chatId, msg.replace(/<[^>]+>/g, '')); } catch(e) {} }
   }
-  props.setProperty(stateKey, JSON.stringify({ summaryLine: sl }));
+  props.setProperty(stateKey, JSON.stringify({ summaryLine: sl, terminalName: terminal || null }));
 }
 
 // =====================================================================
@@ -465,12 +472,11 @@ function getTerminalName_(records) {
   return null;
 }
 
-function formatMessage_(blNo, isFirst, prevLine, latest, records) {
+function formatMessage_(blNo, isFirst, prevLine, latest, terminal) {
   var status = latest.cargTrcnRelaBsopTpcd || latest.csclPrgsStts || latest.prgsStts || latest.cargTrcnRsltNm || '-';
   var statusAt = formatDttm_(latest.prcsDttm || latest.cargTrcnPrcsDttm || latest.prcsDt);
   var checkedAt = Utilities.formatDate(new Date(), 'Asia/Seoul', 'MM월 dd일 HH시 mm분');
   var header = isFirst ? '📦 모니터링 시작' : (prevLine === null ? '📌 현재 상태' : '🔔 상태 변경!');
-  var terminal = getTerminalName_(records || latest);
   var lines = ['<b>' + header + '</b>', '', '🚢 BL번호: <code>' + blNo + '</code>', '',
     '📌 현재 상태: <b>' + status + '</b>', '🕐 상태 발생: ' + statusAt];
   if (terminal) lines.push('🏭 장치장: ' + terminal);
