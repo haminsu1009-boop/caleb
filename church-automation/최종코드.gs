@@ -130,17 +130,15 @@ function 시트수정반영(e) {
   }
 }
 
-/** 아젠다 문서 위쪽(최근 6주)에서 그 주일 칸을 찾아 값만 다시 맞춤 — 찾으면 true */
+/** 아젠다 문서 전체에서 그 주일 칸을 찾아 값만 다시 맞춤 — 찾으면 true */
 function refreshSection_(body, sunday) {
   const m = getMeeting_(sunday);
   if (!m || m.special) return false;
   const P = DocumentApp.ElementType.PARAGRAPH;
   const text = el => (el.getType() === P ? el.asParagraph().getText().trim() : '');
-  for (let i = 0, seen = 0; i < body.getNumChildren() && seen < 6; i++) {
+  for (let i = 0; i < body.getNumChildren(); i++) {
     const s = text(body.getChild(i));
-    if (!SECTION_RE.test(s)) continue;
-    seen++;
-    if (!s.startsWith(fmt_(sunday, 'MM.dd'))) continue;
+    if (!SECTION_RE.test(s) || !s.startsWith(fmt_(sunday, 'MM.dd'))) continue;
     const section = collectSection_(body, i);
     fillSection_(section, m);
     ensureBullets_(body, section, section);
