@@ -4,6 +4,7 @@
  * 실행 메뉴에 보이는 함수
  *  · 자동실행설치        처음 한 번: 매주 월 9시 아젠다 / 월 10시 말씀 안내 / 매달 25일 반주표 예약
  *  · 이번주아젠다만들기   「성찬식 아젠다」 문서 맨 위에 이번 주 칸 추가 (이미 있으면 값만 다시 맞춤)
+ *  · 시트수정반영         (자동) 감독단 시트의 성찬식 탭을 고치면, 이미 만들어 둔 그 주 아젠다 칸도 바로 고침
  *  · 다음주아젠다만들기 · 다다음주아젠다만들기   미리 만들어 보기
  *  · 말씀안내보내기       (자동) NOTICE_WEEKS 주 뒤 주제 안내 + REMIND_WEEKS 리마인드 → 메일 + 내 카톡
  *  · 주제안내_1주뒤 ~ 주제안내_6주뒤     원하는 주의 말씀·기도 부탁 문구만 지금 바로 받기
@@ -57,8 +58,10 @@ function 자동실행설치() {
   ScriptApp.newTrigger('말씀안내보내기').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(10).create();
   ScriptApp.newTrigger('반주표보내기').timeBased().onMonthDay(25).atHour(9).create();
   ScriptApp.newTrigger('분기순서표자동발송').timeBased().onMonthDay(28).atHour(9).create();
+  ScriptApp.newTrigger('시트수정반영').forSpreadsheet(fileId_(SOURCE_URL)).onEdit().create();
   console.log('예약 완료\n· 매주 월 9시: 이번주아젠다만들기\n· 매주 월 10시: 말씀안내보내기 (메일 + 카톡)\n· 매달 25일 9시: 반주표보내기'
-    + '\n· 2·5·8·11월 28일 9시: 다음 분기 주일 예배 순서표');
+    + '\n· 2·5·8·11월 28일 9시: 다음 분기 주일 예배 순서표'
+    + '\n· 감독단 시트 성찬식 탭 수정 → 그 주 아젠다 칸 바로 반영');
 }
 
 /** 테스트용: 다음 주일 아젠다를 지금 바로 만들기 (일요일에 실행하면 7일 뒤 주일) */
@@ -92,6 +95,58 @@ function 이번주아젠다만들기(base) {
       ? `${label} 칸을 문서 맨 위에 추가했습니다.\n감리(지난주 값 유지)·광고·행사를 확인해 주세요.`
       : `${label} 칸의 순서 값을 시트에 맞췄습니다. (광고 등은 그대로)`,
     doc.getUrl());
+}
+
+/** 감독단 시트를 고칠 때마다 자동 실행 (자동실행설치가 예약)
+ *  고친 줄의 주일 칸이 아젠다 문서에 이미 있으면 그 칸 값만 다시 맞춤 (광고·행사는 그대로)
+ *  아직 없는 주는 그냥 둠 → 그 주 월요일에 최신 내용으로 만들어짐 */
+function 시트수정반영(e) {
+  if (!e || !e.range) return console.log('시트를 고칠 때 자동으로 실행되는 함수입니다. (직접 실행할 필요 없음)');
+  const sheet = e.range.getSheet();
+  const year = (sheet.getName().match(/^(\d{4})년 성찬식$/) || [])[1];   // '2026년 성찬식' 탭만 ('(초안)' 탭은 제외)
+  if (!year) return;
+
+  const values = sheet.getDataRange().getValues();
+  const hr = values.findIndex((row, i) => i < 5 && row.some(v => String(v).trim() === '날짜'));
+  if (hr < 0) return;
+  const dateCol = values[hr].findIndex(v => String(v).trim() === '날짜');
+  const sundays = [];
+  for (let r = e.range.getRow(); r <= e.range.getLastRow(); r++) {
+    const md = r - 1 > hr && values[r - 1] ? monthDay_(values[r - 1][dateCol]) : '';
+    if (md) sundays.push(new Date(Number(year), Number(md.slice(0, 2)) - 1, Number(md.slice(3))));
+  }
+  if (!sundays.length) return;
+
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(30000)) return console.log('다른 반영이 진행 중이라 건너뜀');
+  try {
+    const doc = DocumentApp.openById(fileId_(AGENDA_URL));
+    const body = doc.getBody();
+    const done = sundays.filter(sunday => refreshSection_(body, sunday)).map(d => fmt_(d, 'M/d'));
+    doc.saveAndClose();
+    console.log(done.length ? `아젠다 ${done.join(', ')} 칸을 시트에 맞췄습니다.` : '아젠다에 아직 없는 주라서 건너뜀');
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** 아젠다 문서 위쪽(최근 6주)에서 그 주일 칸을 찾아 값만 다시 맞춤 — 찾으면 true */
+function refreshSection_(body, sunday) {
+  const m = getMeeting_(sunday);
+  if (!m || m.special) return false;
+  const P = DocumentApp.ElementType.PARAGRAPH;
+  const text = el => (el.getType() === P ? el.asParagraph().getText().trim() : '');
+  for (let i = 0, seen = 0; i < body.getNumChildren() && seen < 6; i++) {
+    const s = text(body.getChild(i));
+    if (!SECTION_RE.test(s)) continue;
+    seen++;
+    if (!s.startsWith(fmt_(sunday, 'MM.dd'))) continue;
+    const section = collectSection_(body, i);
+    fillSection_(section, m);
+    ensureBullets_(body, section, section);
+    return true;
+  }
+  return false;
 }
 
 function report_(subject, text, link) {
