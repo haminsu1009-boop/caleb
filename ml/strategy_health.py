@@ -97,10 +97,20 @@ def main():
     # 복귀). 예전 안내문("--regime bear 롱 끔 검토")은 지웠다 — 롱을 끄면 과거 성적이 더 나빴다
     # (2017~ 24.9배 vs 37.2배, 1년손실 17% vs 2%, 2026-11-15 ablation). 할 일이 없는 알림이라
     # '확인할 것'이 아니라 참고 줄로 낸다.
-    if r[60] <= -15:
-        lines.append("  ℹ️ 폭락장 기준(60일 -15%) 도달 — 봇이 새 롱을 자동으로 2배로 낮춘다. 할 일 없음")
+    # 자동 폭락장은 켜는 기준(-15%)과 끄는 기준(-10%)이 달라서 한번 켜지면 -10%를 넘을 때까지
+    # 유지된다(bot/oversold/regime.py). 오늘 값만 보면 -14%라도 켜져 있을 수 있어서 같은 규칙으로
+    # 과거부터 따라가 본다.
+    from bot.oversold import regime as _REG
+    r60 = (b / b.shift(_REG.AUTO_BEAR_N) - 1) * 100
+    bear_on = False
+    for v in r60.values:
+        if not np.isnan(v):
+            bear_on = _REG.auto_bear_update(bear_on, float(v))
+    if bear_on:
+        lines.append(f"  ℹ️ 폭락장 켜짐(60일 {r[60]:+.0f}%, -10%를 넘을 때까지 유지) — "
+                     "봇이 새 롱을 자동으로 2배로 낮춘다. 할 일 없음")
     elif r[30] <= -15 or r[90] <= -20:
-        lines.append(f"  ℹ️ BTC 급락 중 — 자동 폭락장 기준은 60일 -15%(지금 {r[60]:+.0f}%). 할 일 없음")
+        lines.append(f"  ℹ️ BTC 급락 중 — 폭락장은 아직 꺼짐(켜는 기준 60일 -15%, 지금 {r[60]:+.0f}%). 할 일 없음")
     elif r[90] >= 30:
         lines.append("  (상승장 기준 해당 — 숏은 이런 장에서 원래 신호가 거의 없다)")
 
