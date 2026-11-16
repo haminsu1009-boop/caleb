@@ -253,10 +253,11 @@ function addBL(chatId, blNo, interval) {
     if (records.length > 0) {
       var latest = pickLatest_(records);
       var sl = summaryLine_(latest);
-      PropertiesService.getScriptProperties().setProperty('STATE_' + chatId + '_' + blNo, JSON.stringify({ summaryLine: sl }));
       var terminal = getTerminalName_(records);
       var msg = formatMessage_(blNo, true, null, latest, terminal);
-      PropertiesService.getScriptProperties().setProperty('STATE_' + chatId + '_' + blNo, JSON.stringify({ summaryLine: sl, terminalName: terminal || null }));
+      var addProps = PropertiesService.getScriptProperties();
+      addProps.setProperty('STATE_' + chatId + '_' + blNo, JSON.stringify({ summaryLine: sl, terminalName: terminal || null }));
+      if (terminal) addProps.setProperty('SHED_' + chatId + '_' + blNo, terminal);
       var userData2 = getUserData_(chatId);
       var telegramId = userData2.telegramChatId || (isNaN(String(chatId).replace('-','')) ? null : chatId);
       if (telegramId) { try { sendTelegram_(telegramId, msg); } catch(e) {} }
@@ -276,8 +277,10 @@ function removeBL(chatId, blNo) {
   data.bls = (data.bls || []).filter(function(b) { return b.blNo !== blNo; });
   if (data.bls.length === before) return { success: false, message: blNo + ' 을 찾을 수 없습니다.', bls: data.bls };
   saveUserData_(chatId, data);
-  PropertiesService.getScriptProperties().deleteProperty('STATE_' + chatId + '_' + blNo);
-  PropertiesService.getScriptProperties().deleteProperty('LASTCHECK_' + chatId + '_' + blNo);
+  var rmProps = PropertiesService.getScriptProperties();
+  rmProps.deleteProperty('STATE_' + chatId + '_' + blNo);
+  rmProps.deleteProperty('LASTCHECK_' + chatId + '_' + blNo);
+  rmProps.deleteProperty('SHED_' + chatId + '_' + blNo);
   return { success: true, message: '🗑 ' + blNo + ' 삭제 완료!', bls: data.bls };
 }
 
@@ -391,10 +394,12 @@ function checkBL_(chatId, blNo, forceNotify) {
   var prev = prevRaw ? JSON.parse(prevRaw) : null;
   var changed = !prev || prev.summaryLine !== sl;
 
-  // 장치장명: 현재 레코드에서 찾고, 없으면 이전에 저장된 값 사용
+  // 장치장명: 현재 레코드 → STATE 캐시 → 별도 SHED 키 순으로 조회, 찾으면 SHED 키에 저장
+  var shedKey = 'SHED_' + chatId + '_' + blNo;
   var terminalNow = getTerminalName_(records);
-  var cachedTerminal = prev ? (prev.terminalName || null) : null;
+  var cachedTerminal = (prev && prev.terminalName) || props.getProperty(shedKey) || null;
   var terminal = terminalNow || cachedTerminal;
+  if (terminal) props.setProperty(shedKey, terminal);
 
   if (changed || forceNotify) {
     var msg = formatMessage_(blNo, !prev && !forceNotify, forceNotify ? null : (prev ? prev.summaryLine : null), latest, terminal);
