@@ -13,6 +13,13 @@ var CONFIG = {
 var UNIPASS_URL = 'https://unipass.customs.go.kr:38010/ext/rest/cargCsclPrgsInfoQry/retrieveCargCsclPrgsInfo';
 var UNIPASS_WRHS_URL = 'https://unipass.customs.go.kr:38010/ext/rest/bntbWrhsQry/retrieveBntbWrhsInfo';
 
+// shedSgn → 전화/주소 (새 창고 나오면 여기 추가)
+var WAREHOUSE_MAP = {
+  '02010755': { phone: '032-888-5011', addr: '인천광역시 제물포구 축항대로290번길 13' },   // 태평양물류(주) 보세창고
+  '02012007': { phone: '', addr: '' },                                                      // ㈜E1컨테이너터미널보세창고
+  '02012016': { phone: '032-202-4900', addr: '인천광역시 연수구 인천신항대로 777' },        // 한진인천컨테이너터미널(주)
+};
+
 // =====================================================================
 // 초대 코드 시스템
 // =====================================================================
@@ -593,20 +600,11 @@ function getShedSgn_(records) {
 }
 
 function fetchWarehouseInfo_(shedSgn) {
-  try {
-    var url = UNIPASS_WRHS_URL + '?crkyCn=' + encodeURIComponent(CONFIG.UNIPASS_API_KEY)
-      + '&bntbWrhsSgn=' + encodeURIComponent(shedSgn);
-    var resp = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
-    if (resp.getResponseCode() !== 200) return null;
-    var root = XmlService.parse(resp.getContentText()).getRootElement();
-    var info = {};
-    collectFlat_(root, info);
-    var phone = info.telNo || info.trmnTelNo || info.shedTelNo || info.wrhsTelNo || info.bntbWrhsTelNo || null;
-    var addr  = info.addr  || info.trmnAddr  || info.shedAddr  || info.wrhsAddr  || info.bntbWrhsAddr  || info.wrhsLctn || null;
-    return (phone || addr) ? { phone: phone, addr: addr } : null;
-  } catch(e) {
-    return null;
-  }
+  var entry = WAREHOUSE_MAP[shedSgn];
+  if (!entry) return null;
+  var phone = entry.phone || null;
+  var addr  = entry.addr  || null;
+  return (phone || addr) ? { phone: phone, addr: addr } : null;
 }
 
 function collectFlat_(el, out) {
