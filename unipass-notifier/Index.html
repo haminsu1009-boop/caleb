@@ -804,6 +804,7 @@ function renderBLList(bls) {
           return '<option value="' + m + '"' + (m === interval ? ' selected' : '') + '>' + m + '분</option>';
         }).join('')
       + '</select>'
+      + '<a class="btn btn-gray btn-xs" href="https://unipass.customs.go.kr/csp/mt/mtsm/cargcsclprgs/cargCsclPrgsInfoQry.do?blNo=' + blNo + '&blYy=2026" target="_blank" style="text-decoration:none;">🔍</a>'
       + '<button class="btn btn-danger btn-xs" onclick="removeSingle(\'' + blNo + '\')">삭제</button>'
       + '</li>';
   }).join('');

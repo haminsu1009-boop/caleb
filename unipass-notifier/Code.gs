@@ -279,10 +279,12 @@ function addBL(chatId, blNo, interval) {
       var latest = pickLatest_(records);
       var sl = summaryLine_(latest);
       var terminal = getTerminalName_(records);
-      var msg = formatMessage_(blNo, true, null, latest, terminal);
+      var terminalPhone = getTerminalPhone_(records);
+      var msg = formatMessage_(blNo, true, null, latest, terminal, terminalPhone);
       var addProps = PropertiesService.getScriptProperties();
-      addProps.setProperty('STATE_' + chatId + '_' + blNo, JSON.stringify({ summaryLine: sl, terminalName: terminal || null }));
+      addProps.setProperty('STATE_' + chatId + '_' + blNo, JSON.stringify({ summaryLine: sl, terminalName: terminal || null, terminalPhone: terminalPhone || null }));
       if (terminal) addProps.setProperty('SHED_' + chatId + '_' + blNo, terminal);
+      if (terminalPhone) addProps.setProperty('SHEDTEL_' + chatId + '_' + blNo, terminalPhone);
       var userData2 = getUserData_(chatId);
       var telegramId = userData2.telegramChatId || (isNaN(String(chatId).replace('-','')) ? null : chatId);
       if (telegramId) { try { sendTelegram_(telegramId, msg); } catch(e) {} }
@@ -306,6 +308,7 @@ function removeBL(chatId, blNo) {
   rmProps.deleteProperty('STATE_' + chatId + '_' + blNo);
   rmProps.deleteProperty('LASTCHECK_' + chatId + '_' + blNo);
   rmProps.deleteProperty('SHED_' + chatId + '_' + blNo);
+  rmProps.deleteProperty('SHEDTEL_' + chatId + '_' + blNo);
   return { success: true, message: '🗑 ' + blNo + ' 삭제 완료!', bls: data.bls };
 }
 
@@ -326,6 +329,8 @@ function clearAllBL(chatId) {
   (data.bls || []).forEach(function(b) {
     props.deleteProperty('STATE_' + chatId + '_' + b.blNo);
     props.deleteProperty('LASTCHECK_' + chatId + '_' + b.blNo);
+    props.deleteProperty('SHED_' + chatId + '_' + b.blNo);
+    props.deleteProperty('SHEDTEL_' + chatId + '_' + b.blNo);
   });
   data.bls = [];
   saveUserData_(chatId, data);
@@ -419,21 +424,27 @@ function checkBL_(chatId, blNo, forceNotify) {
   var prev = prevRaw ? JSON.parse(prevRaw) : null;
   var changed = !prev || prev.summaryLine !== sl;
 
-  // 장치장명: 현재 레코드 → STATE 캐시 → 별도 SHED 키 순으로 조회, 찾으면 SHED 키에 저장
+  // 장치장명: 현재 레코드 → STATE 캐시 → 별도 SHED 키 순으로 조회
   var shedKey = 'SHED_' + chatId + '_' + blNo;
+  var shedTelKey = 'SHEDTEL_' + chatId + '_' + blNo;
   var terminalNow = getTerminalName_(records);
   var cachedTerminal = (prev && prev.terminalName) || props.getProperty(shedKey) || null;
   var terminal = terminalNow || cachedTerminal;
   if (terminal) props.setProperty(shedKey, terminal);
 
+  var phoneNow = getTerminalPhone_(records);
+  var cachedPhone = (prev && prev.terminalPhone) || props.getProperty(shedTelKey) || null;
+  var terminalPhone = phoneNow || cachedPhone;
+  if (terminalPhone) props.setProperty(shedTelKey, terminalPhone);
+
   if (changed || forceNotify) {
-    var msg = formatMessage_(blNo, !prev && !forceNotify, forceNotify ? null : (prev ? prev.summaryLine : null), latest, terminal);
+    var msg = formatMessage_(blNo, !prev && !forceNotify, forceNotify ? null : (prev ? prev.summaryLine : null), latest, terminal, terminalPhone);
     var data = getUserData_(chatId);
     var telegramId = data.telegramChatId || (isNaN(String(chatId).replace('-','')) ? null : chatId);
     if (telegramId) { try { sendTelegram_(telegramId, msg); } catch(e) {} }
     if (data.kakaoToken) { try { sendKakao_(chatId, msg.replace(/<[^>]+>/g, '')); } catch(e) {} }
   }
-  props.setProperty(stateKey, JSON.stringify({ summaryLine: sl, terminalName: terminal || null }));
+  props.setProperty(stateKey, JSON.stringify({ summaryLine: sl, terminalName: terminal || null, terminalPhone: terminalPhone || null }));
 }
 
 // =====================================================================
@@ -492,7 +503,6 @@ function summaryLine_(r) {
 
 function getTerminalName_(records) {
   var candidates = ['shedNm', 'lodgOrgNm', 'trmnNm', 'cargMtTrmnNm', 'mtTrmnNm', 'lodgPlcNm', 'trmnOprBsnNm'];
-  // 전체 레코드를 역순으로 뒤져서 장치장명 반환
   var pool = Array.isArray(records) ? records.slice().reverse() : [records];
   for (var i = 0; i < pool.length; i++) {
     for (var j = 0; j < candidates.length; j++) {
@@ -502,14 +512,29 @@ function getTerminalName_(records) {
   return null;
 }
 
-function formatMessage_(blNo, isFirst, prevLine, latest, terminal) {
+function getTerminalPhone_(records) {
+  var candidates = ['trmnTelNo', 'shedTelNo', 'lodgOrgTelNo', 'telNo', 'trmnOprBsnTelNo', 'cargMtTrmnTelNo'];
+  var pool = Array.isArray(records) ? records.slice().reverse() : [records];
+  for (var i = 0; i < pool.length; i++) {
+    for (var j = 0; j < candidates.length; j++) {
+      if (pool[i][candidates[j]]) return pool[i][candidates[j]];
+    }
+  }
+  return null;
+}
+
+function formatMessage_(blNo, isFirst, prevLine, latest, terminal, terminalPhone) {
   var status = latest.cargTrcnRelaBsopTpcd || latest.csclPrgsStts || latest.prgsStts || latest.cargTrcnRsltNm || '-';
   var statusAt = formatDttm_(latest.prcsDttm || latest.cargTrcnPrcsDttm || latest.prcsDt);
   var checkedAt = Utilities.formatDate(new Date(), 'Asia/Seoul', 'MM월 dd일 HH시 mm분');
   var header = isFirst ? '📦 모니터링 시작' : (prevLine === null ? '📌 현재 상태' : '🔔 상태 변경!');
   var lines = ['<b>' + header + '</b>', '', '🚢 BL번호: <code>' + blNo + '</code>', '',
     '📌 현재 상태: <b>' + status + '</b>', '🕐 상태 발생: ' + statusAt];
-  if (terminal) lines.push('🏭 장치장: ' + terminal);
+  if (terminal) {
+    var termLine = '🏭 장치장: ' + terminal;
+    if (terminalPhone) termLine += ' (' + terminalPhone + ')';
+    lines.push(termLine);
+  }
   lines.push('조회: ' + checkedAt);
   return lines.join('\n');
 }
