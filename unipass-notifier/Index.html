@@ -607,6 +607,19 @@ textarea { resize: none; height: 58px; }
 
 <div class="toast" id="toast"></div>
 
+<!-- BL 상세 조회 모달 -->
+<div id="blModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:100;display:none;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:480px;max-height:80vh;display:flex;flex-direction:column;box-shadow:var(--shadow-md);overflow:hidden;">
+    <div style="display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <span style="font-size:1rem;font-weight:700;color:var(--text);flex:1;" id="modalTitle">조회 중...</span>
+      <button onclick="closeModal()" style="background:none;border:none;cursor:pointer;color:var(--text-3);font-size:1.1rem;padding:2px 6px;border-radius:6px;" title="닫기">✕</button>
+    </div>
+    <div id="modalBody" style="padding:14px 16px;overflow-y:auto;flex:1;">
+      <div style="text-align:center;padding:24px 0;color:var(--text-3);font-size:0.82rem;">⏳ 조회 중...</div>
+    </div>
+  </div>
+</div>
+
 <script>
 var userId = '';
 var kakaoAuthUrl = '';
@@ -949,9 +962,50 @@ function logout() {
 }
 
 function openUnipass(blNo) {
-  try { navigator.clipboard.writeText(blNo); } catch(e) {}
-  window.open('https://unipass.customs.go.kr/csp/mt/mtsm/cargcsclprgs/cargCsclPrgsInfoQry.do', '_blank');
-  showToast('📋 ' + blNo + ' 복사됨\n유니패스 창에 붙여넣기 하세요');
+  var modal = document.getElementById('blModal');
+  document.getElementById('modalTitle').textContent = '📦 ' + blNo;
+  document.getElementById('modalBody').innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--text-3);font-size:0.82rem;">⏳ 조회 중...</div>';
+  modal.style.display = 'flex';
+  google.script.run
+    .withSuccessHandler(function(r) { renderModal(r); })
+    .withFailureHandler(function(e) {
+      document.getElementById('modalBody').innerHTML = '<div style="color:var(--danger);padding:16px 0;font-size:0.82rem;">오류: ' + (e.message || e) + '</div>';
+    })
+    .checkBLNow(userId, blNo);
+}
+
+function renderModal(r) {
+  var body = document.getElementById('modalBody');
+  if (!r.success) {
+    body.innerHTML = '<div style="color:var(--text-3);padding:16px 0;font-size:0.82rem;">' + (r.message || '결과 없음') + '</div>';
+    return;
+  }
+  var html = '';
+  if (r.terminal) {
+    html += '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;margin-bottom:12px;font-size:0.8rem;">'
+      + '<span style="color:var(--text-3);">🏭 장치장: </span><span style="font-weight:600;color:var(--text);">' + r.terminal + '</span>'
+      + (r.terminalPhone ? '<span style="color:var(--text-2);margin-left:6px;">(' + r.terminalPhone + ')</span>' : '')
+      + '</div>';
+  }
+  html += '<table style="width:100%;border-collapse:collapse;font-size:0.78rem;">'
+    + '<thead><tr style="border-bottom:2px solid var(--border);">'
+    + '<th style="text-align:left;padding:5px 6px;color:var(--text-3);font-weight:600;">상태</th>'
+    + '<th style="text-align:left;padding:5px 6px;color:var(--text-3);font-weight:600;">일시</th>'
+    + '</tr></thead><tbody>';
+  r.rows.forEach(function(row, i) {
+    var isLatest = i === 0;
+    html += '<tr style="border-bottom:1px solid var(--border);' + (isLatest ? 'background:var(--accent-light);' : '') + '">'
+      + '<td style="padding:7px 6px;font-weight:' + (isLatest ? '700' : '400') + ';color:' + (isLatest ? 'var(--accent)' : 'var(--text)') + ';">'
+      + (isLatest ? '▶ ' : '') + row.status + '</td>'
+      + '<td style="padding:7px 6px;color:var(--text-2);white-space:nowrap;">' + (row.date || '-') + '</td>'
+      + '</tr>';
+  });
+  html += '</tbody></table>';
+  body.innerHTML = html;
+}
+
+function closeModal() {
+  document.getElementById('blModal').style.display = 'none';
 }
 
 function showToast(msg) {
@@ -959,6 +1013,10 @@ function showToast(msg) {
   t.textContent = msg; t.classList.add('show');
   setTimeout(function() { t.classList.remove('show'); }, 3000);
 }
+
+document.getElementById('blModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
 
 init();
 </script>

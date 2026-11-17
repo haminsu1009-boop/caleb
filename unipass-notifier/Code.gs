@@ -242,6 +242,32 @@ function registerUser_(chatId) {
 // =====================================================================
 // 웹앱 호출 함수
 // =====================================================================
+function checkBLNow(chatId, blNo) {
+  chatId = String(chatId);
+  blNo = blNo.trim().toUpperCase();
+  try {
+    var records = fetchCargoProgress_(blNo, CONFIG.BL_YEAR);
+    if (!records || records.length === 0) return { success: false, message: '조회 결과가 없습니다.' };
+    var props = PropertiesService.getScriptProperties();
+    var shedKey = 'SHED_' + chatId + '_' + blNo;
+    var shedTelKey = 'SHEDTEL_' + chatId + '_' + blNo;
+    var terminal = getTerminalName_(records) || props.getProperty(shedKey) || null;
+    var terminalPhone = getTerminalPhone_(records) || props.getProperty(shedTelKey) || null;
+    var rows = records.map(function(r) {
+      return {
+        status: r.cargTrcnRelaBsopTpcd || r.csclPrgsStts || r.prgsStts || r.cargTrcnRsltNm || '-',
+        date: formatDttm_(r.prcsDttm || r.cargTrcnPrcsDttm || r.prcsDt),
+        location: r.shedNm || r.lodgOrgNm || r.trmnNm || r.lodgPlcNm || '',
+        remark: r.bfhnCargWght || r.cargWght || ''
+      };
+    });
+    rows.reverse();
+    return { success: true, blNo: blNo, terminal: terminal, terminalPhone: terminalPhone, rows: rows };
+  } catch(e) {
+    return { success: false, message: '오류: ' + e.message };
+  }
+}
+
 function getUserInfo(chatId) {
   chatId = String(chatId);
   registerUser_(chatId);
