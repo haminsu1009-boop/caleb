@@ -78,6 +78,31 @@ function 필드확인() {
 // =====================================================================
 // 관리자 함수 (Apps Script 에디터에서 직접 실행)
 // =====================================================================
+
+// 기존 등록 BL에 장치장 캐시 채우기 (한 번만 실행)
+function 장치장마이그레이션() {
+  var users = getAllUsers_();
+  var props = PropertiesService.getScriptProperties();
+  users.forEach(function(chatId) {
+    var data = getUserData_(chatId);
+    (data.bls || []).forEach(function(bl) {
+      var shedKey = 'SHED_' + chatId + '_' + bl.blNo;
+      if (props.getProperty(shedKey)) { Logger.log(bl.blNo + ': 이미 있음'); return; }
+      try {
+        var records = fetchCargoProgress_(bl.blNo, CONFIG.BL_YEAR);
+        var terminal = getTerminalName_(records);
+        if (terminal) {
+          props.setProperty(shedKey, terminal);
+          Logger.log(bl.blNo + ': ' + terminal + ' → 저장완료');
+        } else {
+          Logger.log(bl.blNo + ': 장치장 없음');
+        }
+      } catch(e) { Logger.log(bl.blNo + ': 오류 ' + e); }
+    });
+  });
+  Logger.log('마이그레이션 완료');
+}
+
 function 유저목록() {
   var users = getAllUsers_();
   var result = [];
