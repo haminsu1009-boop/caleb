@@ -982,9 +982,10 @@ function renderModal(r) {
   }
   var html = '';
   if (r.terminal) {
-    html += '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;margin-bottom:12px;font-size:0.8rem;">'
-      + '<span style="color:var(--text-3);">🏭 장치장: </span><span style="font-weight:600;color:var(--text);">' + r.terminal + '</span>'
-      + (r.terminalPhone ? '<span style="color:var(--text-2);margin-left:6px;">(' + r.terminalPhone + ')</span>' : '')
+    html += '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;margin-bottom:12px;font-size:0.8rem;line-height:1.65;">'
+      + '<div><span style="color:var(--text-3);">🏭 장치장: </span><span style="font-weight:600;color:var(--text);">' + r.terminal + '</span>'
+      + (r.terminalPhone ? '<span style="color:var(--text-2);margin-left:6px;">☎ ' + r.terminalPhone + '</span>' : '') + '</div>'
+      + (r.terminalAddr ? '<div style="color:var(--text-2);margin-top:3px;font-size:0.74rem;">📍 ' + r.terminalAddr + '</div>' : '')
       + '</div>';
   }
   html += '<table style="width:100%;border-collapse:collapse;font-size:0.78rem;">'

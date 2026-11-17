@@ -253,6 +253,9 @@ function checkBLNow(chatId, blNo) {
     var shedTelKey = 'SHEDTEL_' + chatId + '_' + blNo;
     var terminal = getTerminalName_(records) || props.getProperty(shedKey) || null;
     var terminalPhone = getTerminalPhone_(records) || props.getProperty(shedTelKey) || null;
+    var shedAddrKey = 'SHEDADDR_' + chatId + '_' + blNo;
+    var terminalAddr = getTerminalAddr_(records) || props.getProperty(shedAddrKey) || null;
+    if (terminalAddr) props.setProperty(shedAddrKey, terminalAddr);
     var rows = records.map(function(r) {
       return {
         status: r.cargTrcnRelaBsopTpcd || r.csclPrgsStts || r.prgsStts || r.cargTrcnRsltNm || '-',
@@ -262,7 +265,7 @@ function checkBLNow(chatId, blNo) {
       };
     });
     rows.reverse();
-    return { success: true, blNo: blNo, terminal: terminal, terminalPhone: terminalPhone, rows: rows };
+    return { success: true, blNo: blNo, terminal: terminal, terminalPhone: terminalPhone, terminalAddr: terminalAddr, rows: rows };
   } catch(e) {
     return { success: false, message: '오류: ' + e.message };
   }
@@ -540,6 +543,17 @@ function getTerminalName_(records) {
 
 function getTerminalPhone_(records) {
   var candidates = ['trmnTelNo', 'shedTelNo', 'lodgOrgTelNo', 'telNo', 'trmnOprBsnTelNo', 'cargMtTrmnTelNo'];
+  var pool = Array.isArray(records) ? records.slice().reverse() : [records];
+  for (var i = 0; i < pool.length; i++) {
+    for (var j = 0; j < candidates.length; j++) {
+      if (pool[i][candidates[j]]) return pool[i][candidates[j]];
+    }
+  }
+  return null;
+}
+
+function getTerminalAddr_(records) {
+  var candidates = ['shedAddr', 'trmnAddr', 'lodgOrgAddr', 'cargMtTrmnAddr', 'mtTrmnAddr', 'trmnOprBsnAddr'];
   var pool = Array.isArray(records) ? records.slice().reverse() : [records];
   for (var i = 0; i < pool.length; i++) {
     for (var j = 0; j < candidates.length; j++) {
