@@ -11,6 +11,7 @@ var CONFIG = {
 };
 
 var UNIPASS_URL = 'https://unipass.customs.go.kr:38010/ext/rest/cargCsclPrgsInfoQry/retrieveCargCsclPrgsInfo';
+var UNIPASS_WRHS_URL = 'https://unipass.customs.go.kr:38010/ext/rest/bntbWrhsQry/retrieveBntbWrhsInfo';
 
 // =====================================================================
 // 초대 코드 시스템
@@ -61,6 +62,17 @@ function 코드발급() {
 // =====================================================================
 // 디버그 함수 (Apps Script 에디터에서 직접 실행)
 // =====================================================================
+function 창고정보테스트() {
+  var shedSgn = '02010755';
+  var url = UNIPASS_WRHS_URL + '?crkyCn=' + encodeURIComponent(CONFIG.UNIPASS_API_KEY)
+    + '&bntbWrhsSgn=' + encodeURIComponent(shedSgn);
+  try {
+    var resp = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    Logger.log('HTTP: ' + resp.getResponseCode());
+    Logger.log(resp.getContentText());
+  } catch(e) { Logger.log('오류: ' + e); }
+}
+
 function 필드확인() {
   // BL번호를 실제 번호로 바꿔서 실행하세요
   var blNo = 'HTPE26002154';
@@ -249,13 +261,31 @@ function checkBLNow(chatId, blNo) {
     var records = fetchCargoProgress_(blNo, CONFIG.BL_YEAR);
     if (!records || records.length === 0) return { success: false, message: '조회 결과가 없습니다.' };
     var props = PropertiesService.getScriptProperties();
-    var shedKey = 'SHED_' + chatId + '_' + blNo;
-    var shedTelKey = 'SHEDTEL_' + chatId + '_' + blNo;
-    var terminal = getTerminalName_(records) || props.getProperty(shedKey) || null;
-    var terminalPhone = getTerminalPhone_(records) || props.getProperty(shedTelKey) || null;
-    var shedAddrKey = 'SHEDADDR_' + chatId + '_' + blNo;
-    var terminalAddr = getTerminalAddr_(records) || props.getProperty(shedAddrKey) || null;
-    if (terminalAddr) props.setProperty(shedAddrKey, terminalAddr);
+
+    var shedKey    = 'SHED_'     + chatId + '_' + blNo;
+    var shedTelKey = 'SHEDTEL_'  + chatId + '_' + blNo;
+    var shedAddrKey= 'SHEDADDR_' + chatId + '_' + blNo;
+    var shedSgnKey = 'SHEDSGN_'  + chatId + '_' + blNo;
+
+    var terminal     = getTerminalName_(records) || props.getProperty(shedKey)     || null;
+    var terminalPhone= getTerminalPhone_(records) || props.getProperty(shedTelKey) || null;
+    var terminalAddr = getTerminalAddr_(records)  || props.getProperty(shedAddrKey)|| null;
+
+    // shedSgn이 있고 아직 전화/주소 없으면 보세창고 API로 보완
+    var shedSgn = getShedSgn_(records) || props.getProperty(shedSgnKey) || null;
+    if (shedSgn && (!terminalPhone || !terminalAddr)) {
+      var wrhsInfo = fetchWarehouseInfo_(shedSgn);
+      if (wrhsInfo) {
+        if (!terminalPhone && wrhsInfo.phone) terminalPhone = wrhsInfo.phone;
+        if (!terminalAddr  && wrhsInfo.addr)  terminalAddr  = wrhsInfo.addr;
+      }
+    }
+
+    if (terminal)      props.setProperty(shedKey,     terminal);
+    if (terminalPhone) props.setProperty(shedTelKey,  terminalPhone);
+    if (terminalAddr)  props.setProperty(shedAddrKey, terminalAddr);
+    if (shedSgn)       props.setProperty(shedSgnKey,  shedSgn);
+
     var rows = records.map(function(r) {
       return {
         status: r.cargTrcnRelaBsopTpcd || r.csclPrgsStts || r.prgsStts || r.cargTrcnRsltNm || '-',
@@ -550,6 +580,43 @@ function getTerminalPhone_(records) {
     }
   }
   return null;
+}
+
+function getShedSgn_(records) {
+  var pool = Array.isArray(records) ? records.slice().reverse() : [records];
+  for (var i = 0; i < pool.length; i++) {
+    var sgn = pool[i].shedSgn || '';
+    // shedSgn은 "02010755" 또는 "02010755/1-2" 형태 — 슬래시 앞 8자리만 사용
+    if (sgn) return sgn.split('/')[0].trim();
+  }
+  return null;
+}
+
+function fetchWarehouseInfo_(shedSgn) {
+  try {
+    var url = UNIPASS_WRHS_URL + '?crkyCn=' + encodeURIComponent(CONFIG.UNIPASS_API_KEY)
+      + '&bntbWrhsSgn=' + encodeURIComponent(shedSgn);
+    var resp = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    if (resp.getResponseCode() !== 200) return null;
+    var root = XmlService.parse(resp.getContentText()).getRootElement();
+    var info = {};
+    collectFlat_(root, info);
+    var phone = info.telNo || info.trmnTelNo || info.shedTelNo || info.wrhsTelNo || info.bntbWrhsTelNo || null;
+    var addr  = info.addr  || info.trmnAddr  || info.shedAddr  || info.wrhsAddr  || info.bntbWrhsAddr  || info.wrhsLctn || null;
+    return (phone || addr) ? { phone: phone, addr: addr } : null;
+  } catch(e) {
+    return null;
+  }
+}
+
+function collectFlat_(el, out) {
+  var children = el.getChildren();
+  if (children.length === 0) {
+    var val = el.getText().trim();
+    if (val) out[el.getName()] = val;
+    return;
+  }
+  children.forEach(function(c) { collectFlat_(c, out); });
 }
 
 function getTerminalAddr_(records) {
