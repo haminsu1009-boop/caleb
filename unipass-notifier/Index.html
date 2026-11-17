@@ -4,73 +4,76 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>유니패스 알림</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
 :root {
-  --bg: #f0f4f8;
+  --bg: #f1f5f9;
   --surface: #ffffff;
-  --surface2: #f7f9fc;
+  --surface2: #f8fafc;
   --border: #e2e8f0;
-  --text: #0f1923;
-  --text-2: #4a6179;
-  --text-3: #8aa0b8;
-  --accent: #1a5f8a;
-  --accent-light: #e8f4fd;
-  --accent-hover: #154e73;
-  --danger: #d64045;
-  --danger-light: #fdf0f0;
-  --success: #1e8a4a;
-  --success-light: #e8fdf0;
+  --text: #0f172a;
+  --text-2: #475569;
+  --text-3: #94a3b8;
+  --accent: #2563eb;
+  --accent-light: #eff6ff;
+  --accent-hover: #1d4ed8;
+  --danger: #ef4444;
+  --danger-light: #fef2f2;
+  --success: #22c55e;
+  --success-light: #f0fdf4;
   --kakao: #FEE500;
   --kakao-text: #3A1D1D;
-  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
-  --radius: 10px;
-  --radius-sm: 6px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+  --radius: 12px;
+  --radius-sm: 7px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #3a4150;
-    --surface: #454d5e;
-    --surface2: #4e5770;
-    --border: #5a6478;
-    --text: #f0f4f8;
-    --text-2: #b8c8d8;
-    --text-3: #8a9ab0;
-    --accent: #5aafec;
-    --accent-light: #2a4060;
-    --accent-hover: #78c4f4;
-    --danger: #f06070;
-    --danger-light: #502030;
-    --success: #40c878;
-    --success-light: #204838;
-    --shadow: 0 1px 3px rgba(0,0,0,0.15);
-    --shadow-md: 0 4px 12px rgba(0,0,0,0.15);
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface2: #1a2234;
+    --border: #2d3f55;
+    --text: #f1f5f9;
+    --text-2: #94a3b8;
+    --text-3: #64748b;
+    --accent: #60a5fa;
+    --accent-light: #1e3a5f;
+    --accent-hover: #93c5fd;
+    --danger: #f87171;
+    --danger-light: #3b1515;
+    --success: #4ade80;
+    --success-light: #14301e;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+    --shadow: 0 1px 3px rgba(0,0,0,0.25);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.3);
   }
 }
 :root[data-theme="dark"] {
-  --bg: #3a4150;
-  --surface: #454d5e;
-  --surface2: #4e5770;
-  --border: #5a6478;
-  --text: #f0f4f8;
-  --text-2: #b8c8d8;
-  --text-3: #8a9ab0;
-  --accent: #5aafec;
-  --accent-light: #2a4060;
-  --accent-hover: #78c4f4;
-  --danger: #f06070;
-  --danger-light: #502030;
-  --success: #40c878;
-  --success-light: #204838;
-  --shadow: 0 1px 3px rgba(0,0,0,0.15);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.15);
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --surface2: #1a2234;
+  --border: #2d3f55;
+  --text: #f1f5f9;
+  --text-2: #94a3b8;
+  --text-3: #64748b;
+  --accent: #60a5fa;
+  --accent-light: #1e3a5f;
+  --accent-hover: #93c5fd;
+  --danger: #f87171;
+  --danger-light: #3b1515;
+  --success: #4ade80;
+  --success-light: #14301e;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+  --shadow: 0 1px 3px rgba(0,0,0,0.25);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.3);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Pretendard', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
@@ -89,15 +92,15 @@ body {
 .setup-box {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 32px 28px;
+  border-radius: 16px;
+  padding: 36px 32px;
   width: 100%;
   max-width: 380px;
   box-shadow: var(--shadow-md);
 }
-.setup-box .logo { font-size: 22px; margin-bottom: 4px; }
-.setup-box h2 { font-size: 1.1rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
-.setup-box p { font-size: 0.8rem; color: var(--text-2); margin-bottom: 20px; line-height: 1.65; }
+.setup-logo { font-size: 32px; margin-bottom: 8px; }
+.setup-box h2 { font-size: 1.2rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.setup-box p { font-size: 0.8rem; color: var(--text-2); margin-bottom: 24px; line-height: 1.65; }
 .setup-box a { color: var(--accent); text-decoration: none; }
 
 /* ── Main layout ── */
@@ -105,7 +108,7 @@ body {
   display: grid;
   grid-template-rows: auto 1fr;
   height: 100vh;
-  max-width: 960px;
+  max-width: 1000px;
   margin: 0 auto;
   padding: 0 16px;
 }
@@ -114,42 +117,43 @@ header {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 0 10px;
+  padding: 14px 0 12px;
   border-bottom: 1px solid var(--border);
 }
-header .logo-icon { font-size: 18px; }
-header h1 { font-size: 0.95rem; font-weight: 700; color: var(--text); flex: 1; }
-header .chat-badge {
+.header-logo { font-size: 20px; }
+header h1 { font-size: 1rem; font-weight: 700; color: var(--text); flex: 1; }
+.header-badge {
   font-size: 0.72rem;
   color: var(--text-3);
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 20px;
-  padding: 2px 10px;
+  padding: 3px 10px;
   font-family: 'JetBrains Mono', monospace;
 }
-header .logout-btn {
+.header-logout {
   background: none;
   border: none;
   color: var(--text-3);
   font-size: 0.72rem;
   cursor: pointer;
-  padding: 3px 6px;
-  border-radius: 4px;
-  transition: color 0.15s;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+  font-family: inherit;
 }
-header .logout-btn:hover { color: var(--text-2); }
+.header-logout:hover { background: var(--surface2); color: var(--text-2); }
 
 .columns {
   display: grid;
-  grid-template-columns: 1fr 260px;
+  grid-template-columns: 1fr 252px;
   gap: 12px;
   padding: 12px 0;
   height: 100%;
   overflow: hidden;
 }
 
-/* ── Panels ── */
+/* ── Panel ── */
 .panel {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -160,18 +164,19 @@ header .logout-btn:hover { color: var(--text-2); }
   overflow: hidden;
 }
 .panel-head {
-  padding: 10px 14px;
+  padding: 11px 14px;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
 }
-.panel-head .panel-title {
-  font-size: 0.78rem;
+.panel-title {
+  font-size: 0.72rem;
   font-weight: 600;
-  color: var(--text-2);
+  color: var(--text-3);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   flex: 1;
 }
 .panel-body { padding: 12px 14px; flex: 1; overflow-y: auto; }
@@ -179,13 +184,13 @@ header .logout-btn:hover { color: var(--text-2); }
 .panel-body::-webkit-scrollbar-track { background: transparent; }
 .panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-/* ── Form elements ── */
-label.field-label {
+/* ── Form ── */
+.field-label {
   display: block;
   font-size: 0.72rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-2);
-  margin-bottom: 4px;
+  margin-bottom: 5px;
   letter-spacing: 0.02em;
 }
 input[type="text"], textarea, select {
@@ -193,53 +198,57 @@ input[type="text"], textarea, select {
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 7px 10px;
+  padding: 8px 10px;
   font-size: 0.82rem;
   color: var(--text);
   font-family: inherit;
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
+  -webkit-appearance: none;
 }
 input:focus, textarea:focus, select:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
 }
-textarea { resize: none; height: 60px; }
-select { cursor: pointer; }
+textarea { resize: none; height: 58px; }
 
 .add-row {
   display: flex;
   gap: 8px;
   margin-top: 8px;
-  align-items: flex-end;
+  align-items: center;
 }
-.add-row select { width: 110px; flex-shrink: 0; }
+.add-row select { width: 102px; flex-shrink: 0; }
 
 /* ── Buttons ── */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 5px;
   border: none;
   border-radius: var(--radius-sm);
-  padding: 7px 14px;
+  padding: 8px 16px;
   font-size: 0.82rem;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: opacity 0.12s, background 0.12s;
+  transition: background 0.12s, opacity 0.12s, transform 0.1s;
   white-space: nowrap;
+  user-select: none;
 }
-.btn:active { opacity: 0.75; }
+.btn:active { transform: scale(0.97); }
 .btn-primary { background: var(--accent); color: #fff; }
 .btn-primary:hover { background: var(--accent-hover); }
 .btn-danger { background: var(--danger); color: #fff; }
+.btn-danger:hover { opacity: 0.85; }
 .btn-gray { background: var(--surface2); color: var(--text-2); border: 1px solid var(--border); }
 .btn-gray:hover { background: var(--border); }
 .btn-success { background: var(--success); color: #fff; }
 .btn-kakao { background: var(--kakao); color: var(--kakao-text); }
-.btn-xs { padding: 3px 8px; font-size: 0.73rem; border-radius: 4px; }
+.btn-kakao:hover { opacity: 0.9; }
+.btn-xs { padding: 4px 9px; font-size: 0.72rem; border-radius: 5px; }
+.btn-sm { padding: 6px 12px; font-size: 0.78rem; }
 .btn-full { width: 100%; }
 
 /* ── BL toolbar ── */
@@ -247,19 +256,30 @@ select { cursor: pointer; }
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 14px;
+  padding: 7px 14px;
   border-bottom: 1px solid var(--border);
   background: var(--surface2);
+  flex-shrink: 0;
 }
 .bl-toolbar input[type="checkbox"] {
   width: 15px; height: 15px;
   cursor: pointer;
   accent-color: var(--accent);
+  flex-shrink: 0;
 }
-.bl-toolbar-label {
-  font-size: 0.72rem;
-  color: var(--text-3);
-  flex: 1;
+.bl-toolbar-label { font-size: 0.72rem; color: var(--text-3); flex: 1; }
+
+/* BL search */
+.bl-search-wrap {
+  padding: 7px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+  flex-shrink: 0;
+}
+.bl-search-wrap input {
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  border-radius: 20px;
 }
 
 /* ── BL list ── */
@@ -269,71 +289,88 @@ select { cursor: pointer; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 28px 0;
-  gap: 6px;
+  padding: 32px 0;
+  gap: 8px;
   color: var(--text-3);
   font-size: 0.8rem;
 }
-.bl-empty .empty-icon { font-size: 24px; opacity: 0.4; }
+.bl-empty-icon { font-size: 28px; opacity: 0.35; }
 
 .bl-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
+  gap: 7px;
+  padding: 7px 14px;
   border-bottom: 1px solid var(--border);
   transition: background 0.1s;
 }
 .bl-item:last-child { border-bottom: none; }
 .bl-item:hover { background: var(--surface2); }
 .bl-item input[type="checkbox"] {
-  width: 15px; height: 15px;
+  width: 14px; height: 14px;
   cursor: pointer;
   accent-color: var(--accent);
   flex-shrink: 0;
 }
 .bl-no {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: var(--accent);
   flex: 1;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .bl-item select {
-  width: 72px;
-  padding: 3px 6px;
+  width: 68px;
+  padding: 3px 5px;
   font-size: 0.72rem;
   border-radius: 4px;
+  flex-shrink: 0;
 }
 
-/* ── Right sidebar panels ── */
-.sidebar { display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+/* ── Sidebar ── */
+.sidebar { display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
 
-/* ── Status badges ── */
+/* ── Badge ── */
 .badge {
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.68rem;
+  font-weight: 700;
   padding: 2px 8px;
   border-radius: 20px;
+  letter-spacing: 0.03em;
 }
 .badge-on { background: var(--success-light); color: var(--success); }
-.badge-off { background: var(--danger-light); color: var(--danger); }
+.badge-off { background: var(--surface2); color: var(--text-3); border: 1px solid var(--border); }
 
-.kakao-input-row {
+/* ── Notify channel ── */
+.channel-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+.channel-label { font-size: 0.82rem; color: var(--text); flex: 1; font-weight: 500; }
+
+.link-input-row {
   display: flex;
   gap: 6px;
-  margin-top: 6px;
+  margin-top: 5px;
 }
-.kakao-input-row input { flex: 1; font-size: 0.75rem; }
+.link-input-row input { flex: 1; font-size: 0.75rem; }
+
+.section-divider { height: 1px; background: var(--border); margin: 10px 0; }
 
 /* ── Bot commands ── */
 .cmd-table { width: 100%; border-collapse: collapse; }
 .cmd-table tr + tr td { border-top: 1px solid var(--border); }
-.cmd-table td { padding: 5px 0; vertical-align: top; }
+.cmd-table td { padding: 5px 0; vertical-align: middle; }
 .cmd-table td:first-child {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.7rem;
+  font-size: 0.69rem;
   color: var(--accent);
   padding-right: 8px;
   white-space: nowrap;
@@ -343,14 +380,15 @@ select { cursor: pointer; }
 /* ── Toast ── */
 .toast {
   position: fixed;
-  bottom: 20px;
+  bottom: 24px;
   left: 50%;
-  transform: translateX(-50%) translateY(8px);
-  background: rgba(15, 25, 35, 0.92);
-  color: #fff;
-  border-radius: 8px;
-  padding: 8px 18px;
+  transform: translateX(-50%) translateY(10px);
+  background: rgba(15, 23, 42, 0.92);
+  color: #f1f5f9;
+  border-radius: 10px;
+  padding: 9px 20px;
   font-size: 0.8rem;
+  font-weight: 500;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s, transform 0.2s;
@@ -358,20 +396,20 @@ select { cursor: pointer; }
   white-space: pre-line;
   text-align: center;
   max-width: 90vw;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* ── Setup form ── */
+/* ── Misc ── */
 .field + .field { margin-top: 12px; }
-.hint { font-size: 0.71rem; color: var(--text-3); margin-top: 3px; }
+.hint { font-size: 0.71rem; color: var(--text-3); margin-top: 4px; }
 
-/* ── Divider ── */
 .or-divider {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 12px 0;
+  margin: 14px 0;
 }
 .or-divider::before, .or-divider::after {
   content: '';
@@ -379,16 +417,24 @@ select { cursor: pointer; }
   height: 1px;
   background: var(--border);
 }
-.or-divider span {
-  font-size: 0.72rem;
-  color: var(--text-3);
+.or-divider span { font-size: 0.72rem; color: var(--text-3); }
+
+/* ── BL count chip ── */
+.count-chip {
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: var(--accent-light);
+  color: var(--accent);
+  border-radius: 20px;
+  padding: 2px 8px;
 }
 
 /* ── Responsive ── */
 @media (max-width: 640px) {
   .columns { grid-template-columns: 1fr; grid-template-rows: auto auto; }
   .sidebar { flex-direction: row; overflow-x: auto; }
-  .sidebar .panel { min-width: 260px; }
+  .sidebar .panel { min-width: 240px; }
+  .app { padding: 0 12px; }
 }
 </style>
 </head>
@@ -397,40 +443,37 @@ select { cursor: pointer; }
 <!-- Setup Screen -->
 <div id="setupScreen" class="setup-wrap">
   <div class="setup-box">
-    <div class="logo">📦</div>
+    <div class="setup-logo">📦</div>
     <h2>유니패스 통관 알림</h2>
-    <p>알림 방법을 선택하여 시작하세요.</p>
+    <p>알림 받을 방법을 선택해 시작하세요.</p>
 
     <div id="loginView">
-      <!-- 카카오로 시작 -->
-      <button class="btn btn-kakao btn-full" style="font-size:0.88rem;padding:11px;" onclick="startKakaoLogin()">
-        💬 카카오로 시작
+      <button class="btn btn-kakao btn-full" style="font-size:0.9rem;padding:12px;" onclick="startKakaoLogin()">
+        💬 카카오톡으로 시작
       </button>
 
       <div class="or-divider"><span>또는</span></div>
 
-      <!-- 텔레그램으로 시작 -->
       <div class="field">
         <label class="field-label">✈️ 텔레그램 Chat ID</label>
         <input type="text" id="setupChatId" placeholder="예: 8624472047" inputmode="numeric">
         <div class="hint"><a href="https://t.me/userinfobot" target="_blank">@userinfobot</a>에 /start 보내면 확인할 수 있어요.</div>
       </div>
-      <button class="btn btn-primary btn-full" style="margin-top:8px;" onclick="setupWithTelegram()">✈️ 텔레그램으로 시작</button>
+      <button class="btn btn-primary btn-full" style="margin-top:10px;" onclick="setupWithTelegram()">✈️ 텔레그램으로 시작</button>
     </div>
 
-    <div id="setupLoading" style="display:none;text-align:center;margin-top:14px;font-size:0.8rem;color:var(--text-3);">
-      ⏳ 로그인 처리 중...
+    <div id="setupLoading" style="display:none;text-align:center;margin-top:16px;font-size:0.8rem;color:var(--text-3);">
+      ⏳ 처리 중...
     </div>
-    <div id="setupError" style="display:none;margin-top:10px;padding:8px 10px;background:var(--danger-light);color:var(--danger);border-radius:6px;font-size:0.78rem;"></div>
+    <div id="setupError" style="display:none;margin-top:10px;padding:9px 12px;background:var(--danger-light);color:var(--danger);border-radius:8px;font-size:0.78rem;"></div>
 
-    <!-- 카카오 로그인 성공 후 표시 -->
     <div id="kakaoSuccess" style="display:none;margin-top:16px;">
-      <div style="text-align:center;padding:14px 0 10px;">
-        <div style="font-size:28px;margin-bottom:6px;">✅</div>
-        <div style="font-weight:700;font-size:0.95rem;color:var(--text);margin-bottom:2px;" id="kakaoWelcome">카카오 연결 완료!</div>
+      <div style="text-align:center;padding:16px 0 12px;">
+        <div style="font-size:32px;margin-bottom:8px;">✅</div>
+        <div style="font-weight:700;font-size:0.95rem;color:var(--text);margin-bottom:4px;" id="kakaoWelcome">카카오 연결 완료!</div>
         <div style="font-size:0.78rem;color:var(--text-2);">카카오톡으로 알림을 받을 준비가 됐어요.</div>
       </div>
-      <button class="btn btn-primary btn-full" style="font-size:0.92rem;padding:12px;margin-top:8px;" onclick="proceedToMain()">
+      <button class="btn btn-primary btn-full" style="font-size:0.92rem;padding:12px;margin-top:4px;" onclick="proceedToMain()">
         🚀 시작하기
       </button>
     </div>
@@ -440,22 +483,22 @@ select { cursor: pointer; }
 <!-- Main App -->
 <div id="mainScreen" class="app" style="display:none;">
   <header>
-    <span class="logo-icon">📦</span>
+    <span class="header-logo">📦</span>
     <h1>유니패스 통관 알림</h1>
-    <span class="chat-badge" id="nicknameDisplay"></span>
-    <button class="logout-btn" onclick="logout()">로그아웃</button>
+    <span class="header-badge" id="nicknameDisplay"></span>
+    <button class="header-logout" onclick="logout()">로그아웃</button>
   </header>
 
   <div class="columns">
-    <!-- Left: BL management -->
-    <div style="display:flex;flex-direction:column;gap:12px;overflow:hidden;">
+    <!-- Left column -->
+    <div style="display:flex;flex-direction:column;gap:10px;overflow:hidden;">
 
-      <!-- Add BL -->
+      <!-- Add BL panel -->
       <div class="panel" style="flex-shrink:0;">
         <div class="panel-head">
           <span class="panel-title">BL 추가</span>
         </div>
-        <div class="panel-body" style="padding-bottom:12px;">
+        <div class="panel-body">
           <label class="field-label">BL 번호 (여러 개: 쉼표 또는 줄바꿈)</label>
           <textarea id="blInput" placeholder="PSHAINC1AV757&#10;ABCD1234, XYZ5678"></textarea>
           <div class="add-row">
@@ -470,12 +513,17 @@ select { cursor: pointer; }
         </div>
       </div>
 
-      <!-- BL List -->
+      <!-- BL list panel -->
       <div class="panel" style="flex:1;min-height:0;">
         <div class="panel-head">
           <span class="panel-title">등록된 BL</span>
-          <span id="blCount" style="font-size:0.72rem;color:var(--text-3);"></span>
+          <span id="blCount"></span>
         </div>
+        <!-- Search -->
+        <div class="bl-search-wrap">
+          <input type="text" id="blSearch" placeholder="🔍  BL번호 검색..." oninput="filterBLs()" style="border-radius:20px;">
+        </div>
+        <!-- Toolbar -->
         <div class="bl-toolbar">
           <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
           <span class="bl-toolbar-label">전체 선택</span>
@@ -485,7 +533,7 @@ select { cursor: pointer; }
         <div style="flex:1;overflow-y:auto;">
           <ul class="bl-list" id="blList">
             <li class="bl-empty">
-              <span class="empty-icon">📭</span>
+              <span class="bl-empty-icon">📭</span>
               등록된 BL이 없습니다
             </li>
           </ul>
@@ -496,45 +544,43 @@ select { cursor: pointer; }
     <!-- Right sidebar -->
     <div class="sidebar">
 
-      <!-- Notifications -->
+      <!-- Notification channels -->
       <div class="panel" style="flex-shrink:0;">
         <div class="panel-head">
           <span class="panel-title">알림 채널</span>
         </div>
-        <div class="panel-body" style="display:flex;flex-direction:column;gap:10px;">
+        <div class="panel-body" style="display:flex;flex-direction:column;">
           <!-- Kakao -->
-          <div>
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-              <span style="font-size:0.8rem;color:var(--text-2);flex:1;">💬 카카오톡</span>
-              <span id="kakaoStatus" class="badge badge-off">미연결</span>
+          <div class="channel-row">
+            <span class="channel-label">💬 카카오톡</span>
+            <span id="kakaoStatus" class="badge badge-off">미연결</span>
+          </div>
+          <div id="kakaoSetupView">
+            <button class="btn btn-kakao btn-full btn-sm" onclick="startKakaoLink()">카카오 연결</button>
+          </div>
+          <div id="kakaoLinkedView" style="display:none;">
+            <button class="btn btn-gray btn-xs btn-full" onclick="unlinkKakao()">연결 해제</button>
+          </div>
+
+          <div class="section-divider"></div>
+
+          <!-- Telegram -->
+          <div class="channel-row">
+            <span class="channel-label">✈️ 텔레그램</span>
+            <span id="telegramStatus" class="badge badge-off">미연결</span>
+          </div>
+          <div id="telegramSetupView">
+            <div class="hint" style="margin-bottom:6px;">
+              <a href="https://t.me/userinfobot" target="_blank" style="color:var(--accent);text-decoration:none;">@userinfobot</a>에서 Chat ID 확인
             </div>
-            <div id="kakaoSetupView">
-              <button class="btn btn-kakao btn-full" onclick="startKakaoLink()" style="font-size:0.78rem;padding:6px;">카카오 연결</button>
-            </div>
-            <div id="kakaoLinkedView" style="display:none;">
-              <button class="btn btn-gray btn-xs btn-full" onclick="unlinkKakao()">연결 해제</button>
+            <div class="link-input-row">
+              <input type="text" id="telegramChatIdInput" placeholder="Chat ID" inputmode="numeric">
+              <button class="btn btn-primary btn-sm" onclick="linkTelegram()" style="padding:6px 10px;">연결</button>
             </div>
           </div>
-          <div style="height:1px;background:var(--border);"></div>
-          <!-- Telegram -->
-          <div>
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-              <span style="font-size:0.8rem;color:var(--text-2);flex:1;">✈️ 텔레그램</span>
-              <span id="telegramStatus" class="badge badge-off">미연결</span>
-            </div>
-            <div id="telegramSetupView">
-              <div style="font-size:0.72rem;color:var(--text-3);margin-bottom:5px;">
-                <a href="https://t.me/userinfobot" target="_blank" style="color:var(--accent);text-decoration:none;">@userinfobot</a>에서 Chat ID 확인
-              </div>
-              <div class="kakao-input-row">
-                <input type="text" id="telegramChatIdInput" placeholder="Chat ID" inputmode="numeric">
-                <button class="btn btn-primary" onclick="linkTelegram()" style="padding:6px 10px;font-size:0.78rem;">연결</button>
-              </div>
-            </div>
-            <div id="telegramLinkedView" style="display:none;">
-              <div style="font-size:0.72rem;color:var(--text-3);margin-bottom:5px;" id="telegramChatIdDisplay"></div>
-              <button class="btn btn-gray btn-xs btn-full" onclick="unlinkTelegram()">연결 해제</button>
-            </div>
+          <div id="telegramLinkedView" style="display:none;">
+            <div class="hint" style="margin-bottom:6px;" id="telegramChatIdDisplay"></div>
+            <button class="btn btn-gray btn-xs btn-full" onclick="unlinkTelegram()">연결 해제</button>
           </div>
         </div>
       </div>
@@ -565,6 +611,7 @@ select { cursor: pointer; }
 var userId = '';
 var kakaoAuthUrl = '';
 var pollTimer = null;
+var allBLs = [];
 
 function init() {
   userId = localStorage.getItem('userId') || '';
@@ -579,7 +626,6 @@ function init() {
       .getKakaoOAuthUrl();
   }
 
-  // localStorage 폴링: 카카오 팝업이 code를 써놓으면 감지
   pollTimer = setInterval(function() {
     var code = localStorage.getItem('kakaoCode');
     if (code) {
@@ -610,7 +656,6 @@ function startKakaoLogin() {
 }
 
 function startKakaoLink() {
-  // 메인화면에서 카카오 추가 연결
   if (!kakaoAuthUrl) {
     google.script.run
       .withSuccessHandler(function(url) { kakaoAuthUrl = url; window.open(url, 'kakaoLogin', 'width=500,height=600'); })
@@ -627,7 +672,6 @@ function handleKakaoCode(code) {
   showSetupError('');
 
   if (isSetup) {
-    // 설정 화면: 초대 코드 없이 바로 카카오 연결
     google.script.run
       .withSuccessHandler(function(r) {
         if (loadingEl) loadingEl.style.display = 'none';
@@ -636,7 +680,6 @@ function handleKakaoCode(code) {
           localStorage.setItem('userId', userId);
           localStorage.setItem('invited', '1');
           localStorage.setItem('kakaoNickname', r.nickname || '');
-          // 시작하기 버튼 표시
           document.getElementById('kakaoWelcome').textContent = (r.nickname ? r.nickname + '님, ' : '') + '카카오 연결 완료!';
           document.getElementById('loginView').style.display = 'none';
           document.getElementById('kakaoSuccess').style.display = 'block';
@@ -650,7 +693,6 @@ function handleKakaoCode(code) {
       })
       .linkKakaoToUser('', code);
   } else {
-    // 메인화면: 기존 계정에 카카오 추가 연결
     google.script.run
       .withSuccessHandler(function(r) {
         if (loadingEl) loadingEl.style.display = 'none';
@@ -718,7 +760,8 @@ function loadUserInfo() {
         logout();
         return;
       }
-      renderBLList(info.bls);
+      allBLs = info.bls || [];
+      renderBLList(allBLs);
       renderKakao(info.kakaoLinked);
       renderTelegram(info.telegramChatId);
     })
@@ -745,15 +788,15 @@ function renderBLList(bls) {
   var countEl = document.getElementById('blCount');
   document.getElementById('selectAll').checked = false;
   if (!bls || bls.length === 0) {
-    ul.innerHTML = '<li class="bl-empty"><span class="empty-icon">📭</span>등록된 BL이 없습니다</li>';
-    countEl.textContent = '';
+    ul.innerHTML = '<li class="bl-empty"><span class="bl-empty-icon">📭</span>등록된 BL이 없습니다</li>';
+    countEl.innerHTML = '';
     return;
   }
-  countEl.textContent = bls.length + '개';
+  countEl.innerHTML = '<span class="count-chip">' + bls.length + '개</span>';
   ul.innerHTML = bls.map(function(b) {
     var blNo = b.blNo || b;
     var interval = b.interval || 5;
-    return '<li class="bl-item">'
+    return '<li class="bl-item" data-bl="' + blNo + '">'
       + '<input type="checkbox" class="bl-check" value="' + blNo + '">'
       + '<span class="bl-no">' + blNo + '</span>'
       + '<select class="interval-select" onchange="changeInterval(\'' + blNo + '\', this.value)">'
@@ -764,6 +807,15 @@ function renderBLList(bls) {
       + '<button class="btn btn-danger btn-xs" onclick="removeSingle(\'' + blNo + '\')">삭제</button>'
       + '</li>';
   }).join('');
+}
+
+function filterBLs() {
+  var q = document.getElementById('blSearch').value.trim().toUpperCase();
+  if (!q) { renderBLList(allBLs); return; }
+  var filtered = allBLs.filter(function(b) {
+    return (b.blNo || b).indexOf(q) !== -1;
+  });
+  renderBLList(filtered);
 }
 
 function renderTelegram(telegramChatId) {
@@ -820,7 +872,12 @@ function addBLs() {
     google.script.run
       .withSuccessHandler(function(r) {
         msgs.push(r.message); pending--;
-        if (pending === 0) { document.getElementById('blInput').value = ''; loadUserInfo(); showToast(msgs.join('\n')); }
+        if (pending === 0) {
+          document.getElementById('blInput').value = '';
+          document.getElementById('blSearch').value = '';
+          loadUserInfo();
+          showToast(msgs.join('\n'));
+        }
       })
       .withFailureHandler(function(e) { showToast('오류: ' + e.message); })
       .addBL(userId, bl, interval);
@@ -830,7 +887,12 @@ function addBLs() {
 function removeSingle(blNo) {
   if (!confirm(blNo + ' 삭제할까요?')) return;
   google.script.run
-    .withSuccessHandler(function(r) { showToast(r.message); renderBLList(r.bls); })
+    .withSuccessHandler(function(r) {
+      showToast(r.message);
+      allBLs = r.bls;
+      document.getElementById('blSearch').value = '';
+      renderBLList(allBLs);
+    })
     .withFailureHandler(function(e) { showToast('오류: ' + e.message); })
     .removeBL(userId, blNo);
 }
@@ -846,7 +908,12 @@ function deleteSelected() {
   if (selected.length === 0) { showToast('삭제할 BL을 선택하세요.'); return; }
   if (!confirm(selected.length + '개 BL을 삭제할까요?')) return;
   google.script.run
-    .withSuccessHandler(function(r) { showToast(r.message); renderBLList(r.bls); })
+    .withSuccessHandler(function(r) {
+      showToast(r.message);
+      allBLs = r.bls;
+      document.getElementById('blSearch').value = '';
+      renderBLList(allBLs);
+    })
     .withFailureHandler(function(e) { showToast('오류: ' + e.message); })
     .removeBLs(userId, selected);
 }
@@ -854,7 +921,12 @@ function deleteSelected() {
 function deleteAll() {
   if (!confirm('BL 전체를 삭제할까요?')) return;
   google.script.run
-    .withSuccessHandler(function(r) { showToast(r.message); renderBLList(r.bls); })
+    .withSuccessHandler(function(r) {
+      showToast(r.message);
+      allBLs = r.bls;
+      document.getElementById('blSearch').value = '';
+      renderBLList(allBLs);
+    })
     .withFailureHandler(function(e) { showToast('오류: ' + e.message); })
     .clearAllBL(userId);
 }
