@@ -804,7 +804,7 @@ function renderBLList(bls) {
           return '<option value="' + m + '"' + (m === interval ? ' selected' : '') + '>' + m + '분</option>';
         }).join('')
       + '</select>'
-      + '<a class="btn btn-gray btn-xs" href="https://unipass.customs.go.kr/csp/mt/mtsm/cargcsclprgs/cargCsclPrgsInfoQry.do?blNo=' + blNo + '&blYy=2026" target="_blank" style="text-decoration:none;">🔍</a>'
+      + '<button class="btn btn-gray btn-xs" onclick="openUnipass(\'' + blNo + '\')" title="유니패스에서 조회">🔍</button>'
       + '<button class="btn btn-danger btn-xs" onclick="removeSingle(\'' + blNo + '\')">삭제</button>'
       + '</li>';
   }).join('');
@@ -946,6 +946,12 @@ function logout() {
   localStorage.removeItem('invited');
   localStorage.removeItem('kakaoNickname');
   location.reload();
+}
+
+function openUnipass(blNo) {
+  try { navigator.clipboard.writeText(blNo); } catch(e) {}
+  window.open('https://unipass.customs.go.kr/csp/mt/mtsm/cargcsclprgs/cargCsclPrgsInfoQry.do', '_blank');
+  showToast('📋 ' + blNo + ' 복사됨\n유니패스 창에 붙여넣기 하세요');
 }
 
 function showToast(msg) {
