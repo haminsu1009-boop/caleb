@@ -1366,16 +1366,16 @@ document.addEventListener('DOMContentLoaded', () => {
         'sea.midcta.btn':'해상운송 서비스로 견적받기','air.midcta.btn':'항공운송 서비스로 견적받기',
         'land.midcta.btn':'육상운송 서비스로 견적받기','rail.midcta.btn':'철송 서비스로 견적받기',
         /* ── 서비스 페이지 미니 FAQ ── */
-        'sea.faq.q1':'해상운송과 항공운송은 무엇이 다른가요?','sea.faq.a1':'해상운송은 항공운송보다 운임이 저렴하고 대량화물 운송에 유리하지만, 운송기간이 상대적으로 깁니다. 항공운송은 운임은 높지만 신속한 배송이 필요한 화물에 적합합니다. 화물의 긴급성과 물량에 따라 최적의 방식을 안내해 드립니다.',
+        'sea.faq.q1':'해상운송과 항공운송은 무엇이 다른가요?','sea.faq.a1':'해상운송은 <a href="air-transport.html">항공운송</a>보다 운임이 저렴하고 대량화물 운송에 유리하지만, 운송기간이 상대적으로 깁니다. 항공운송은 운임은 높지만 신속한 배송이 필요한 화물에 적합합니다. 화물의 긴급성과 물량에 따라 최적의 방식을 안내해 드립니다.',
         'sea.faq.q2':'FCL과 LCL 중 어떤 것을 선택해야 하나요?','sea.faq.a2':'화물량이 컨테이너 1개를 채울 수 있을 정도로 많다면 FCL이, 소량화물이라면 여러 화주와 컨테이너를 공유하는 LCL이 비용 면에서 유리합니다. 화물 규모를 알려주시면 가장 경제적인 방식을 추천해 드립니다.',
         'sea.faq.q3':'해상운송 소요기간은 보통 얼마나 걸리나요?','sea.faq.a3':'항로에 따라 다르지만, 동남아시아는 5~10일, 미주·유럽은 20~35일 정도 소요됩니다. 선사 스케줄과 환적 여부에 따라 달라질 수 있어 정확한 일정은 담당자가 안내해 드립니다.',
-        'air.faq.q1':'항공운송과 해상운송은 무엇이 다른가요?','air.faq.a1':'항공운송은 운임이 높은 대신 운송기간이 1~3일로 매우 빠르며, 해상운송은 운임이 저렴한 대신 운송기간이 1~5주로 깁니다. 긴급화물이나 고가화물은 항공운송이, 대량·저가화물은 해상운송이 유리합니다.',
+        'air.faq.q1':'항공운송과 해상운송은 무엇이 다른가요?','air.faq.a1':'항공운송은 운임이 높은 대신 운송기간이 1~3일로 매우 빠르며, <a href="sea-transport.html">해상운송</a>은 운임이 저렴한 대신 운송기간이 1~5주로 깁니다. 긴급화물이나 고가화물은 항공운송이, 대량·저가화물은 해상운송이 유리합니다.',
         'air.faq.q2':'항공 긴급화물은 얼마나 빨리 처리되나요?','air.faq.a2':'접수 후 당일 또는 익일 출발이 가능합니다. 화물 종류, 목적지, 항공편 스케줄에 따라 달라지므로 빠른 처리가 필요하면 전화로 먼저 문의해 주세요.',
         'air.faq.q3':'항공운임은 무엇을 기준으로 계산되나요?','air.faq.a3':'실중량과 부피중량(용적중량) 중 더 큰 값을 기준으로 계산됩니다. 부피가 크지만 가벼운 화물은 부피중량이 적용될 수 있어, 정확한 치수와 중량을 알려주시면 운임을 산출해 드립니다.',
-        'land.faq.q1':'육상운송과 철도운송(철송)은 무엇이 다른가요?','land.faq.a1':'육상운송(트럭운송)은 문전 배송이 가능해 유연하고 신속하지만, 대량화물에는 철도운송(철송)이 비용과 환경 측면에서 유리합니다. 화물 특성과 일정에 맞춰 최적의 운송수단을 안내해 드립니다.',
+        'land.faq.q1':'육상운송과 철도운송(철송)은 무엇이 다른가요?','land.faq.a1':'육상운송(트럭운송)은 문전 배송이 가능해 유연하고 신속하지만, 대량화물에는 <a href="rail-transport.html">철도운송(철송)</a>이 비용과 환경 측면에서 유리합니다. 화물 특성과 일정에 맞춰 최적의 운송수단을 안내해 드립니다.',
         'land.faq.q2':'전국배송과 컨테이너 내륙운송의 차이는 무엇인가요?','land.faq.a2':'전국배송은 일반 화물을 전국 각지로 배송하는 서비스이며, 컨테이너 내륙운송은 항만이나 철도터미널에서 내륙 목적지까지 컨테이너 단위로 운송하는 서비스입니다. 화물 형태에 따라 적합한 서비스를 선택해 드립니다.',
         'land.faq.q3':'당일 배송도 가능한가요?','land.faq.a3':'지역과 화물량에 따라 당일 또는 익일 배송이 가능합니다. 정확한 가능 여부는 출발지와 도착지, 화물 정보를 알려주시면 안내해 드립니다.',
-        'rail.faq.q1':'철도운송(철송)과 트럭운송(육상운송)은 무엇이 다른가요?','rail.faq.a1':'철도운송은 대량화물을 장거리로 운송할 때 트럭운송보다 운임이 저렴하고 탄소배출이 적은 친환경 운송수단입니다. 다만 철도터미널까지의 상하차 과정이 추가로 필요해, 화물 특성에 따라 트럭운송과 병행하는 것이 효율적일 수 있습니다.',
+        'rail.faq.q1':'철도운송(철송)과 트럭운송(육상운송)은 무엇이 다른가요?','rail.faq.a1':'철도운송은 대량화물을 장거리로 운송할 때 <a href="land-transport.html">트럭운송(육상운송)</a>보다 운임이 저렴하고 탄소배출이 적은 친환경 운송수단입니다. 다만 철도터미널까지의 상하차 과정이 추가로 필요해, 화물 특성에 따라 트럭운송과 병행하는 것이 효율적일 수 있습니다.',
         'rail.faq.q2':'철도운송은 어떤 화물에 적합한가요?','rail.faq.a2':'컨테이너 단위의 대량화물, 정기적으로 반복되는 내륙 운송 구간에 특히 적합합니다. 장거리 구간에서 트럭운송 대비 비용 절감 효과가 큽니다.',
         'rail.faq.q3':'철도운송 소요기간은 얼마나 되나요?','rail.faq.a3':'구간과 일정에 따라 다르지만, 일반적으로 1~3일 내 내륙 목적지까지 운송이 가능합니다. 정확한 일정은 출발지와 도착지를 알려주시면 안내해 드립니다.',
       },
@@ -1764,16 +1764,16 @@ document.addEventListener('DOMContentLoaded', () => {
         'sea.midcta.btn':'Get a Quote for Sea Freight','air.midcta.btn':'Get a Quote for Air Freight',
         'land.midcta.btn':'Get a Quote for Land Transport','rail.midcta.btn':'Get a Quote for Rail Freight',
         /* ── Service Page Mini FAQ ── */
-        'sea.faq.q1':'What is the difference between sea freight and air freight?','sea.faq.a1':'Sea freight is cheaper than air freight and better suited for large shipments, though transit times are longer. Air freight costs more but is ideal for cargo that needs fast delivery. We recommend the best option based on your cargo\'s urgency and volume.',
+        'sea.faq.q1':'What is the difference between sea freight and air freight?','sea.faq.a1':'Sea freight is cheaper than <a href="air-transport.html">air freight</a> and better suited for large shipments, though transit times are longer. Air freight costs more but is ideal for cargo that needs fast delivery. We recommend the best option based on your cargo\'s urgency and volume.',
         'sea.faq.q2':'Should I choose FCL or LCL?','sea.faq.a2':'If your cargo volume is enough to fill a full container, FCL is more cost-effective. For smaller shipments, LCL — sharing a container with other shippers — is more economical. Let us know your cargo volume and we\'ll recommend the best option.',
         'sea.faq.q3':'How long does sea freight usually take?','sea.faq.a3':'It depends on the route — typically 5-10 days to Southeast Asia and 20-35 days to the Americas or Europe. Exact schedules vary by carrier and transshipment, so our team will confirm the precise timeline.',
-        'air.faq.q1':'What is the difference between air freight and sea freight?','air.faq.a1':'Air freight costs more but is very fast, with transit times of 1-3 days, while sea freight is cheaper but takes 1-5 weeks. Air freight suits urgent or high-value cargo, while sea freight is better for large, low-cost shipments.',
+        'air.faq.q1':'What is the difference between air freight and sea freight?','air.faq.a1':'Air freight costs more but is very fast, with transit times of 1-3 days, while <a href="sea-transport.html">sea freight</a> is cheaper but takes 1-5 weeks. Air freight suits urgent or high-value cargo, while sea freight is better for large, low-cost shipments.',
         'air.faq.q2':'How quickly is urgent air cargo processed?','air.faq.a2':'Same-day or next-day departure is possible after booking. This depends on cargo type, destination, and flight schedule — please call us first if you need urgent processing.',
         'air.faq.q3':'How is air freight cost calculated?','air.faq.a3':'It\'s based on whichever is greater: actual weight or volumetric (dimensional) weight. Bulky but light cargo may be charged by volumetric weight — share your exact dimensions and weight for an accurate quote.',
-        'land.faq.q1':'What is the difference between land transport and rail freight?','land.faq.a1':'Land transport (trucking) offers flexible door-to-door delivery, while rail freight is more cost-effective and eco-friendly for large shipments. We recommend the best mode based on your cargo and schedule.',
+        'land.faq.q1':'What is the difference between land transport and rail freight?','land.faq.a1':'Land transport (trucking) offers flexible door-to-door delivery, while <a href="rail-transport.html">rail freight</a> is more cost-effective and eco-friendly for large shipments. We recommend the best mode based on your cargo and schedule.',
         'land.faq.q2':'What is the difference between nationwide delivery and container inland transport?','land.faq.a2':'Nationwide delivery covers general cargo shipped across the country, while container inland transport moves containers between ports/rail terminals and inland destinations. We\'ll select the right service for your cargo type.',
         'land.faq.q3':'Is same-day delivery available?','land.faq.a3':'Same-day or next-day delivery may be available depending on region and cargo volume. Share your origin, destination, and cargo details for confirmation.',
-        'rail.faq.q1':'What is the difference between rail freight and truck (land) transport?','rail.faq.a1':'Rail freight is cheaper and more eco-friendly than trucking for large shipments over long distances, with lower carbon emissions. It does require extra loading/unloading at rail terminals, so combining it with trucking can be efficient depending on cargo type.',
+        'rail.faq.q1':'What is the difference between rail freight and truck (land) transport?','rail.faq.a1':'Rail freight is cheaper and more eco-friendly than <a href="land-transport.html">trucking (land transport)</a> for large shipments over long distances, with lower carbon emissions. It does require extra loading/unloading at rail terminals, so combining it with trucking can be efficient depending on cargo type.',
         'rail.faq.q2':'What kind of cargo is rail freight suited for?','rail.faq.a2':'It\'s especially suited for large container shipments and recurring inland routes. It offers significant cost savings over trucking on long-distance routes.',
         'rail.faq.q3':'How long does rail freight take?','rail.faq.a3':'It varies by route and schedule, but inland delivery is generally possible within 1-3 days. Share your origin and destination for an exact timeline.',
       }
@@ -1947,10 +1947,10 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ── 선박 영상 4개 끊김없이 순차 재생 ── */
   (function initSeaVideos() {
     var SRCS = [
-      'assets/sea-video-1.mp4?v=8',
-      'assets/sea-video-2.mp4?v=8',
-      'assets/sea-video-3.mp4?v=8',
-      'assets/sea-video-4.mp4?v=8'
+      'assets/sea-video-1.mp4?v=9',
+      'assets/sea-video-2.mp4?v=9',
+      'assets/sea-video-3.mp4?v=9',
+      'assets/sea-video-4.mp4?v=9'
     ];
     var ids  = ['seaVid1','seaVid2','seaVid3','seaVid4'];
     var vids = ids.map(function(id){ return document.getElementById(id); }).filter(Boolean);
