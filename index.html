@@ -90,7 +90,7 @@
   }
   </script>
 
-  <link rel="stylesheet" href="style.css?v=100" />
+  <link rel="stylesheet" href="style.css?v=101" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
@@ -620,6 +620,36 @@
     <div class="port-picker-body" id="portPickerBody"></div>
   </div>
 
+  <!-- NEWS (최근 소식) -->
+  <section class="news-section">
+    <div class="container">
+      <div class="news-header">
+        <div>
+          <p class="section-label">NEWS</p>
+          <h2 class="section-title" data-i18n="home.news.title">최근 소식</h2>
+        </div>
+        <a href="notice.html" class="btn-news-all" data-i18n="home.news.more">공지사항 전체보기</a>
+      </div>
+      <div class="news-list">
+        <a href="rail-transport.html" class="news-item">
+          <span class="news-tag tag-notice" data-i18n="notice.tag.notice">공지</span>
+          <span class="news-title" data-i18n-html="home.news.item1">철송(철도운송) 서비스 오픈 안내<span class="news-new">NEW</span></span>
+          <span class="news-date">2026.11.18</span>
+        </a>
+        <a href="notice.html" class="news-item">
+          <span class="news-tag tag-notice" data-i18n="notice.tag.notice">공지</span>
+          <span class="news-title" data-i18n="home.news.item2">홈페이지 영문(English) 서비스 지원 시작 안내</span>
+          <span class="news-date">2026.11.10</span>
+        </a>
+        <a href="notice.html" class="news-item">
+          <span class="news-tag tag-notice" data-i18n="notice.tag.notice">공지</span>
+          <span class="news-title" data-i18n-html="home.news.item3">2026년 설 연휴 물류 운영 안내<span class="news-new">NEW</span></span>
+          <span class="news-date">2026.01.20</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
   <!-- CONTACT -->
   <section id="contact" class="contact">
     <div class="container">
@@ -807,7 +837,7 @@
 
   <button class="scroll-top" id="scrollTop" aria-label="맨 위로">▲</button>
 
-  <script src="main.js?v=93"></script>
+  <script src="main.js?v=94"></script>
   <script>
     // Quote tab switcher
     document.querySelectorAll('.q-tab').forEach(function(btn) {
