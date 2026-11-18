@@ -13,12 +13,28 @@ var CONFIG = {
 var UNIPASS_URL = 'https://unipass.customs.go.kr:38010/ext/rest/cargCsclPrgsInfoQry/retrieveCargCsclPrgsInfo';
 var UNIPASS_WRHS_URL = 'https://unipass.customs.go.kr:38010/ext/rest/bntbWrhsQry/retrieveBntbWrhsInfo';
 
-// shedSgn → 전화/주소 (새 창고 나오면 여기 추가)
+// shedSgn → 전화/주소 기본값 (웹앱에서 추가한 것은 ScriptProperties에 저장됨)
 var WAREHOUSE_MAP = {
-  '02010755': { phone: '032-888-5011', addr: '인천광역시 제물포구 축항대로290번길 13' },   // 태평양물류(주) 보세창고
-  '02012007': { phone: '', addr: '' },                                                      // ㈜E1컨테이너터미널보세창고
-  '02012016': { phone: '032-202-4900', addr: '인천광역시 연수구 인천신항대로 777' },        // 한진인천컨테이너터미널(주)
+  '02010755': { phone: '032-888-5011', addr: '인천광역시 제물포구 축항대로290번길 13' },
+  '02012007': { phone: '', addr: '' },
+  '02012016': { phone: '032-202-4900', addr: '인천광역시 연수구 인천신항대로 777' },
 };
+
+function getWarehouseInfo_(shedSgn) {
+  // ScriptProperties 우선 (웹앱에서 추가한 항목)
+  var raw = PropertiesService.getScriptProperties().getProperty('WRHS_' + shedSgn);
+  if (raw) { try { return JSON.parse(raw); } catch(e) {} }
+  // 하드코딩 fallback
+  var entry = WAREHOUSE_MAP[shedSgn];
+  if (entry && (entry.phone || entry.addr)) return entry;
+  return null;
+}
+
+function saveWarehouseInfo(shedSgn, phone, addr) {
+  if (!shedSgn) return { success: false, message: '창고코드 없음' };
+  PropertiesService.getScriptProperties().setProperty('WRHS_' + shedSgn, JSON.stringify({ phone: phone || '', addr: addr || '' }));
+  return { success: true };
+}
 
 // =====================================================================
 // 초대 코드 시스템
@@ -600,11 +616,7 @@ function getShedSgn_(records) {
 }
 
 function fetchWarehouseInfo_(shedSgn) {
-  var entry = WAREHOUSE_MAP[shedSgn];
-  if (!entry) return null;
-  var phone = entry.phone || null;
-  var addr  = entry.addr  || null;
-  return (phone || addr) ? { phone: phone, addr: addr } : null;
+  return getWarehouseInfo_(shedSgn);
 }
 
 function collectFlat_(el, out) {

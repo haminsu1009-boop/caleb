@@ -974,6 +974,44 @@ function openUnipass(blNo) {
     .checkBLNow(userId, blNo);
 }
 
+function renderWrhsAddForm(shedSgn, blNo) {
+  return '<div style="margin-top:5px;" id="wrhs-add-' + shedSgn + '">'
+    + '<span style="color:var(--text-3);font-size:0.72rem;">창고코드: ' + shedSgn + ' </span>'
+    + '<button onclick="showWrhsForm(\'' + shedSgn + '\',\'' + blNo + '\')" style="font-size:0.7rem;padding:2px 7px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--text-2);cursor:pointer;">+ 전화/주소 추가</button>'
+    + '</div>';
+}
+
+function showWrhsForm(shedSgn, blNo) {
+  var container = document.getElementById('wrhs-add-' + shedSgn);
+  if (!container) return;
+  container.innerHTML = '<div style="margin-top:6px;display:flex;flex-direction:column;gap:4px;">'
+    + '<input id="wrhs-phone-' + shedSgn + '" placeholder="전화번호 (예: 032-000-0000)" style="font-size:0.78rem;padding:5px 8px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);">'
+    + '<input id="wrhs-addr-' + shedSgn + '" placeholder="주소 (예: 인천광역시 ...)" style="font-size:0.78rem;padding:5px 8px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);">'
+    + '<div style="display:flex;gap:6px;">'
+    + '<button onclick="saveWrhsInfo(\'' + shedSgn + '\',\'' + blNo + '\')" style="flex:1;font-size:0.75rem;padding:5px;border:none;border-radius:5px;background:var(--accent);color:#fff;cursor:pointer;font-weight:600;">저장</button>'
+    + '<button onclick="document.getElementById(\'wrhs-add-' + shedSgn + '\').innerHTML=\'<span style=&quot;color:var(--text-3);font-size:0.72rem;&quot;>창고코드: ' + shedSgn + '</span>\';" style="font-size:0.75rem;padding:5px 10px;border:1px solid var(--border);border-radius:5px;background:var(--surface2);color:var(--text-2);cursor:pointer;">취소</button>'
+    + '</div></div>';
+}
+
+function saveWrhsInfo(shedSgn, blNo) {
+  var phone = (document.getElementById('wrhs-phone-' + shedSgn) || {}).value || '';
+  var addr  = (document.getElementById('wrhs-addr-'  + shedSgn) || {}).value || '';
+  var btn = document.querySelector('#wrhs-add-' + shedSgn + ' button');
+  if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (res.success) {
+        document.getElementById('wrhs-add-' + shedSgn).innerHTML =
+          '<span style="color:var(--text-3);font-size:0.72rem;">✅ 저장 완료 — 다음 조회부터 반영됩니다</span>';
+      }
+    })
+    .withFailureHandler(function() {
+      var c = document.getElementById('wrhs-add-' + shedSgn);
+      if (c) c.innerHTML += '<span style="color:var(--danger);font-size:0.72rem;"> 저장 실패</span>';
+    })
+    .saveWarehouseInfo(shedSgn, phone, addr);
+}
+
 function renderModal(r) {
   var body = document.getElementById('modalBody');
   if (!r.success) {
@@ -986,7 +1024,7 @@ function renderModal(r) {
       + '<div><span style="color:var(--text-3);">🏭 장치장: </span><span style="font-weight:600;color:var(--text);">' + r.terminal + '</span>'
       + (r.terminalPhone ? '<span style="color:var(--text-2);margin-left:6px;">☎ ' + r.terminalPhone + '</span>' : '') + '</div>'
       + (r.terminalAddr ? '<div style="color:var(--text-2);margin-top:3px;font-size:0.74rem;">📍 ' + r.terminalAddr + '</div>' : '')
-      + (!r.terminalPhone && !r.terminalAddr && r.shedSgn ? '<div style="color:var(--text-3);margin-top:3px;font-size:0.72rem;">창고코드: ' + r.shedSgn + ' (WAREHOUSE_MAP에 추가 필요)</div>' : '')
+      + (!r.terminalPhone && !r.terminalAddr && r.shedSgn ? renderWrhsAddForm(r.shedSgn, r.blNo) : '')
       + '</div>';
   }
   html += '<table style="width:100%;border-collapse:collapse;font-size:0.78rem;">'
