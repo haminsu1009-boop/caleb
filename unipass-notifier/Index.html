@@ -986,6 +986,7 @@ function renderModal(r) {
       + '<div><span style="color:var(--text-3);">🏭 장치장: </span><span style="font-weight:600;color:var(--text);">' + r.terminal + '</span>'
       + (r.terminalPhone ? '<span style="color:var(--text-2);margin-left:6px;">☎ ' + r.terminalPhone + '</span>' : '') + '</div>'
       + (r.terminalAddr ? '<div style="color:var(--text-2);margin-top:3px;font-size:0.74rem;">📍 ' + r.terminalAddr + '</div>' : '')
+      + (!r.terminalPhone && !r.terminalAddr && r.shedSgn ? '<div style="color:var(--text-3);margin-top:3px;font-size:0.72rem;">창고코드: ' + r.shedSgn + ' (WAREHOUSE_MAP에 추가 필요)</div>' : '')
       + '</div>';
   }
   html += '<table style="width:100%;border-collapse:collapse;font-size:0.78rem;">'
