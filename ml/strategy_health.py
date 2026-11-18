@@ -182,8 +182,8 @@ def main():
           for t in L] + Sh + Dv
     pt = dict(PT, longb=PT["long"]); lv = dict(LV, longb=2.0)
     fin, mdd, got, curve = taken(tr, pt, lv)
-    if bool(BS.iloc[-1]):
-        warn.append("자동 폭락장 켜짐 — 새 롱은 2배로 들어간다")
+    # 폭락장은 봇이 알아서 처리하는 상태 표시일 뿐이라 '확인할 것'이 아니다(위 BTC 줄에서 참고
+    # 줄로 이미 알린다). 같은 문구가 경고로 한 번 더 나오면 "내가 뭘 해야 하나" 오해를 부른다.
     c = curve.resample("D").last().ffill()
     if len(c) > 400:
         yr = c.iloc[-1] / c.loc[:c.index[-1] - pd.Timedelta(days=365)].iloc[-1]
