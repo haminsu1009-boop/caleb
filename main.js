@@ -246,7 +246,10 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ── FAQ 아코디언 ── */
   document.querySelectorAll('.faq-q').forEach(q => {
     q.addEventListener('click', () => {
-      q.closest('.faq-item').classList.toggle('open');
+      const item = q.closest('.faq-item');
+      const wasOpen = item.classList.contains('open');
+      item.parentElement.querySelectorAll('.faq-item.open').forEach(el => el.classList.remove('open'));
+      if (!wasOpen) item.classList.add('open');
     });
   });
 
@@ -1350,18 +1353,15 @@ document.addEventListener('DOMContentLoaded', () => {
         /* ── 공지사항 ── */
         'notice.col.num':'번호','notice.col.title':'제목','notice.col.category':'구분','notice.col.date':'등록일','notice.col.views':'조회',
         'notice.tag.notice':'공지','notice.tag.general':'일반','notice.pagination.prev':'이전','notice.pagination.next':'다음',
-        'notice.total':'총 <strong>32</strong>건의 게시물이 있습니다.',
-        'notice.title.rail':'철송(철도운송) 서비스 오픈 안내 <span class="new-badge">NEW</span>',
-        'notice.title.english':'홈페이지 영문(English) 서비스 지원 시작 안내',
-        'notice.title1':'2026년 설 연휴 물류 운영 안내 <span class="new-badge">NEW</span>','notice.title2':'인천 물류센터 확장 이전 안내',
-        'notice.title3':'화물 운임 요율 조정 안내 (2026년 1월)','notice.title4':'태인물류 ISO 9001:2015 재인증 완료',
-        'notice.title5':'스마트 물류 시스템 업그레이드 완료','notice.title6':'추석 연휴 물류 운영 안내',
-        'notice.title7':'WCA 연례 총회 참가 안내','notice.title8':'중국 노선 운임 조정 안내',
-        'notice.title9':'부산 지사 이전 완료 안내','notice.title10':'2025년 하반기 신입사원 채용 안내',
+        'notice.total':'총 <strong>3</strong>건의 게시물이 있습니다.',
+        'notice.news1':'해상 컨테이너 운임 2주 연속 하락…성수기 종료로 수요 둔화 <span class="new-badge">NEW</span>',
+        'notice.news2':'한·아프리카, 물류·에너지 인프라 협력 확대 논의',
+        'notice.news3':'EU, 11월 1일부터 소액물품 통관 수수료 신설 예정…수출기업 영향 주시 필요',
         /* ── 홈 최근소식 미리보기 ── */
-        'home.news.title':'최근 소식','home.news.more':'공지사항 전체보기',
-        'home.news.item1':'철송(철도운송) 서비스 오픈 안내<span class="news-new">NEW</span>','home.news.item2':'홈페이지 영문(English) 서비스 지원 시작 안내',
-        'home.news.item3':'2026년 설 연휴 물류 운영 안내<span class="news-new">NEW</span>',
+        'home.news.title':'최근 물류 동향','home.news.more':'더 많은 소식 보기',
+        'home.news.item1':'해상 컨테이너 운임 2주 연속 하락…성수기 종료로 수요 둔화<span class="news-new">NEW</span>',
+        'home.news.item2':'한·아프리카, 물류·에너지 인프라 협력 확대 논의',
+        'home.news.item3':'EU, 11월 1일부터 소액물품 통관 수수료 신설 예정',
         /* ── 서비스 페이지 중간 CTA ── */
         'sea.midcta.btn':'해상운송 서비스로 견적받기','air.midcta.btn':'항공운송 서비스로 견적받기',
         'land.midcta.btn':'육상운송 서비스로 견적받기','rail.midcta.btn':'철송 서비스로 견적받기',
@@ -1751,23 +1751,15 @@ document.addEventListener('DOMContentLoaded', () => {
         /* ── Notice ── */
         'notice.col.num':'No.','notice.col.title':'Title','notice.col.category':'Category','notice.col.date':'Date','notice.col.views':'Views',
         'notice.tag.notice':'Notice','notice.tag.general':'General','notice.pagination.prev':'Prev','notice.pagination.next':'Next',
-        'notice.total':'Total <strong>32</strong> posts',
-        'notice.title.rail':'Rail Freight Service Launch Notice <span class="new-badge">NEW</span>',
-        'notice.title.english':'English-Language Website Support Now Available',
-        'notice.title1':'Logistics Operations Guide for Lunar New Year 2026 <span class="new-badge">NEW</span>',
-        'notice.title2':'Notice: Incheon Logistics Center Expansion Relocation',
-        'notice.title3':'Freight Rate Adjustment Notice (January 2026)',
-        'notice.title4':'Taein Logistics ISO 9001:2015 Re-certification Complete',
-        'notice.title5':'Smart Logistics System Upgrade Complete',
-        'notice.title6':'Logistics Operations Guide for Chuseok Holiday',
-        'notice.title7':'WCA Annual General Meeting Participation Notice',
-        'notice.title8':'China Route Rate Adjustment Notice',
-        'notice.title9':'Busan Branch Relocation Complete',
-        'notice.title10':'2025 Second-Half New Employee Recruitment Notice',
+        'notice.total':'Total <strong>3</strong> posts',
+        'notice.news1':'Container Freight Rates Fall for Second Straight Week as Peak Season Ends <span class="new-badge">NEW</span>',
+        'notice.news2':'Korea and Africa Discuss Expanding Logistics and Energy Infrastructure Cooperation',
+        'notice.news3':'EU to Introduce New Customs Handling Fee for Low-Value Shipments from November 1',
         /* ── Home Recent News Preview ── */
-        'home.news.title':'Recent News','home.news.more':'View All Notices',
-        'home.news.item1':'Rail Freight Service Launch Notice<span class="news-new">NEW</span>','home.news.item2':'English-Language Website Support Now Available',
-        'home.news.item3':'Logistics Operations Guide for Lunar New Year 2026<span class="news-new">NEW</span>',
+        'home.news.title':'Recent Logistics Trends','home.news.more':'See More News',
+        'home.news.item1':'Container Freight Rates Fall for Second Straight Week as Peak Season Ends<span class="news-new">NEW</span>',
+        'home.news.item2':'Korea and Africa Discuss Expanding Logistics and Energy Infrastructure Cooperation',
+        'home.news.item3':'EU to Introduce New Customs Handling Fee for Low-Value Shipments from November 1',
         /* ── Service Page Mid CTA ── */
         'sea.midcta.btn':'Get a Quote for Sea Freight','air.midcta.btn':'Get a Quote for Air Freight',
         'land.midcta.btn':'Get a Quote for Land Transport','rail.midcta.btn':'Get a Quote for Rail Freight',
