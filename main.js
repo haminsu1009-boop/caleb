@@ -1343,7 +1343,9 @@ document.addEventListener('DOMContentLoaded', () => {
         /* ── 공지사항 ── */
         'notice.col.num':'번호','notice.col.title':'제목','notice.col.category':'구분','notice.col.date':'등록일','notice.col.views':'조회',
         'notice.tag.notice':'공지','notice.tag.general':'일반','notice.pagination.prev':'이전','notice.pagination.next':'다음',
-        'notice.total':'총 <strong>30</strong>건',
+        'notice.total':'총 <strong>32</strong>건의 게시물이 있습니다.',
+        'notice.title.rail':'철송(철도운송) 서비스 오픈 안내 <span class="new-badge">NEW</span>',
+        'notice.title.english':'홈페이지 영문(English) 서비스 지원 시작 안내',
         'notice.title1':'2026년 설 연휴 물류 운영 안내 <span class="new-badge">NEW</span>','notice.title2':'인천 물류센터 확장 이전 안내',
         'notice.title3':'화물 운임 요율 조정 안내 (2026년 1월)','notice.title4':'태인물류 ISO 9001:2015 재인증 완료',
         'notice.title5':'스마트 물류 시스템 업그레이드 완료','notice.title6':'추석 연휴 물류 운영 안내',
@@ -1722,7 +1724,9 @@ document.addEventListener('DOMContentLoaded', () => {
         /* ── Notice ── */
         'notice.col.num':'No.','notice.col.title':'Title','notice.col.category':'Category','notice.col.date':'Date','notice.col.views':'Views',
         'notice.tag.notice':'Notice','notice.tag.general':'General','notice.pagination.prev':'Prev','notice.pagination.next':'Next',
-        'notice.total':'Total <strong>30</strong> posts',
+        'notice.total':'Total <strong>32</strong> posts',
+        'notice.title.rail':'Rail Freight Service Launch Notice <span class="new-badge">NEW</span>',
+        'notice.title.english':'English-Language Website Support Now Available',
         'notice.title1':'Logistics Operations Guide for Lunar New Year 2026 <span class="new-badge">NEW</span>',
         'notice.title2':'Notice: Incheon Logistics Center Expansion Relocation',
         'notice.title3':'Freight Rate Adjustment Notice (January 2026)',
