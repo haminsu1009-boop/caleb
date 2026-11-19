@@ -1353,15 +1353,16 @@ document.addEventListener('DOMContentLoaded', () => {
         /* ── 공지사항 ── */
         'notice.col.num':'번호','notice.col.title':'제목','notice.col.category':'구분','notice.col.date':'등록일','notice.col.views':'조회',
         'notice.tag.notice':'공지','notice.tag.general':'일반','notice.pagination.prev':'이전','notice.pagination.next':'다음',
-        'notice.total':'총 <strong>3</strong>건의 게시물이 있습니다.',
-        'notice.news1':'해상 컨테이너 운임 2주 연속 하락…성수기 종료로 수요 둔화 <span class="new-badge">NEW</span>',
+        'notice.total':'총 <strong>4</strong>건의 게시물이 있습니다.',
+        'notice.news1':'해상 컨테이너 운임 2주 연속 하락…성수기 종료로 수요 둔화',
         'notice.news2':'한·아프리카, 물류·에너지 인프라 협력 확대 논의',
         'notice.news3':'EU, 11월 1일부터 소액물품 통관 수수료 신설 예정…수출기업 영향 주시 필요',
+        'notice.news4':'한국해양진흥공사, 베트남서 동남아 물류·공급망 투자지원 설명회 개최 <span class="new-badge">NEW</span>',
         /* ── 홈 최근소식 미리보기 ── */
         'home.news.title':'최근 물류 동향','home.news.more':'더 많은 소식 보기',
-        'home.news.item1':'해상 컨테이너 운임 2주 연속 하락…성수기 종료로 수요 둔화<span class="news-new">NEW</span>',
-        'home.news.item2':'한·아프리카, 물류·에너지 인프라 협력 확대 논의',
-        'home.news.item3':'EU, 11월 1일부터 소액물품 통관 수수료 신설 예정',
+        'home.news.item1':'한국해양진흥공사, 베트남서 동남아 물류·공급망 투자지원 설명회 개최<span class="news-new">NEW</span>',
+        'home.news.item2':'해상 컨테이너 운임 2주 연속 하락…성수기 종료로 수요 둔화',
+        'home.news.item3':'한·아프리카, 물류·에너지 인프라 협력 확대 논의',
         /* ── 서비스 페이지 중간 CTA ── */
         'sea.midcta.btn':'해상운송 서비스로 견적받기','air.midcta.btn':'항공운송 서비스로 견적받기',
         'land.midcta.btn':'육상운송 서비스로 견적받기','rail.midcta.btn':'철송 서비스로 견적받기',
@@ -1751,15 +1752,16 @@ document.addEventListener('DOMContentLoaded', () => {
         /* ── Notice ── */
         'notice.col.num':'No.','notice.col.title':'Title','notice.col.category':'Category','notice.col.date':'Date','notice.col.views':'Views',
         'notice.tag.notice':'Notice','notice.tag.general':'General','notice.pagination.prev':'Prev','notice.pagination.next':'Next',
-        'notice.total':'Total <strong>3</strong> posts',
-        'notice.news1':'Container Freight Rates Fall for Second Straight Week as Peak Season Ends <span class="new-badge">NEW</span>',
+        'notice.total':'Total <strong>4</strong> posts',
+        'notice.news1':'Container Freight Rates Fall for Second Straight Week as Peak Season Ends',
         'notice.news2':'Korea and Africa Discuss Expanding Logistics and Energy Infrastructure Cooperation',
         'notice.news3':'EU to Introduce New Customs Handling Fee for Low-Value Shipments from November 1',
+        'notice.news4':'Korea Ocean Business Corporation Holds Southeast Asia Logistics & Supply Chain Investment Briefing in Vietnam <span class="new-badge">NEW</span>',
         /* ── Home Recent News Preview ── */
         'home.news.title':'Recent Logistics Trends','home.news.more':'See More News',
-        'home.news.item1':'Container Freight Rates Fall for Second Straight Week as Peak Season Ends<span class="news-new">NEW</span>',
-        'home.news.item2':'Korea and Africa Discuss Expanding Logistics and Energy Infrastructure Cooperation',
-        'home.news.item3':'EU to Introduce New Customs Handling Fee for Low-Value Shipments from November 1',
+        'home.news.item1':'Korea Ocean Business Corporation Holds Southeast Asia Logistics & Supply Chain Investment Briefing in Vietnam<span class="news-new">NEW</span>',
+        'home.news.item2':'Container Freight Rates Fall for Second Straight Week as Peak Season Ends',
+        'home.news.item3':'Korea and Africa Discuss Expanding Logistics and Energy Infrastructure Cooperation',
         /* ── Service Page Mid CTA ── */
         'sea.midcta.btn':'Get a Quote for Sea Freight','air.midcta.btn':'Get a Quote for Air Freight',
         'land.midcta.btn':'Get a Quote for Land Transport','rail.midcta.btn':'Get a Quote for Rail Freight',
