@@ -79,6 +79,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   max-width: 1200px; margin: 0 auto; padding: 0 24px;
   display: flex; align-items: center; height: 72px; gap: 32px;
 }
+.header-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .logo a { display: flex; align-items: center; gap: 6px; }
 .logo a, .logo a:hover, .logo a:visited, .logo a:active, .logo a:focus { text-decoration: none; color: #000 !important; }
 .logo-img { height: 34px; width: auto; flex-shrink: 0; }
@@ -444,13 +445,13 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .btn-consult {
   display: inline-block; border: 1.5px solid var(--accent); color: var(--white);
   background: var(--accent); padding: 8px 20px; border-radius: 4px;
-  font-size: 0.88rem; font-weight: 600; transition: var(--transition);
+  font-size: 0.88rem; font-weight: 600; transition: var(--transition); white-space: nowrap;
 }
 .btn-consult:hover { background: #aa1f1f; }
 .btn-estimate {
   display: inline-block; border: 1.5px solid var(--primary); color: var(--primary);
   background: transparent; padding: 8px 20px; border-radius: 4px;
-  font-size: 0.88rem; font-weight: 600; transition: var(--transition); margin-left: 8px;
+  font-size: 0.88rem; font-weight: 600; transition: var(--transition); white-space: nowrap;
 }
 .btn-estimate:hover { background: var(--bg); }
 .hamburger { display: none; flex-direction: column; gap: 5px; padding: 4px; }
