@@ -309,6 +309,13 @@ function checkBLNow(chatId, blNo) {
     if (terminalAddr)  props.setProperty(shedAddrKey, terminalAddr);
     if (shedSgn)       props.setProperty(shedSgnKey,  shedSgn);
 
+    // 화물관리번호 / 컨테이너번호 추출
+    var cargMtNo = null, cntrNo = null;
+    for (var i = 0; i < records.length; i++) {
+      if (!cargMtNo && records[i].cargMtNo) cargMtNo = records[i].cargMtNo;
+      if (!cntrNo && (records[i].cntrNo || records[i].cntNo)) cntrNo = records[i].cntrNo || records[i].cntNo;
+    }
+
     var rows = records.map(function(r) {
       return {
         status: r.cargTrcnRelaBsopTpcd || r.csclPrgsStts || r.prgsStts || r.cargTrcnRsltNm || '-',
@@ -318,7 +325,7 @@ function checkBLNow(chatId, blNo) {
       };
     });
     rows.reverse();
-    return { success: true, blNo: blNo, terminal: terminal, terminalPhone: terminalPhone, terminalAddr: terminalAddr, shedSgn: shedSgn, rows: rows };
+    return { success: true, blNo: blNo, terminal: terminal, terminalPhone: terminalPhone, terminalAddr: terminalAddr, shedSgn: shedSgn, cargMtNo: cargMtNo, cntrNo: cntrNo, rows: rows };
   } catch(e) {
     return { success: false, message: '오류: ' + e.message };
   }
