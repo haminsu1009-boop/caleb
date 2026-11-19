@@ -1035,12 +1035,16 @@ function renderModal(r) {
   }
   var html = '';
 
-  // MRN / MSN / HSN / 컨테이너번호
-  if (r.mrnNo || r.msNo || r.hNo || r.cntrNo) {
+  // 화물관리번호 MRN-MSN(-HSN) / 컨테이너번호
+  if (r.cargMtNo || r.cntrNo) {
+    var labels = ['MRN', 'MSN', 'HSN'];
     html += '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:0.76rem;line-height:1.75;">';
-    if (r.mrnNo)  html += '<div><span style="color:var(--text-3);min-width:38px;display:inline-block;">MRN</span> <span style="font-family:monospace;font-weight:600;color:var(--text);letter-spacing:0.02em;">' + r.mrnNo + '</span></div>';
-    if (r.msNo)   html += '<div><span style="color:var(--text-3);min-width:38px;display:inline-block;">MSN</span> <span style="font-family:monospace;font-weight:600;color:var(--text);letter-spacing:0.02em;">' + r.msNo + '</span></div>';
-    if (r.hNo)    html += '<div><span style="color:var(--text-3);min-width:38px;display:inline-block;">HSN</span> <span style="font-family:monospace;font-weight:600;color:var(--text);letter-spacing:0.02em;">' + r.hNo + '</span></div>';
+    if (r.cargMtNo) {
+      var parts = r.cargMtNo.split('-');
+      parts.forEach(function(p, i) {
+        html += '<div><span style="color:var(--text-3);min-width:38px;display:inline-block;">' + (labels[i] || 'HSN') + '</span> <span style="font-family:monospace;font-weight:600;color:var(--text);letter-spacing:0.02em;">' + p + '</span></div>';
+      });
+    }
     if (r.cntrNo) html += '<div><span style="color:var(--text-3);min-width:38px;display:inline-block;">CNTR</span> <span style="font-family:monospace;font-weight:600;color:var(--text);letter-spacing:0.02em;">' + r.cntrNo + '</span></div>';
     html += '</div>';
   }
