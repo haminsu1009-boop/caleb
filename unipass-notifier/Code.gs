@@ -309,11 +309,13 @@ function checkBLNow(chatId, blNo) {
     if (terminalAddr)  props.setProperty(shedAddrKey, terminalAddr);
     if (shedSgn)       props.setProperty(shedSgnKey,  shedSgn);
 
-    // 화물관리번호(cargMtNo) = "MRN-MSN" 또는 "MRN-MSN-HSN" / 컨테이너번호 추출
-    var cargMtNo = null, cntrNo = null;
+    // MRN / MSN / HSN / 컨테이너번호 추출
+    var mrnNo = null, msnNo = null, hsnNo = null, cntrNo = null;
     for (var i = 0; i < records.length; i++) {
       var r0 = records[i];
-      if (!cargMtNo && r0.cargMtNo) cargMtNo = r0.cargMtNo;
+      if (!mrnNo  && r0.cargMtNo) mrnNo = r0.cargMtNo;
+      if (!msnNo  && (r0.msNo || r0.mBlNo || r0.mblNo || r0.msblNo || r0.msnMtNo)) msnNo = r0.msNo || r0.mBlNo || r0.mblNo || r0.msblNo || r0.msnMtNo;
+      if (!hsnNo  && (r0.hNo  || r0.hBlNo || r0.hblNo || r0.hsblNo || r0.hsnMtNo)) hsnNo = r0.hNo  || r0.hBlNo || r0.hblNo || r0.hsblNo || r0.hsnMtNo;
       if (!cntrNo && (r0.cntrNo || r0.cntNo)) cntrNo = r0.cntrNo || r0.cntNo;
     }
 
@@ -326,7 +328,7 @@ function checkBLNow(chatId, blNo) {
       };
     });
     rows.reverse();
-    return { success: true, blNo: blNo, terminal: terminal, terminalPhone: terminalPhone, terminalAddr: terminalAddr, shedSgn: shedSgn, cargMtNo: cargMtNo, cntrNo: cntrNo, rows: rows };
+    return { success: true, blNo: blNo, terminal: terminal, terminalPhone: terminalPhone, terminalAddr: terminalAddr, shedSgn: shedSgn, mrnNo: mrnNo, msnNo: msnNo, hsnNo: hsnNo, cntrNo: cntrNo, rows: rows };
   } catch(e) {
     return { success: false, message: '오류: ' + e.message };
   }
