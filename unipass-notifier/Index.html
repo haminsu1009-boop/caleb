@@ -1036,12 +1036,28 @@ function renderModal(r) {
   var html = '';
 
   // MRN / MSN / HSN / CNTR
-  if (r.mrnNo || r.msnNo || r.hsnNo || r.cntrNo) {
-    html += '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:0.76rem;line-height:1.75;">';
-    if (r.mrnNo)  html += '<div><span style="color:var(--text-3);min-width:38px;display:inline-block;">MRN</span>  <span style="font-family:monospace;font-weight:600;color:var(--text);letter-spacing:0.02em;">' + r.mrnNo + '</span></div>';
-    if (r.msnNo)  html += '<div><span style="color:var(--text-3);min-width:38px;display:inline-block;">MSN</span>  <span style="font-family:monospace;font-weight:600;color:var(--text);letter-spacing:0.02em;">' + r.msnNo + '</span></div>';
-    if (r.hsnNo)  html += '<div><span style="color:var(--text-3);min-width:38px;display:inline-block;">HSN</span>  <span style="font-family:monospace;font-weight:600;color:var(--text);letter-spacing:0.02em;">' + r.hsnNo + '</span></div>';
-    if (r.cntrNo) html += '<div><span style="color:var(--text-3);min-width:38px;display:inline-block;">CNTR</span> <span style="font-family:monospace;font-weight:600;color:var(--text);letter-spacing:0.02em;">' + r.cntrNo + '</span></div>';
+  // cargMtNo가 "A-B-C" 형태면 split → MRN/MSN/HSN
+  // 대시 없으면 cargMtNo=MRN, mblNo=MSN, hblNo=HSN
+  if (r.cargMtNo || r.mblNo || r.hblNo || r.cntrNo) {
+    var mrn = null, msn = null, hsn = null;
+    if (r.cargMtNo && r.cargMtNo.indexOf('-') !== -1) {
+      var parts = r.cargMtNo.split('-');
+      mrn = parts[0] || null;
+      msn = parts[1] || r.mblNo || null;
+      hsn = parts[2] || r.hblNo || null;
+    } else {
+      mrn = r.cargMtNo || null;
+      msn = r.mblNo || null;
+      hsn = r.hblNo || null;
+    }
+    var numRow = function(label, val) {
+      return val ? '<div style="display:flex;gap:8px;align-items:baseline;"><span style="color:var(--text-3);font-size:0.72rem;min-width:34px;flex-shrink:0;">' + label + '</span><span style="font-family:monospace;font-weight:600;color:var(--text);font-size:0.78rem;letter-spacing:0.03em;word-break:break-all;">' + val + '</span></div>' : '';
+    };
+    html += '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;margin-bottom:8px;display:flex;flex-direction:column;gap:3px;">';
+    html += numRow('MRN', mrn);
+    html += numRow('MSN', msn);
+    html += numRow('HSN', hsn);
+    html += numRow('CNTR', r.cntrNo);
     html += '</div>';
   }
 

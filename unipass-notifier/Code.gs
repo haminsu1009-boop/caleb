@@ -309,14 +309,14 @@ function checkBLNow(chatId, blNo) {
     if (terminalAddr)  props.setProperty(shedAddrKey, terminalAddr);
     if (shedSgn)       props.setProperty(shedSgnKey,  shedSgn);
 
-    // MRN(cargMtNo) / MSN(mblNo) / HSN(hblNo) / 컨테이너번호 추출
-    var mrnNo = null, msnNo = null, hsnNo = null, cntrNo = null;
+    // 화물관리번호(cargMtNo) / MSN(mblNo) / HSN(hblNo) / 컨테이너번호 추출
+    var cargMtNo = null, mblNo = null, hblNo = null, cntrNo = null;
     for (var i = 0; i < records.length; i++) {
       var r0 = records[i];
-      if (!mrnNo  && r0.cargMtNo) mrnNo = r0.cargMtNo;
-      if (!msnNo  && r0.mblNo)    msnNo = r0.mblNo;
-      if (!hsnNo  && r0.hblNo)    hsnNo = r0.hblNo;
-      if (!cntrNo && (r0.cntrNo || r0.cntNo)) cntrNo = r0.cntrNo || r0.cntNo;
+      if (!cargMtNo && r0.cargMtNo) cargMtNo = r0.cargMtNo;
+      if (!mblNo    && r0.mblNo)    mblNo    = r0.mblNo;
+      if (!hblNo    && r0.hblNo)    hblNo    = r0.hblNo;
+      if (!cntrNo   && (r0.cntrNo || r0.cntNo)) cntrNo = r0.cntrNo || r0.cntNo;
     }
 
     var rows = records.map(function(r) {
@@ -328,7 +328,7 @@ function checkBLNow(chatId, blNo) {
       };
     });
     rows.reverse();
-    return { success: true, blNo: blNo, terminal: terminal, terminalPhone: terminalPhone, terminalAddr: terminalAddr, shedSgn: shedSgn, mrnNo: mrnNo, msnNo: msnNo, hsnNo: hsnNo, cntrNo: cntrNo, rows: rows };
+    return { success: true, blNo: blNo, terminal: terminal, terminalPhone: terminalPhone, terminalAddr: terminalAddr, shedSgn: shedSgn, cargMtNo: cargMtNo, mblNo: mblNo, hblNo: hblNo, cntrNo: cntrNo, rows: rows };
   } catch(e) {
     return { success: false, message: '오류: ' + e.message };
   }
