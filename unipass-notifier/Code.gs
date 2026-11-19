@@ -309,13 +309,13 @@ function checkBLNow(chatId, blNo) {
     if (terminalAddr)  props.setProperty(shedAddrKey, terminalAddr);
     if (shedSgn)       props.setProperty(shedSgnKey,  shedSgn);
 
-    // MRN / MSN / HSN / 컨테이너번호 추출
+    // MRN(cargMtNo) / MSN(mblNo) / HSN(hblNo) / 컨테이너번호 추출
     var mrnNo = null, msnNo = null, hsnNo = null, cntrNo = null;
     for (var i = 0; i < records.length; i++) {
       var r0 = records[i];
       if (!mrnNo  && r0.cargMtNo) mrnNo = r0.cargMtNo;
-      if (!msnNo  && (r0.msNo || r0.mBlNo || r0.mblNo || r0.msblNo || r0.msnMtNo)) msnNo = r0.msNo || r0.mBlNo || r0.mblNo || r0.msblNo || r0.msnMtNo;
-      if (!hsnNo  && (r0.hNo  || r0.hBlNo || r0.hblNo || r0.hsblNo || r0.hsnMtNo)) hsnNo = r0.hNo  || r0.hBlNo || r0.hblNo || r0.hsblNo || r0.hsnMtNo;
+      if (!msnNo  && r0.mblNo)    msnNo = r0.mblNo;
+      if (!hsnNo  && r0.hblNo)    hsnNo = r0.hblNo;
       if (!cntrNo && (r0.cntrNo || r0.cntNo)) cntrNo = r0.cntrNo || r0.cntNo;
     }
 
