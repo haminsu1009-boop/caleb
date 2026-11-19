@@ -309,11 +309,14 @@ function checkBLNow(chatId, blNo) {
     if (terminalAddr)  props.setProperty(shedAddrKey, terminalAddr);
     if (shedSgn)       props.setProperty(shedSgnKey,  shedSgn);
 
-    // 화물관리번호 / 컨테이너번호 추출
-    var cargMtNo = null, cntrNo = null;
+    // MRN / MSN / HSN / 컨테이너번호 추출
+    var mrnNo = null, msNo = null, hNo = null, cntrNo = null;
     for (var i = 0; i < records.length; i++) {
-      if (!cargMtNo && records[i].cargMtNo) cargMtNo = records[i].cargMtNo;
-      if (!cntrNo && (records[i].cntrNo || records[i].cntNo)) cntrNo = records[i].cntrNo || records[i].cntNo;
+      var r0 = records[i];
+      if (!mrnNo  && r0.mrnNo)  mrnNo  = r0.mrnNo;
+      if (!msNo   && r0.msNo)   msNo   = r0.msNo;
+      if (!hNo    && r0.hNo)    hNo    = r0.hNo;
+      if (!cntrNo && (r0.cntrNo || r0.cntNo)) cntrNo = r0.cntrNo || r0.cntNo;
     }
 
     var rows = records.map(function(r) {
@@ -325,7 +328,7 @@ function checkBLNow(chatId, blNo) {
       };
     });
     rows.reverse();
-    return { success: true, blNo: blNo, terminal: terminal, terminalPhone: terminalPhone, terminalAddr: terminalAddr, shedSgn: shedSgn, cargMtNo: cargMtNo, cntrNo: cntrNo, rows: rows };
+    return { success: true, blNo: blNo, terminal: terminal, terminalPhone: terminalPhone, terminalAddr: terminalAddr, shedSgn: shedSgn, mrnNo: mrnNo, msNo: msNo, hNo: hNo, cntrNo: cntrNo, rows: rows };
   } catch(e) {
     return { success: false, message: '오류: ' + e.message };
   }
