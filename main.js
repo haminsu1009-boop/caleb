@@ -1379,6 +1379,13 @@ document.addEventListener('DOMContentLoaded', () => {
         'rail.faq.q1':'철도운송(철송)과 트럭운송(육상운송)은 무엇이 다른가요?','rail.faq.a1':'철도운송은 대량화물을 장거리로 운송할 때 <a href="land-transport.html">트럭운송(육상운송)</a>보다 운임이 저렴하고 탄소배출이 적은 친환경 운송수단입니다. 다만 철도터미널까지의 상하차 과정이 추가로 필요해, 화물 특성에 따라 트럭운송과 병행하는 것이 효율적일 수 있습니다.',
         'rail.faq.q2':'철도운송은 어떤 화물에 적합한가요?','rail.faq.a2':'컨테이너 단위의 대량화물, 정기적으로 반복되는 내륙 운송 구간에 특히 적합합니다. 장거리 구간에서 트럭운송 대비 비용 절감 효과가 큽니다.',
         'rail.faq.q3':'철도운송 소요기간은 얼마나 되나요?','rail.faq.a3':'구간과 일정에 따라 다르지만, 일반적으로 1~3일 내 내륙 목적지까지 운송이 가능합니다. 정확한 일정은 출발지와 도착지를 알려주시면 안내해 드립니다.',
+        'rail.faq.q4':'철송 이용 비용은 어떻게 산정되나요?','rail.faq.a4':'컨테이너 규격(20ft/40ft), 운송 구간 거리, 물량에 따라 산정됩니다. 일반적으로 장거리·대량화물일수록 트럭운송 대비 비용 절감 효과가 커집니다. 정확한 견적은 출발지와 도착지, 화물 정보를 알려주시면 안내해 드립니다.',
+        'rail.faq.q5':'철송 이용 시 준비해야 할 서류는 무엇인가요?','rail.faq.a5':'일반적으로 화물 운송 의뢰서와 컨테이너 정보(규격, 중량)가 필요하며, 수출입 화물의 경우 통관 서류가 추가로 필요할 수 있습니다. 서류 준비는 담당자가 단계별로 안내해 드립니다.',
+        'rail.process.title':'철송 이용 절차',
+        'rail.step1.label':'상담·견적','rail.step1.desc':'화물 정보 접수 및<br/>구간별 견적 산출',
+        'rail.step2.label':'화물 반입','rail.step2.desc':'항만·ICD로 컨테이너<br/>반입 및 상차',
+        'rail.step3.label':'철도 운송','rail.step3.desc':'정기 화물열차로<br/>내륙 구간 운송',
+        'rail.step4.label':'도착지 인도','rail.step4.desc':'목적지 ICD 하차 및<br/>최종 배송 연계',
       },
       en: {
         /* ── Navigation ── */
@@ -1778,6 +1785,13 @@ document.addEventListener('DOMContentLoaded', () => {
         'rail.faq.q1':'What is the difference between rail freight and truck (land) transport?','rail.faq.a1':'Rail freight is cheaper and more eco-friendly than <a href="land-transport.html">trucking (land transport)</a> for large shipments over long distances, with lower carbon emissions. It does require extra loading/unloading at rail terminals, so combining it with trucking can be efficient depending on cargo type.',
         'rail.faq.q2':'What kind of cargo is rail freight suited for?','rail.faq.a2':'It\'s especially suited for large container shipments and recurring inland routes. It offers significant cost savings over trucking on long-distance routes.',
         'rail.faq.q3':'How long does rail freight take?','rail.faq.a3':'It varies by route and schedule, but inland delivery is generally possible within 1-3 days. Share your origin and destination for an exact timeline.',
+        'rail.faq.q4':'How is rail freight cost calculated?','rail.faq.a4':'It is calculated based on container size (20ft/40ft), route distance, and volume. Generally, long-distance and large-volume shipments see greater cost savings compared to trucking. Share your origin, destination, and cargo details for an exact quote.',
+        'rail.faq.q5':'What documents are needed to use rail freight?','rail.faq.a5':'A shipping request form and container details (size, weight) are generally required. For import/export cargo, customs documents may also be needed. Our team will guide you through the documentation step by step.',
+        'rail.process.title':'Rail Freight Process',
+        'rail.step1.label':'Consult & Quote','rail.step1.desc':'Cargo info received and<br/>route-based quote issued',
+        'rail.step2.label':'Cargo Intake','rail.step2.desc':'Container brought to<br/>port/ICD and loaded',
+        'rail.step3.label':'Rail Transport','rail.step3.desc':'Scheduled freight train<br/>moves cargo inland',
+        'rail.step4.label':'Final Delivery','rail.step4.desc':'Unloaded at destination ICD<br/>and connected to final delivery',
       }
     };
 
