@@ -1043,8 +1043,8 @@ function renderModal(r) {
     if (r.cargMtNo && r.cargMtNo.indexOf('-') !== -1) {
       var parts = r.cargMtNo.split('-');
       mrn = parts[0] || null;
-      msn = parts[1] || r.mblNo || null;
-      hsn = parts[2] || r.hblNo || null;
+      msn = parts[1] || null;
+      hsn = parts[2] || null;
     } else {
       mrn = r.cargMtNo || null;
       msn = r.mblNo || null;
