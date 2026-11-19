@@ -313,9 +313,12 @@ function checkBLNow(chatId, blNo) {
     var mrnNo = null, msNo = null, hNo = null, cntrNo = null;
     for (var i = 0; i < records.length; i++) {
       var r0 = records[i];
-      if (!mrnNo  && r0.mrnNo)  mrnNo  = r0.mrnNo;
-      if (!msNo   && r0.msNo)   msNo   = r0.msNo;
-      if (!hNo    && r0.hNo)    hNo    = r0.hNo;
+      // MRN: 적하목록관리번호 (mrnNo 없으면 cargMtNo fallback)
+      if (!mrnNo  && (r0.mrnNo  || r0.cargMtNo)) mrnNo = r0.mrnNo || r0.cargMtNo;
+      // MSN: 마스터 선하증권번호
+      if (!msNo   && (r0.msNo   || r0.msnMtNo || r0.msblNo || r0.mBlNo)) msNo = r0.msNo || r0.msnMtNo || r0.msblNo || r0.mBlNo;
+      // HSN: 하우스 선하증권번호
+      if (!hNo    && (r0.hNo    || r0.hsnMtNo || r0.hblNo  || r0.hBlNo)) hNo  = r0.hNo  || r0.hsnMtNo || r0.hblNo  || r0.hBlNo;
       if (!cntrNo && (r0.cntrNo || r0.cntNo)) cntrNo = r0.cntrNo || r0.cntNo;
     }
 
