@@ -3,82 +3,101 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>유니패스 알림</title>
+<title>유니패스 통관 알림</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
+/* ── Design tokens ── */
 :root {
-  --bg: #f1f5f9;
-  --surface: #ffffff;
-  --surface2: #f8fafc;
-  --border: #e2e8f0;
-  --text: #0f172a;
-  --text-2: #475569;
-  --text-3: #94a3b8;
-  --accent: #2563eb;
-  --accent-light: #eff6ff;
-  --accent-hover: #1d4ed8;
-  --danger: #ef4444;
-  --danger-light: #fef2f2;
-  --success: #22c55e;
-  --success-light: #f0fdf4;
-  --kakao: #FEE500;
-  --kakao-text: #3A1D1D;
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-  --shadow: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
-  --radius: 12px;
-  --radius-sm: 7px;
+  /* Layout: two-column dashboard, left=BL list, right=sidebar */
+  --bg:           #EEF2F9;
+  --surface:      #FFFFFF;
+  --surface2:     #F5F7FC;
+  --surface3:     #EEF2F9;
+  --border:       #DDE3F0;
+  --border-soft:  #E8EDF8;
+  --text:         #0C1A3D;
+  --text-2:       #4A5578;
+  --text-3:       #8A97BC;
+  --accent:       #2452D6;
+  --accent-2:     #1A3FA8;
+  --accent-light: #EBF0FF;
+  --accent-muted: #C5D3FA;
+  --danger:       #E03E3E;
+  --danger-light: #FEF0F0;
+  --success:      #0F9E6C;
+  --success-light:#E8FAF4;
+  --warning:      #D97706;
+  --kakao:        #FEE500;
+  --kakao-text:   #3C1E1E;
+  --shadow-xs:    0 1px 2px rgba(20,40,100,.06);
+  --shadow-sm:    0 1px 4px rgba(20,40,100,.08), 0 0 0 1px rgba(20,40,100,.04);
+  --shadow:       0 2px 8px rgba(20,40,100,.10), 0 0 0 1px rgba(20,40,100,.04);
+  --shadow-md:    0 8px 24px rgba(20,40,100,.13), 0 0 0 1px rgba(20,40,100,.04);
+  --radius:       10px;
+  --radius-sm:    6px;
+  --radius-lg:    14px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0f172a;
-    --surface: #1e293b;
-    --surface2: #1a2234;
-    --border: #2d3f55;
-    --text: #f1f5f9;
-    --text-2: #94a3b8;
-    --text-3: #64748b;
-    --accent: #60a5fa;
-    --accent-light: #1e3a5f;
-    --accent-hover: #93c5fd;
-    --danger: #f87171;
-    --danger-light: #3b1515;
-    --success: #4ade80;
-    --success-light: #14301e;
-    --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
-    --shadow: 0 1px 3px rgba(0,0,0,0.25);
-    --shadow-md: 0 4px 16px rgba(0,0,0,0.3);
+    --bg:           #0C1226;
+    --surface:      #172040;
+    --surface2:     #1C2850;
+    --surface3:     #0F1A36;
+    --border:       #253368;
+    --border-soft:  #1E2D5C;
+    --text:         #E8EEFF;
+    --text-2:       #8FA4D8;
+    --text-3:       #4F6499;
+    --accent:       #5A82FF;
+    --accent-2:     #7E9EFF;
+    --accent-light: #1A2D6A;
+    --accent-muted: #2A407A;
+    --danger:       #F87171;
+    --danger-light: #2D1414;
+    --success:      #34D399;
+    --success-light:#0D2920;
+    --warning:      #FBBF24;
+    --shadow-xs:    0 1px 2px rgba(0,0,0,.2);
+    --shadow-sm:    0 1px 4px rgba(0,0,0,.25);
+    --shadow:       0 2px 8px rgba(0,0,0,.3);
+    --shadow-md:    0 8px 24px rgba(0,0,0,.4);
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0f172a;
-  --surface: #1e293b;
-  --surface2: #1a2234;
-  --border: #2d3f55;
-  --text: #f1f5f9;
-  --text-2: #94a3b8;
-  --text-3: #64748b;
-  --accent: #60a5fa;
-  --accent-light: #1e3a5f;
-  --accent-hover: #93c5fd;
-  --danger: #f87171;
-  --danger-light: #3b1515;
-  --success: #4ade80;
-  --success-light: #14301e;
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
-  --shadow: 0 1px 3px rgba(0,0,0,0.25);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.3);
+  --bg:           #0C1226;
+  --surface:      #172040;
+  --surface2:     #1C2850;
+  --surface3:     #0F1A36;
+  --border:       #253368;
+  --border-soft:  #1E2D5C;
+  --text:         #E8EEFF;
+  --text-2:       #8FA4D8;
+  --text-3:       #4F6499;
+  --accent:       #5A82FF;
+  --accent-2:     #7E9EFF;
+  --accent-light: #1A2D6A;
+  --accent-muted: #2A407A;
+  --danger:       #F87171;
+  --danger-light: #2D1414;
+  --success:      #34D399;
+  --success-light:#0D2920;
+  --warning:      #FBBF24;
+  --shadow-xs:    0 1px 2px rgba(0,0,0,.2);
+  --shadow-sm:    0 1px 4px rgba(0,0,0,.25);
+  --shadow:       0 2px 8px rgba(0,0,0,.3);
+  --shadow-md:    0 8px 24px rgba(0,0,0,.4);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: 'Pretendard', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Pretendard', 'Apple SD Gothic Neo', -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* ── Setup screen ── */
@@ -87,68 +106,127 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px 16px;
+  padding: 32px 16px;
+  background: var(--bg);
 }
-.setup-box {
+
+.setup-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 36px 32px;
-  width: 100%;
-  max-width: 380px;
+  border-radius: 20px;
   box-shadow: var(--shadow-md);
+  width: 100%;
+  max-width: 400px;
+  overflow: hidden;
 }
-.setup-logo { font-size: 32px; margin-bottom: 8px; }
-.setup-box h2 { font-size: 1.2rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
-.setup-box p { font-size: 0.8rem; color: var(--text-2); margin-bottom: 24px; line-height: 1.65; }
-.setup-box a { color: var(--accent); text-decoration: none; }
+
+.setup-brand {
+  background: linear-gradient(135deg, #1A3FA8 0%, #2452D6 100%);
+  padding: 32px 32px 28px;
+  text-align: center;
+}
+.setup-brand-icon {
+  width: 52px;
+  height: 52px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 14px;
+  font-size: 24px;
+}
+.setup-brand h1 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+.setup-brand p {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.7);
+  margin-top: 4px;
+}
+
+.setup-body {
+  padding: 28px 28px 32px;
+}
+
+.setup-body a { color: var(--accent); text-decoration: none; }
 
 /* ── Main layout ── */
 .app {
   display: grid;
   grid-template-rows: auto 1fr;
   height: 100vh;
-  max-width: 1000px;
+  max-width: 1080px;
   margin: 0 auto;
   padding: 0 16px;
 }
 
+/* ── Header ── */
 header {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 14px 0 12px;
-  border-bottom: 1px solid var(--border);
 }
-.header-logo { font-size: 20px; }
-header h1 { font-size: 1rem; font-weight: 700; color: var(--text); flex: 1; }
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1;
+}
+.header-icon {
+  width: 32px;
+  height: 32px;
+  background: var(--accent);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+header h1 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
 .header-badge {
   font-size: 0.72rem;
   color: var(--text-3);
-  background: var(--surface2);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 20px;
   padding: 3px 10px;
   font-family: 'JetBrains Mono', monospace;
+  box-shadow: var(--shadow-xs);
 }
 .header-logout {
   background: none;
-  border: none;
+  border: 1px solid var(--border);
   color: var(--text-3);
   font-size: 0.72rem;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
-  transition: background 0.15s, color 0.15s;
+  padding: 5px 12px;
+  border-radius: 20px;
+  transition: all 0.15s;
   font-family: inherit;
 }
-.header-logout:hover { background: var(--surface2); color: var(--text-2); }
+.header-logout:hover {
+  background: var(--surface);
+  color: var(--text-2);
+  border-color: var(--text-3);
+}
 
+/* ── Columns ── */
 .columns {
   display: grid;
-  grid-template-columns: 1fr 252px;
+  grid-template-columns: 1fr 260px;
   gap: 12px;
-  padding: 12px 0;
+  padding: 0 0 12px;
   height: 100%;
   overflow: hidden;
 }
@@ -157,29 +235,34 @@ header h1 { font-size: 1rem; font-weight: 700; color: var(--text); flex: 1; }
 .panel {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 .panel-head {
-  padding: 11px 14px;
-  border-bottom: 1px solid var(--border);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-soft);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex-shrink: 0;
+  background: var(--surface);
 }
 .panel-title {
-  font-size: 0.72rem;
-  font-weight: 600;
+  font-size: 0.7rem;
+  font-weight: 700;
   color: var(--text-3);
   text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.08em;
   flex: 1;
 }
-.panel-body { padding: 12px 14px; flex: 1; overflow-y: auto; }
+.panel-body {
+  padding: 14px 16px;
+  flex: 1;
+  overflow-y: auto;
+}
 .panel-body::-webkit-scrollbar { width: 4px; }
 .panel-body::-webkit-scrollbar-track { background: transparent; }
 .panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
@@ -190,15 +273,15 @@ header h1 { font-size: 1rem; font-weight: 700; color: var(--text); flex: 1; }
   font-size: 0.72rem;
   font-weight: 600;
   color: var(--text-2);
-  margin-bottom: 5px;
+  margin-bottom: 6px;
   letter-spacing: 0.02em;
 }
 input[type="text"], textarea, select {
   width: 100%;
   background: var(--surface2);
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 8px 10px;
+  padding: 8px 11px;
   font-size: 0.82rem;
   color: var(--text);
   font-family: inherit;
@@ -208,9 +291,10 @@ input[type="text"], textarea, select {
 }
 input:focus, textarea:focus, select:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+  box-shadow: 0 0 0 3px var(--accent-light);
+  background: var(--surface);
 }
-textarea { resize: none; height: 58px; }
+textarea { resize: none; height: 60px; }
 
 .add-row {
   display: flex;
@@ -218,7 +302,7 @@ textarea { resize: none; height: 58px; }
   margin-top: 8px;
   align-items: center;
 }
-.add-row select { width: 102px; flex-shrink: 0; }
+.add-row select { width: 106px; flex-shrink: 0; }
 
 /* ── Buttons ── */
 .btn {
@@ -233,21 +317,40 @@ textarea { resize: none; height: 58px; }
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: background 0.12s, opacity 0.12s, transform 0.1s;
+  transition: all 0.12s;
   white-space: nowrap;
   user-select: none;
+  letter-spacing: -0.01em;
 }
 .btn:active { transform: scale(0.97); }
-.btn-primary { background: var(--accent); color: #fff; }
-.btn-primary:hover { background: var(--accent-hover); }
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(36,82,214,.35);
+}
+.btn-primary:hover { background: var(--accent-2); box-shadow: 0 2px 8px rgba(36,82,214,.4); }
+
 .btn-danger { background: var(--danger); color: #fff; }
-.btn-danger:hover { opacity: 0.85; }
-.btn-gray { background: var(--surface2); color: var(--text-2); border: 1px solid var(--border); }
-.btn-gray:hover { background: var(--border); }
+.btn-danger:hover { opacity: 0.88; }
+
+.btn-gray {
+  background: var(--surface2);
+  color: var(--text-2);
+  border: 1.5px solid var(--border);
+}
+.btn-gray:hover { background: var(--surface3); border-color: var(--text-3); }
+
 .btn-success { background: var(--success); color: #fff; }
-.btn-kakao { background: var(--kakao); color: var(--kakao-text); }
+
+.btn-kakao {
+  background: var(--kakao);
+  color: var(--kakao-text);
+  font-weight: 700;
+}
 .btn-kakao:hover { opacity: 0.9; }
-.btn-xs { padding: 4px 9px; font-size: 0.72rem; border-radius: 5px; }
+
+.btn-xs { padding: 4px 9px; font-size: 0.7rem; border-radius: 5px; }
 .btn-sm { padding: 6px 12px; font-size: 0.78rem; }
 .btn-full { width: 100%; }
 
@@ -256,13 +359,14 @@ textarea { resize: none; height: 58px; }
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 14px;
-  border-bottom: 1px solid var(--border);
+  padding: 7px 16px;
+  border-bottom: 1px solid var(--border-soft);
   background: var(--surface2);
   flex-shrink: 0;
 }
 .bl-toolbar input[type="checkbox"] {
-  width: 15px; height: 15px;
+  width: 15px;
+  height: 15px;
   cursor: pointer;
   accent-color: var(--accent);
   flex-shrink: 0;
@@ -271,15 +375,17 @@ textarea { resize: none; height: 58px; }
 
 /* BL search */
 .bl-search-wrap {
-  padding: 7px 14px;
-  border-bottom: 1px solid var(--border);
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border-soft);
   background: var(--surface2);
   flex-shrink: 0;
 }
 .bl-search-wrap input {
-  padding: 5px 10px;
+  padding: 6px 12px;
   font-size: 0.78rem;
   border-radius: 20px;
+  background: var(--surface);
+  border-color: var(--border);
 }
 
 /* ── BL list ── */
@@ -289,32 +395,43 @@ textarea { resize: none; height: 58px; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 32px 0;
-  gap: 8px;
+  padding: 40px 0;
+  gap: 10px;
   color: var(--text-3);
   font-size: 0.8rem;
 }
-.bl-empty-icon { font-size: 28px; opacity: 0.35; }
+.bl-empty-icon {
+  width: 44px;
+  height: 44px;
+  background: var(--surface3);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  opacity: 0.6;
+}
 
 .bl-item {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 7px 14px;
-  border-bottom: 1px solid var(--border);
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border-soft);
   transition: background 0.1s;
 }
 .bl-item:last-child { border-bottom: none; }
-.bl-item:hover { background: var(--surface2); }
+.bl-item:hover { background: var(--accent-light); }
 .bl-item input[type="checkbox"] {
-  width: 14px; height: 14px;
+  width: 14px;
+  height: 14px;
   cursor: pointer;
   accent-color: var(--accent);
   flex-shrink: 0;
 }
 .bl-no {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 700;
   color: var(--accent);
   flex: 1;
@@ -327,7 +444,7 @@ textarea { resize: none; height: 58px; }
 .bl-item select {
   width: 68px;
   padding: 3px 5px;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   border-radius: 4px;
   flex-shrink: 0;
 }
@@ -337,21 +454,28 @@ textarea { resize: none; height: 58px; }
 
 /* ── Badge ── */
 .badge {
-  font-size: 0.68rem;
+  font-size: 0.67rem;
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 20px;
   letter-spacing: 0.03em;
 }
-.badge-on { background: var(--success-light); color: var(--success); }
-.badge-off { background: var(--surface2); color: var(--text-3); border: 1px solid var(--border); }
+.badge-on {
+  background: var(--success-light);
+  color: var(--success);
+}
+.badge-off {
+  background: var(--surface3);
+  color: var(--text-3);
+  border: 1px solid var(--border);
+}
 
-/* ── Notify channel ── */
+/* ── Channel section ── */
 .channel-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 7px;
+  margin-bottom: 8px;
 }
 .channel-label { font-size: 0.82rem; color: var(--text); flex: 1; font-weight: 500; }
 
@@ -362,15 +486,19 @@ textarea { resize: none; height: 58px; }
 }
 .link-input-row input { flex: 1; font-size: 0.75rem; }
 
-.section-divider { height: 1px; background: var(--border); margin: 10px 0; }
+.section-divider {
+  height: 1px;
+  background: var(--border-soft);
+  margin: 11px 0;
+}
 
 /* ── Bot commands ── */
 .cmd-table { width: 100%; border-collapse: collapse; }
-.cmd-table tr + tr td { border-top: 1px solid var(--border); }
+.cmd-table tr + tr td { border-top: 1px solid var(--border-soft); }
 .cmd-table td { padding: 5px 0; vertical-align: middle; }
 .cmd-table td:first-child {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.69rem;
+  font-size: 0.68rem;
   color: var(--accent);
   padding-right: 8px;
   white-space: nowrap;
@@ -380,13 +508,13 @@ textarea { resize: none; height: 58px; }
 /* ── Toast ── */
 .toast {
   position: fixed;
-  bottom: 24px;
+  bottom: 28px;
   left: 50%;
-  transform: translateX(-50%) translateY(10px);
-  background: rgba(15, 23, 42, 0.92);
-  color: #f1f5f9;
+  transform: translateX(-50%) translateY(8px);
+  background: var(--text);
+  color: var(--surface);
   border-radius: 10px;
-  padding: 9px 20px;
+  padding: 10px 20px;
   font-size: 0.8rem;
   font-weight: 500;
   opacity: 0;
@@ -396,20 +524,19 @@ textarea { resize: none; height: 58px; }
   white-space: pre-line;
   text-align: center;
   max-width: 90vw;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  box-shadow: var(--shadow-md);
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 /* ── Misc ── */
 .field + .field { margin-top: 12px; }
-.hint { font-size: 0.71rem; color: var(--text-3); margin-top: 4px; }
+.hint { font-size: 0.71rem; color: var(--text-3); margin-top: 4px; line-height: 1.6; }
 
 .or-divider {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 14px 0;
+  margin: 18px 0;
 }
 .or-divider::before, .or-divider::after {
   content: '';
@@ -421,18 +548,198 @@ textarea { resize: none; height: 58px; }
 
 /* ── BL count chip ── */
 .count-chip {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
   background: var(--accent-light);
   color: var(--accent);
   border-radius: 20px;
-  padding: 2px 8px;
+  padding: 2px 9px;
+  border: 1px solid var(--accent-muted);
+}
+
+/* ── Setup states ── */
+.setup-error {
+  margin-top: 10px;
+  padding: 10px 13px;
+  background: var(--danger-light);
+  color: var(--danger);
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  border: 1px solid rgba(224,62,62,0.2);
+}
+.setup-loading {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 0.8rem;
+  color: var(--text-3);
+}
+
+/* ── Modal ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10,20,50,0.55);
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  backdrop-filter: blur(4px);
+}
+.modal-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  width: 100%;
+  max-width: 490px;
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+.modal-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--border-soft);
+  flex-shrink: 0;
+  background: var(--surface2);
+}
+.modal-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  flex: 1;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.02em;
+}
+.modal-close {
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  color: var(--text-3);
+  font-size: 0.85rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.modal-close:hover { background: var(--border); color: var(--text); }
+.modal-body {
+  padding: 16px 18px;
+  overflow-y: auto;
+  flex: 1;
+}
+.modal-body::-webkit-scrollbar { width: 4px; }
+.modal-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ── Number block in modal ── */
+.num-block {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.num-row {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+.num-label {
+  color: var(--text-3);
+  font-size: 0.68rem;
+  font-weight: 700;
+  min-width: 36px;
+  flex-shrink: 0;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.num-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  color: var(--text);
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+  word-break: break-all;
+}
+
+/* ── Terminal block ── */
+.terminal-block {
+  background: var(--accent-light);
+  border: 1px solid var(--accent-muted);
+  border-radius: 10px;
+  padding: 11px 14px;
+  margin-bottom: 12px;
+  font-size: 0.8rem;
+}
+.terminal-name {
+  font-weight: 700;
+  color: var(--text);
+  font-size: 0.85rem;
+}
+.terminal-phone {
+  color: var(--accent);
+  margin-left: 8px;
+  font-size: 0.78rem;
+}
+.terminal-addr {
+  color: var(--text-2);
+  margin-top: 3px;
+  font-size: 0.74rem;
+}
+
+/* ── Progress table ── */
+.progress-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+.progress-table thead th {
+  text-align: left;
+  padding: 6px 8px;
+  color: var(--text-3);
+  font-weight: 700;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 2px solid var(--border);
+}
+.progress-table tbody tr {
+  border-bottom: 1px solid var(--border-soft);
+  transition: background 0.1s;
+}
+.progress-table tbody tr:hover { background: var(--surface2); }
+.progress-table tbody tr.latest {
+  background: var(--accent-light);
+}
+.progress-table td {
+  padding: 8px 8px;
+  vertical-align: middle;
+}
+.progress-table td:last-child {
+  color: var(--text-2);
+  white-space: nowrap;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
 }
 
 /* ── Responsive ── */
 @media (max-width: 640px) {
-  .columns { grid-template-columns: 1fr; grid-template-rows: auto auto; }
-  .sidebar { flex-direction: row; overflow-x: auto; }
+  .columns {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+  }
+  .sidebar {
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
   .sidebar .panel { min-width: 240px; }
   .app { padding: 0 12px; }
 }
@@ -442,40 +749,41 @@ textarea { resize: none; height: 58px; }
 
 <!-- Setup Screen -->
 <div id="setupScreen" class="setup-wrap">
-  <div class="setup-box">
-    <div class="setup-logo">📦</div>
-    <h2>유니패스 통관 알림</h2>
-    <p>알림 받을 방법을 선택해 시작하세요.</p>
-
-    <div id="loginView">
-      <button class="btn btn-kakao btn-full" style="font-size:0.9rem;padding:12px;" onclick="startKakaoLogin()">
-        💬 카카오톡으로 시작
-      </button>
-
-      <div class="or-divider"><span>또는</span></div>
-
-      <div class="field">
-        <label class="field-label">✈️ 텔레그램 Chat ID</label>
-        <input type="text" id="setupChatId" placeholder="예: 8624472047" inputmode="numeric">
-        <div class="hint"><a href="https://t.me/userinfobot" target="_blank">@userinfobot</a>에 /start 보내면 확인할 수 있어요.</div>
-      </div>
-      <button class="btn btn-primary btn-full" style="margin-top:10px;" onclick="setupWithTelegram()">✈️ 텔레그램으로 시작</button>
+  <div class="setup-card">
+    <div class="setup-brand">
+      <div class="setup-brand-icon">📦</div>
+      <h1>유니패스 통관 알림</h1>
+      <p>실시간 화물 통관 현황을 알림으로 받아보세요</p>
     </div>
+    <div class="setup-body">
+      <div id="loginView">
+        <button class="btn btn-kakao btn-full" style="font-size:0.9rem;padding:13px;border-radius:9px;" onclick="startKakaoLogin()">
+          💬 카카오톡으로 시작하기
+        </button>
 
-    <div id="setupLoading" style="display:none;text-align:center;margin-top:16px;font-size:0.8rem;color:var(--text-3);">
-      ⏳ 처리 중...
-    </div>
-    <div id="setupError" style="display:none;margin-top:10px;padding:9px 12px;background:var(--danger-light);color:var(--danger);border-radius:8px;font-size:0.78rem;"></div>
+        <div class="or-divider"><span>또는</span></div>
 
-    <div id="kakaoSuccess" style="display:none;margin-top:16px;">
-      <div style="text-align:center;padding:16px 0 12px;">
-        <div style="font-size:32px;margin-bottom:8px;">✅</div>
-        <div style="font-weight:700;font-size:0.95rem;color:var(--text);margin-bottom:4px;" id="kakaoWelcome">카카오 연결 완료!</div>
-        <div style="font-size:0.78rem;color:var(--text-2);">카카오톡으로 알림을 받을 준비가 됐어요.</div>
+        <div class="field">
+          <label class="field-label">✈️ 텔레그램 Chat ID</label>
+          <input type="text" id="setupChatId" placeholder="예: 8624472047" inputmode="numeric">
+          <div class="hint"><a href="https://t.me/userinfobot" target="_blank">@userinfobot</a>에 /start 보내면 ID를 확인할 수 있어요.</div>
+        </div>
+        <button class="btn btn-primary btn-full" style="margin-top:10px;padding:11px;" onclick="setupWithTelegram()">✈️ 텔레그램으로 시작하기</button>
       </div>
-      <button class="btn btn-primary btn-full" style="font-size:0.92rem;padding:12px;margin-top:4px;" onclick="proceedToMain()">
-        🚀 시작하기
-      </button>
+
+      <div id="setupLoading" class="setup-loading" style="display:none;">⏳ 처리 중...</div>
+      <div id="setupError" class="setup-error" style="display:none;"></div>
+
+      <div id="kakaoSuccess" style="display:none;margin-top:16px;">
+        <div style="text-align:center;padding:20px 0 14px;">
+          <div style="font-size:36px;margin-bottom:10px;">✅</div>
+          <div style="font-weight:700;font-size:1rem;color:var(--text);margin-bottom:5px;" id="kakaoWelcome">카카오 연결 완료!</div>
+          <div style="font-size:0.8rem;color:var(--text-2);">카카오톡으로 알림을 받을 준비가 됐어요.</div>
+        </div>
+        <button class="btn btn-primary btn-full" style="font-size:0.9rem;padding:12px;border-radius:9px;" onclick="proceedToMain()">
+          시작하기 →
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -483,8 +791,10 @@ textarea { resize: none; height: 58px; }
 <!-- Main App -->
 <div id="mainScreen" class="app" style="display:none;">
   <header>
-    <span class="header-logo">📦</span>
-    <h1>유니패스 통관 알림</h1>
+    <div class="header-brand">
+      <div class="header-icon">📦</div>
+      <h1>유니패스 통관 알림</h1>
+    </div>
     <span class="header-badge" id="nicknameDisplay"></span>
     <button class="header-logout" onclick="logout()">로그아웃</button>
   </header>
@@ -519,11 +829,9 @@ textarea { resize: none; height: 58px; }
           <span class="panel-title">등록된 BL</span>
           <span id="blCount"></span>
         </div>
-        <!-- Search -->
         <div class="bl-search-wrap">
-          <input type="text" id="blSearch" placeholder="🔍  BL번호 검색..." oninput="filterBLs()" style="border-radius:20px;">
+          <input type="text" id="blSearch" placeholder="🔍  BL번호 검색..." oninput="filterBLs()">
         </div>
-        <!-- Toolbar -->
         <div class="bl-toolbar">
           <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
           <span class="bl-toolbar-label">전체 선택</span>
@@ -533,7 +841,7 @@ textarea { resize: none; height: 58px; }
         <div style="flex:1;overflow-y:auto;">
           <ul class="bl-list" id="blList">
             <li class="bl-empty">
-              <span class="bl-empty-icon">📭</span>
+              <div class="bl-empty-icon">📭</div>
               등록된 BL이 없습니다
             </li>
           </ul>
@@ -543,14 +851,12 @@ textarea { resize: none; height: 58px; }
 
     <!-- Right sidebar -->
     <div class="sidebar">
-
       <!-- Notification channels -->
       <div class="panel" style="flex-shrink:0;">
         <div class="panel-head">
           <span class="panel-title">알림 채널</span>
         </div>
         <div class="panel-body" style="display:flex;flex-direction:column;">
-          <!-- Kakao -->
           <div class="channel-row">
             <span class="channel-label">💬 카카오톡</span>
             <span id="kakaoStatus" class="badge badge-off">미연결</span>
@@ -564,13 +870,12 @@ textarea { resize: none; height: 58px; }
 
           <div class="section-divider"></div>
 
-          <!-- Telegram -->
           <div class="channel-row">
             <span class="channel-label">✈️ 텔레그램</span>
             <span id="telegramStatus" class="badge badge-off">미연결</span>
           </div>
           <div id="telegramSetupView">
-            <div class="hint" style="margin-bottom:6px;">
+            <div class="hint" style="margin-bottom:7px;">
               <a href="https://t.me/userinfobot" target="_blank" style="color:var(--accent);text-decoration:none;">@userinfobot</a>에서 Chat ID 확인
             </div>
             <div class="link-input-row">
@@ -608,14 +913,14 @@ textarea { resize: none; height: 58px; }
 <div class="toast" id="toast"></div>
 
 <!-- BL 상세 조회 모달 -->
-<div id="blModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:100;display:none;align-items:center;justify-content:center;padding:16px;">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:480px;max-height:80vh;display:flex;flex-direction:column;box-shadow:var(--shadow-md);overflow:hidden;">
-    <div style="display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0;">
-      <span style="font-size:1rem;font-weight:700;color:var(--text);flex:1;" id="modalTitle">조회 중...</span>
-      <button onclick="closeModal()" style="background:none;border:none;cursor:pointer;color:var(--text-3);font-size:1.1rem;padding:2px 6px;border-radius:6px;" title="닫기">✕</button>
+<div id="blModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-title" id="modalTitle">조회 중...</span>
+      <button class="modal-close" onclick="closeModal()">✕ 닫기</button>
     </div>
-    <div id="modalBody" style="padding:14px 16px;overflow-y:auto;flex:1;">
-      <div style="text-align:center;padding:24px 0;color:var(--text-3);font-size:0.82rem;">⏳ 조회 중...</div>
+    <div class="modal-body" id="modalBody">
+      <div style="text-align:center;padding:28px 0;color:var(--text-3);font-size:0.82rem;">⏳ 조회 중...</div>
     </div>
   </div>
 </div>
@@ -801,7 +1106,7 @@ function renderBLList(bls) {
   var countEl = document.getElementById('blCount');
   document.getElementById('selectAll').checked = false;
   if (!bls || bls.length === 0) {
-    ul.innerHTML = '<li class="bl-empty"><span class="bl-empty-icon">📭</span>등록된 BL이 없습니다</li>';
+    ul.innerHTML = '<li class="bl-empty"><div class="bl-empty-icon">📭</div>등록된 BL이 없습니다</li>';
     countEl.innerHTML = '';
     return;
   }
@@ -817,7 +1122,7 @@ function renderBLList(bls) {
           return '<option value="' + m + '"' + (m === interval ? ' selected' : '') + '>' + m + '분</option>';
         }).join('')
       + '</select>'
-      + '<button class="btn btn-gray btn-xs" onclick="openUnipass(\'' + blNo + '\')" title="유니패스에서 조회">🔍</button>'
+      + '<button class="btn btn-gray btn-xs" onclick="openUnipass(\'' + blNo + '\')" title="상세 조회">🔍</button>'
       + '<button class="btn btn-danger btn-xs" onclick="removeSingle(\'' + blNo + '\')">삭제</button>'
       + '</li>';
   }).join('');
@@ -963,8 +1268,8 @@ function logout() {
 
 function openUnipass(blNo) {
   var modal = document.getElementById('blModal');
-  document.getElementById('modalTitle').textContent = '📦 ' + blNo;
-  document.getElementById('modalBody').innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--text-3);font-size:0.82rem;">⏳ 조회 중...</div>';
+  document.getElementById('modalTitle').textContent = blNo;
+  document.getElementById('modalBody').innerHTML = '<div style="text-align:center;padding:28px 0;color:var(--text-3);font-size:0.82rem;">⏳ 조회 중...</div>';
   modal.style.display = 'flex';
   google.script.run
     .withSuccessHandler(function(r) { renderModal(r); })
@@ -975,10 +1280,8 @@ function openUnipass(blNo) {
 }
 
 function renderWrhsAddForm(shedSgn, blNo, showBtn) {
-  var btnHtml = showBtn !== false
-    ? ' <button onclick="showWrhsForm(\'' + shedSgn + '\',\'' + blNo + '\')" style="font-size:0.68rem;padding:2px 7px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--text-2);cursor:pointer;">✏️ 편집</button>'
-    : ' <button onclick="showWrhsForm(\'' + shedSgn + '\',\'' + blNo + '\')" style="font-size:0.68rem;padding:2px 7px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--text-2);cursor:pointer;">✏️ 편집</button>';
-  return '<div style="margin-top:4px;" id="wrhs-add-' + shedSgn + '">'
+  var btnHtml = ' <button onclick="showWrhsForm(\'' + shedSgn + '\',\'' + blNo + '\')" style="font-size:0.68rem;padding:2px 7px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--text-2);cursor:pointer;">✏️ 편집</button>';
+  return '<div style="margin-top:5px;" id="wrhs-add-' + shedSgn + '">'
     + '<span style="color:var(--text-3);font-size:0.72rem;">창고코드: <span style="font-family:monospace;color:var(--text-2);">' + shedSgn + '</span></span>'
     + btnHtml
     + '</div>';
@@ -989,11 +1292,11 @@ function showWrhsForm(shedSgn, blNo) {
   if (!container) return;
   container.innerHTML = '<div style="margin-top:6px;display:flex;flex-direction:column;gap:4px;">'
     + '<span style="color:var(--text-3);font-size:0.72rem;margin-bottom:2px;">창고코드: <span style="font-family:monospace;color:var(--text-2);">' + shedSgn + '</span></span>'
-    + '<input id="wrhs-phone-' + shedSgn + '" placeholder="전화번호 (예: 032-000-0000)" style="font-size:0.78rem;padding:5px 8px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);">'
-    + '<input id="wrhs-addr-' + shedSgn + '" placeholder="주소 (예: 인천광역시 ...)" style="font-size:0.78rem;padding:5px 8px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);">'
+    + '<input id="wrhs-phone-' + shedSgn + '" placeholder="전화번호 (예: 032-000-0000)" style="font-size:0.78rem;padding:5px 8px;border:1.5px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);">'
+    + '<input id="wrhs-addr-' + shedSgn + '" placeholder="주소 (예: 인천광역시 ...)" style="font-size:0.78rem;padding:5px 8px;border:1.5px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);">'
     + '<div style="display:flex;gap:6px;">'
     + '<button onclick="saveWrhsInfo(\'' + shedSgn + '\',\'' + blNo + '\')" style="flex:1;font-size:0.75rem;padding:5px;border:none;border-radius:5px;background:var(--accent);color:#fff;cursor:pointer;font-weight:600;">저장</button>'
-    + '<button onclick="renderWrhsReset(\'' + shedSgn + '\')" style="font-size:0.75rem;padding:5px 10px;border:1px solid var(--border);border-radius:5px;background:var(--surface2);color:var(--text-2);cursor:pointer;">취소</button>'
+    + '<button onclick="renderWrhsReset(\'' + shedSgn + '\')" style="font-size:0.75rem;padding:5px 10px;border:1.5px solid var(--border);border-radius:5px;background:var(--surface2);color:var(--text-2);cursor:pointer;">취소</button>'
     + '</div></div>';
 }
 
@@ -1036,8 +1339,6 @@ function renderModal(r) {
   var html = '';
 
   // MRN / MSN / HSN / CNTR
-  // cargMtNo가 "A-B-C" 형태면 split → MRN/MSN/HSN
-  // 대시 없으면 cargMtNo=MRN, mblNo=MSN, hblNo=HSN
   if (r.cargMtNo || r.mblNo || r.hblNo || r.cntrNo) {
     var mrn = null, msn = null, hsn = null;
     if (r.cargMtNo && r.cargMtNo.indexOf('-') !== -1) {
@@ -1046,7 +1347,6 @@ function renderModal(r) {
       msn = parts[1] || null;
       hsn = parts[2] || null;
     } else if (r.cargMtNo && r.cargMtNo.length >= 19) {
-      // 대시 없는 항공화물관리번호: 마지막 8자리 = MSN(4)+HSN(4), 나머지 = MRN
       var len = r.cargMtNo.length;
       mrn = r.cargMtNo.substring(0, len - 8);
       msn = r.cargMtNo.substring(len - 8, len - 4);
@@ -1057,16 +1357,16 @@ function renderModal(r) {
       hsn = null;
     }
     var numRow = function(label, val) {
-      return val ? '<div style="display:flex;gap:8px;align-items:baseline;"><span style="color:var(--text-3);font-size:0.72rem;min-width:34px;flex-shrink:0;">' + label + '</span><span style="font-family:monospace;font-weight:600;color:var(--text);font-size:0.78rem;letter-spacing:0.03em;word-break:break-all;">' + val + '</span></div>' : '';
+      return val ? '<div class="num-row"><span class="num-label">' + label + '</span><span class="num-val">' + val + '</span></div>' : '';
     };
-    html += '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;margin-bottom:8px;display:flex;flex-direction:column;gap:3px;">';
+    html += '<div class="num-block">';
     html += numRow('MRN', mrn);
     html += numRow('MSN', msn);
     html += numRow('HSN', hsn);
     html += numRow('CNTR', r.cntrNo);
     html += '</div>';
     if (r.mblNo || r.hblNo) {
-      html += '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;margin-bottom:8px;display:flex;flex-direction:column;gap:3px;">';
+      html += '<div class="num-block">';
       html += numRow('MBL', r.mblNo);
       html += numRow('HBL', r.hblNo);
       html += '</div>';
@@ -1074,24 +1374,23 @@ function renderModal(r) {
   }
 
   if (r.terminal) {
-    html += '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;margin-bottom:12px;font-size:0.8rem;line-height:1.65;">'
-      + '<div><span style="color:var(--text-3);">🏭 장치장: </span><span style="font-weight:600;color:var(--text);">' + r.terminal + '</span>'
-      + (r.terminalPhone ? '<span style="color:var(--text-2);margin-left:6px;">☎ ' + r.terminalPhone + '</span>' : '') + '</div>'
-      + (r.terminalAddr ? '<div style="color:var(--text-2);margin-top:3px;font-size:0.74rem;">📍 ' + r.terminalAddr + '</div>' : '')
+    html += '<div class="terminal-block">'
+      + '<div><span class="terminal-name">🏭 ' + r.terminal + '</span>'
+      + (r.terminalPhone ? '<span class="terminal-phone">☎ ' + r.terminalPhone + '</span>' : '') + '</div>'
+      + (r.terminalAddr ? '<div class="terminal-addr">📍 ' + r.terminalAddr + '</div>' : '')
       + (r.shedSgn ? renderWrhsAddForm(r.shedSgn, r.blNo, true) : '')
       + '</div>';
   }
-  html += '<table style="width:100%;border-collapse:collapse;font-size:0.78rem;">'
-    + '<thead><tr style="border-bottom:2px solid var(--border);">'
-    + '<th style="text-align:left;padding:5px 6px;color:var(--text-3);font-weight:600;">상태</th>'
-    + '<th style="text-align:left;padding:5px 6px;color:var(--text-3);font-weight:600;">일시</th>'
-    + '</tr></thead><tbody>';
+
+  html += '<table class="progress-table">'
+    + '<thead><tr><th>상태</th><th>일시</th></tr></thead><tbody>';
   r.rows.forEach(function(row, i) {
     var isLatest = i === 0;
-    html += '<tr style="border-bottom:1px solid var(--border);' + (isLatest ? 'background:var(--accent-light);' : '') + '">'
-      + '<td style="padding:7px 6px;font-weight:' + (isLatest ? '700' : '400') + ';color:' + (isLatest ? 'var(--accent)' : 'var(--text)') + ';">'
-      + (isLatest ? '▶ ' : '') + row.status + '</td>'
-      + '<td style="padding:7px 6px;color:var(--text-2);white-space:nowrap;">' + (row.date || '-') + '</td>'
+    html += '<tr' + (isLatest ? ' class="latest"' : '') + '>'
+      + '<td style="font-weight:' + (isLatest ? '700' : '400') + ';color:' + (isLatest ? 'var(--accent)' : 'var(--text)') + ';">'
+      + (isLatest ? '<span style="display:inline-block;width:6px;height:6px;background:var(--accent);border-radius:50%;margin-right:6px;vertical-align:middle;"></span>' : '')
+      + row.status + '</td>'
+      + '<td>' + (row.date || '-') + '</td>'
       + '</tr>';
   });
   html += '</tbody></table>';
