@@ -1,0 +1,40 @@
+name: 📨 연구 보고서 알림
+
+# 매일 연구 세션이 reports/research/*.md 를 올리면 내용을 텔레그램으로 보낸다.
+# (tools/tg_notify.py research — 비밀값 TG_BOT_TOKEN · TG_CHAT_ID)
+
+on:
+  push:
+    branches: [claude/quant-trading-bot-tkjtd]
+    paths: ["reports/research/**.md"]
+  workflow_dispatch:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 50
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install requests
+      - name: 바뀐 보고서 찾기
+        id: f
+        run: |
+          BEFORE="${{ github.event.before }}"
+          if [ -z "$BEFORE" ] || ! git cat-file -e "$BEFORE" 2>/dev/null; then
+            FILES=$(ls reports/research/*.md | tail -1)
+          else
+            FILES=$(git diff --name-only "$BEFORE" "${{ github.sha }}" -- reports/research | grep '\.md$' || true)
+          fi
+          echo "files=$(echo $FILES)" >> "$GITHUB_OUTPUT"
+      - name: 알림
+        if: steps.f.outputs.files != ''
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+        run: python tools/tg_notify.py research --file "${{ steps.f.outputs.files }}"
