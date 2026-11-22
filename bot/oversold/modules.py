@@ -75,7 +75,26 @@ CRASH_TP = 10.0           # 익절 (진입가 대비 %)
 CRASH_SL = 5.0            # 손절 (진입가 대비 %)
 CRASH_MAX_BARS = 48       # 시간청산 (4시간봉 48개 = 8일)
 
-CATASTROPHE_STOP = 50.0   # 진입가 대비 % (양수). 파국 대비용.
+CATASTROPHE_STOP = 50.0   # 진입가 대비 % (양수). 파국 대비용. 다이버전스가 쓴다.
+
+# 주봉 숏 (2026-11-23 사용자 지시, ml/short_stop_level.py · short_trail_start.py)
+# 손절 +40%: 지갑 결과는 +50% 와 같고 최악만 -50→-40%. +30% 이하는 이길 거래(OP)가 잘려 나빠진다.
+# 트레일 25/12: 진입가 대비 25% 내려간 뒤, 그 최저가에서 12% 되튀면 시장가 청산. 지갑 31.5→34.6배.
+SHORT_STOP = 40.0
+SHORT_TRAIL_ARM = 25.0
+SHORT_TRAIL_BACK = 12.0
+
+
+def stop_pct(kind: str) -> float:
+    return SHORT_STOP if kind == "short" else CATASTROPHE_STOP
+
+
+def trail_hit(entry: float, low: float, price: float,
+              arm: float = SHORT_TRAIL_ARM, back: float = SHORT_TRAIL_BACK) -> bool:
+    """숏 트레일: 최저가가 진입가 -arm% 이하까지 갔고, 지금가가 그 최저가 +back% 이상이면 True."""
+    if low <= 0 or entry <= 0:
+        return False
+    return low <= entry * (1 - arm / 100) and price >= low * (1 + back / 100)
 
 # 시간봉 길이 (ms) — 보유 봉수를 세는 데 쓴다
 BAR_MS = {"short": 7 * 24 * 60 * 60 * 1000, "div": 24 * 60 * 60 * 1000}

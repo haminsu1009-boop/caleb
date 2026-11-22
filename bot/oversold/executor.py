@@ -996,7 +996,7 @@ class Trader:
             if qty <= 0:
                 log.info("  %s 신호 %s — 수량이 최소주문량 미만", sig.kind, sym)
                 continue
-            stop = MOD.stop_price(px, sig.side)
+            stop = MOD.stop_price(px, sig.side, MOD.stop_pct(sig.kind))
             log.info("🔔 %s 신호 %s  종가 %.6g  →  %.2f USDT (%.4g개) · 손절 %.6g",
                      sig.kind, sym, px, notional, qty, stop)
             self.ex.set_leverage(sym, 1)
@@ -1091,6 +1091,58 @@ class Trader:
                           sym, f"{have_tp:.6g}" if have_tp > 0 else "없음", want_tp)
             self.ex.set_stop(sym, want, take_profit=want_tp)
 
+    def _manage_shorts(self) -> None:
+        """주봉 숏 두 가지를 5분마다 챙긴다 (2026-11-23).
+
+        ① 거래소 손절을 진입 평단 +40% 로 맞춘다. 이미 열린 포지션(+50%로 들어간 것)도 고친다.
+        ② 트레일: 진입가 -25% 이하까지 내려간 적이 있고 지금가가 그 최저가 +12% 이상이면 시장가 청산.
+        최저가는 진입 이후 4시간봉 저가(진행 중 봉 포함)와 상태에 저장한 값 중 낮은 것.
+        """
+        mods = self.st.get("mod_positions", {})
+        shorts = {s: p for s, p in mods.items() if p.get("kind") == "short"}
+        if not shorts:
+            return
+        try:
+            live_pos = self.ex.positions()
+        except Exception as e:
+            log.warning("포지션 조회 실패 — 숏 손절·트레일 점검을 건너뜁니다: %s", e)
+            return
+        for sym, p in list(shorts.items()):
+            lp = live_pos.get(sym)
+            if self.ex.live and lp is None:
+                continue                       # reconcile이 따로 처리한다
+            entry = lp["entry"] if lp else p["entry"]
+            want = MOD.stop_price(entry, "Sell", MOD.SHORT_STOP)
+            have = lp.get("stop", 0.0) if lp else want
+            if have <= 0 or abs(have / want - 1) > 0.005:
+                log.warning("  🔧 %s 숏 손절 %s → %.6g (평단 %.6g +%g%%)", sym,
+                            f"{have:.6g}" if have > 0 else "없음", want, entry, MOD.SHORT_STOP)
+                if self.ex.set_stop(sym, want):
+                    p["stop"] = want
+                    save_state(self.st)
+            try:
+                rows = self.ex.klines(sym)
+            except Exception as e:
+                log.warning("%s 트레일 점검용 조회 실패: %s", sym, e)
+                continue
+            if not rows:
+                continue
+            if not p.get("opened_at"):
+                continue                       # 진입 시각을 모르면 진입 전 저가를 섞을 수 있어 트레일은 건너뛴다
+            opened = datetime.fromisoformat(p["opened_at"]).timestamp() * 1000
+            since = [r for r in rows if int(r[0]) + BAR_MS > opened]
+            if not since:
+                continue
+            price = float(rows[-1][4])
+            low = min([float(r[3]) for r in since] + ([p["low"]] if p.get("low") else []))
+            if p.get("low") != low:
+                p["low"] = low
+                save_state(self.st)
+            if MOD.trail_hit(entry, low, price):
+                log.info("🔔 숏 트레일 청산 %s  최저 %.6g (평단 대비 %.1f%%) → 현재 %.6g (+%.1f%%)",
+                         sym, low, (low / entry - 1) * 100, price, (price / low - 1) * 100)
+                self._close_mod(sym, p, f"트레일 (최저 {(low/entry-1)*100:.0f}% 후 +{(price/low-1)*100:.0f}%)")
+
     def _update_auto_bear(self) -> bool:
         """하루 한 번 BTC 일봉으로 자동 폭락장 상태를 갱신하고 돌려준다."""
         ab = self.st.setdefault("auto_bear", {"on": False, "day": "", "r60": None})
@@ -1167,6 +1219,7 @@ class Trader:
                  "진입 가능" if can_enter else "진입 중단")
 
         self._verify_stops(positions)
+        self._manage_shorts()
         bear_on = self._update_auto_bear()
         crash_on = self._update_crash_window(now_ms)
         long_lev = self.cfg.bear_leverage if (bear_on or crash_on) else self.cfg.leverage
