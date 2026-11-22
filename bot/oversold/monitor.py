@@ -17,6 +17,8 @@ bot/oversold/monitor.py
       졌다고 울리지 않는다 — 롱은 승률 85%라도 7건 중 2~3건 지는 일이
       흔하다.
   · 매일 아침 8시(한국시간) 하루 요약 — 이건 이상이 없어도 보낸다
+  · 매시간 "현재 수익" — 자본 변화, 열린 포지션별 평가손익·청산까지 거리, 실현손익 (이상이 없어도 보낸다.
+    끄려면 .env 에 TG_HOURLY=0)
   · 거래가 닫힐 때마다 손익 결과 (매수·매도 순간 알림은 봇이 직접 보낸다)
 
 거래 결과는 거래소의 청산 손익 기록(closed-pnl)에서 읽는다. 거래소에서
@@ -31,6 +33,7 @@ bot/oversold/monitor.py
     python -m bot.oversold.monitor --setup     # 채팅 ID 찾기 + 시험 메시지
     python -m bot.oversold.monitor             # 한 번 점검 (타이머가 부른다)
     python -m bot.oversold.monitor --summary   # 하루 요약을 지금 보낸다
+    python -m bot.oversold.monitor --now       # 현재 수익을 지금 보낸다
     python -m bot.oversold.monitor --dry       # 보내지 않고 화면에만
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
@@ -261,6 +264,62 @@ def checks(ex, m: dict, st: dict) -> list:
     return out
 
 
+def hourly(ex, m: dict, now: datetime | None = None) -> str:
+    """매시간 보내는 \"현재 수익\" — 자본 변화, 열린 포지션별 평가손익, 실현손익.
+
+    읽기만 한다. 포지션은 거래소에서 직접 읽어서 봇 기록과 상관없이 실제 상태를 보여 준다.
+    자본 변화에는 입출금이 섞일 수 있다(거래소 자산 기준)."""
+    now = now or datetime.now(KST)
+    now_ms = int(now.timestamp() * 1000)
+    eq = ex.equity()
+    hist = m.get("equity_hist", [])
+
+    def chg(hours):
+        t0 = now_ms - int(hours * 3600_000) + 600_000   # 기록 시각이 10분쯤 어긋나도 잡는다
+        v = next((v for t, v in reversed(hist) if t <= t0), None)
+        return (eq - v, (eq / v - 1) * 100) if v else None
+
+    parts = [f"자본 {eq:,.2f} USDT"]
+    for lab, h in (("1시간", 1), ("24시간", 24), ("7일", 24 * 7)):
+        c = chg(h)
+        if c:
+            parts.append(f"{lab} {c[0]:+.2f} ({c[1]:+.1f}%)")
+    lines = [f"💹 현재 수익 {now:%m/%d %H:%M}", " · ".join(parts)]
+
+    rows, total = [], 0.0
+    try:
+        for p in ex.session.get_positions(category="linear", settleCoin="USDT")["result"]["list"]:
+            if float(p.get("size") or 0) <= 0:
+                continue
+            sym, side = p["symbol"], p["side"]
+            avg, mark = float(p["avgPrice"]), float(p.get("markPrice") or 0)
+            upnl = float(p.get("unrealisedPnl") or 0)
+            liq = float(p.get("liqPrice") or 0)
+            pct = ((mark / avg - 1) if side == "Buy" else (avg / mark - 1)) * 100 if mark > 0 and avg > 0 else 0.0
+            label = NAME.get(m.get("kinds", {}).get(sym), "롱" if side == "Buy" else "숏")
+            row = f"{sym[:-4]} {label} {float(p.get('leverage') or 1):g}x {pct:+.1f}% ({upnl:+.2f})"
+            if liq > 0 and mark > 0:
+                row += f" · 청산까지 {abs(liq / mark - 1) * 100:.0f}%"
+            rows.append((upnl, row))
+            total += upnl
+        rows.sort()
+        lines.append(f"열린 포지션 {len(rows)}개 · 평가손익 합계 {total:+.2f} USDT" if rows else "열린 포지션 없음")
+        lines += [" " + r for _, r in rows[:15]]
+        if len(rows) > 15:
+            lines.append(f" … 외 {len(rows) - 15}개")
+    except Exception as e:
+        lines.append(f"포지션 조회 실패: {type(e).__name__}")
+
+    mid = int(now.replace(hour=0, minute=0, second=0, microsecond=0).timestamp() * 1000)
+    tr = m.get("trades", [])
+    today = [t for t in tr if t["ts"] >= mid]
+    wk = [t for t in tr if t["ts"] >= now_ms - 7 * 86400_000]
+    lines.append(f"실현 손익: 오늘 {sum(t['pnl'] for t in today):+.2f} ({len(today)}건) · "
+                 f"7일 {sum(t['pnl'] for t in wk):+.2f} ({len(wk)}건)")
+    lines.append("※ 자본 변화에는 입출금이 섞일 수 있습니다")
+    return "\n".join(lines)
+
+
 def summary(ex, m: dict, st: dict) -> str:
     eq = ex.equity()
     now = datetime.now(KST)
@@ -327,6 +386,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--setup", action="store_true", help="채팅 ID 찾기 + 시험 메시지")
     ap.add_argument("--summary", action="store_true", help="하루 요약을 지금 보낸다")
+    ap.add_argument("--now", action="store_true", help="현재 수익을 지금 보낸다")
     ap.add_argument("--dry", action="store_true", help="보내지 않고 화면에만")
     a = ap.parse_args()
     E.load_env()
@@ -359,6 +419,15 @@ def main():
             continue
         if send(msg, a.dry):
             m["alerts"][key] = now_ms
+
+    # 매시간 현재 수익 — 타이머가 1시간마다 부르므로 그때마다 보낸다(50분 안에 또 불리면 건너뜀)
+    if a.now or (os.getenv("TG_HOURLY", "1") != "0"
+                 and now_ms - m.get("last_hourly", 0) >= 50 * 60_000):
+        try:
+            if send(hourly(ex, m), a.dry) and not a.dry:
+                m["last_hourly"] = now_ms
+        except Exception as ex_err:                 # 보고가 실패해도 감시(경고·요약)는 계속 돈다
+            print(f"현재 수익 보고 실패: {ex_err}")
 
     # 매시간 자본을 적어 둔다 — 1·7·30일 변화 계산용
     hist = m.setdefault("equity_hist", [])
