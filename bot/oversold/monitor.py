@@ -286,7 +286,7 @@ def hourly(ex, m: dict, now: datetime | None = None) -> str:
             parts.append(f"{lab} {c[0]:+.2f} ({c[1]:+.1f}%)")
     lines = [f"💹 현재 수익 {now:%m/%d %H:%M}", " · ".join(parts)]
 
-    rows, total = [], 0.0
+    rows, total, cum = [], 0.0, 0.0
     try:
         for p in ex.session.get_positions(category="linear", settleCoin="USDT")["result"]["list"]:
             if float(p.get("size") or 0) <= 0:
@@ -302,8 +302,11 @@ def hourly(ex, m: dict, now: datetime | None = None) -> str:
                 row += f" · 청산까지 {abs(liq / mark - 1) * 100:.0f}%"
             rows.append((upnl, row))
             total += upnl
+            cum += upnl + float(p.get("cumRealisedPnl") or 0)
         rows.sort()
         lines.append(f"열린 포지션 {len(rows)}개 · 평가손익 합계 {total:+.2f} USDT" if rows else "열린 포지션 없음")
+        if rows:  # 앱 '선물 포지션 전체'의 Cumulative P&L = 미실현 + 포지션별 누적 실현(수수료·펀딩 포함)
+            lines.append(f"누적 손익(앱 Cumulative P&L) {cum:+.2f} USDT")
         lines += [" " + r for _, r in rows[:15]]
         if len(rows) > 15:
             lines.append(f" … 외 {len(rows) - 15}개")

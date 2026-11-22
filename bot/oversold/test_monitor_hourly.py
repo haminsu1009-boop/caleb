@@ -43,10 +43,10 @@ class FakeEx:
         return self.eq
 
 
-def pos(sym, side, avg, mark, upnl, liq, lev, size=10.0):
+def pos(sym, side, avg, mark, upnl, liq, lev, size=10.0, cum=0.0):
     return {"symbol": sym, "side": side, "size": str(size), "avgPrice": str(avg),
             "markPrice": str(mark), "unrealisedPnl": str(upnl), "liqPrice": str(liq),
-            "leverage": str(lev)}
+            "leverage": str(lev), "cumRealisedPnl": str(cum)}
 
 
 NOW = datetime(2026, 11, 22, 14, 0, tzinfo=M.KST)
@@ -67,8 +67,8 @@ def mon():
 
 
 print("\n[기본 메시지]")
-rows = [pos("APTUSDT", "Buy", 0.4482, 0.3449, -11.04, 0.3384, 4),
-        pos("ALGOUSDT", "Sell", 0.0915, 0.08931, 6.91, 0.18119, 1)]
+rows = [pos("APTUSDT", "Buy", 0.4482, 0.3449, -11.04, 0.3384, 4, cum=-0.5),
+        pos("ALGOUSDT", "Sell", 0.0915, 0.08931, 6.91, 0.18119, 1, cum=-0.2)]
 t = M.hourly(FakeEx(rows=rows), mon(), NOW)
 print(t)
 check("제목에 시각", "💹 현재 수익 11/22 14:00" in t)
@@ -76,6 +76,7 @@ check("자본 805.37", "자본 805.37 USDT" in t)
 check("1시간 +5.00 (+0.6%)", "1시간 +5.00 (+0.6%)" in t)
 check("24시간 +15.00 (+1.9%)", "24시간 +15.00 (+1.9%)" in t)
 check("7일 +105.00 (+15.0%)", "7일 +105.00 (+15.0%)" in t)
+check("누적 손익 = 미실현+누적실현 = -4.83", "누적 손익(앱 Cumulative P&L) -4.83 USDT" in t)
 check("평가손익 합계 -4.13", "열린 포지션 2개 · 평가손익 합계 -4.13 USDT" in t)
 check("롱 가격 -23.0%", "APT 롱 4x -23.0% (-11.04)" in t)
 check("숏은 가격이 내려가면 +", "ALGO 숏 1x +2.5% (+6.91)" in t)
