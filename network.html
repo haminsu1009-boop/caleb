@@ -28,7 +28,7 @@
   <meta name="twitter:title" content="글로벌 네트워크 - (주)태인종합물류" />
   <meta name="twitter:description" content="(주)태인종합물류 글로벌 네트워크. 150개국 파트너망을 통해 전 세계 어디로든 안정적인 물류 서비스를 제공합니다." />
   <meta name="twitter:image" content="https://www.taein.io.kr/assets/og-image.jpg" />
-  <link rel="stylesheet" href="style.css?v=103" />
+  <link rel="stylesheet" href="style.css?v=104" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css" />
@@ -88,20 +88,24 @@
                 <a href="sea-transport.html#lcl" class="mega-sub" data-i18n="nav.sea.lcl">해상 LCL</a>
               </div>
               <div class="mega-col">
-                <span class="mega-col-title" data-i18n="nav.airland">항공 / 육상</span>
-                <a href="rail-transport.html" data-i18n="nav.rail">철송</a>
-                <a href="air-transport.html" style="margin-top:10px;" data-i18n="nav.air">항공운송</a>
+                <span class="mega-col-title" data-i18n="nav.air">항공운송</span>
+                <a href="air-transport.html" data-i18n="nav.air.all">항공운송 전체보기</a>
                 <a href="air-transport.html" class="mega-sub" data-i18n="nav.air.general">일반 항공화물</a>
                 <a href="air-transport.html" class="mega-sub" data-i18n="nav.air.urgent">긴급·특수화물</a>
+              </div>
+              <div class="mega-col">
+                <span class="mega-col-title" data-i18n="nav.landrail">육상 / 철송</span>
+                <a href="rail-transport.html" data-i18n="nav.rail">철송</a>
                 <a href="land-transport.html" style="margin-top:10px;" data-i18n="nav.land">육상운송</a>
                 <a href="land-transport.html" class="mega-sub" data-i18n="nav.land.domestic">전국 배송</a>
                 <a href="land-transport.html" class="mega-sub" data-i18n="nav.land.container">컨테이너 내륙</a>
               </div>
               <div class="mega-col">
-                <span class="mega-col-title" data-i18n="nav.customs">통관</span>
+                <span class="mega-col-title" data-i18n="nav.customsnetwork">통관 / 네트워크</span>
                 <a href="customs.html" data-i18n="nav.customs">통관</a>
                 <a href="customs.html" class="mega-sub" data-i18n="nav.customs.export">수출통관</a>
                 <a href="customs.html" class="mega-sub" data-i18n="nav.customs.import">수입통관</a>
+                <a href="network.html" style="margin-top:10px;" data-i18n="nav.network">글로벌 네트워크</a>
               </div>
             </div>
           </div>
@@ -191,6 +195,9 @@
             @keyframes dash{to{stroke-dashoffset:-28}}
             .rline{animation:dash 3s linear infinite}
           </style>
+          <filter id="continentShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#1e3a8a" flood-opacity="0.28"/>
+          </filter>
         </defs>
 
         <!-- 바다 -->
@@ -209,6 +216,7 @@
         <line x1="750" y1="0" x2="750" y2="420" stroke="#93c5fd" stroke-width="0.6" opacity="0.35"/>
         <text x="8" y="214" fill="#3b82f6" font-size="8" font-family="sans-serif" opacity="0.55">적도</text>
 
+        <g filter="url(#continentShadow)">
         <!-- 북미 -->
         <path d="M95,52 Q140,38 195,45 Q245,52 268,78 Q282,102 272,140 Q258,170 238,186 Q218,200 210,218 Q226,228 222,248 Q212,262 194,256 Q172,244 158,216 Q146,188 136,162 Q108,146 84,118 Q66,92 95,52Z" fill="#3568d4" opacity="0.72" stroke="#fff" stroke-width="0.9" stroke-opacity="0.5"/>
         <path d="M215,14 Q242,8 264,18 Q280,30 278,50 Q272,66 254,72 Q234,76 218,64 Q202,50 206,30Z" fill="#3568d4" opacity="0.5" stroke="#fff" stroke-width="0.6" stroke-opacity="0.4"/>
@@ -248,13 +256,17 @@
         <!-- 호주 -->
         <path d="M708,290 Q764,274 824,284 Q866,296 876,332 Q886,368 864,400 Q840,420 804,422 Q766,422 732,408 Q694,390 678,356 Q664,322 680,302Z" fill="#3568d4" opacity="0.68" stroke="#fff" stroke-width="0.9" stroke-opacity="0.5"/>
         <path d="M866,334 Q882,326 892,340 Q898,356 886,368 Q872,374 862,360 Q854,346 866,334Z" fill="#3568d4" opacity="0.6"/>
+        </g>
 
         <!-- 항로 (애니메이션) -->
-        <path d="M798,130 Q680,72 560,90 Q510,98 478,96" stroke="#dc2626" stroke-width="1.8" fill="none" stroke-dasharray="7,5" class="rline" opacity="0.52"/>
-        <path d="M798,130 Q660,88 480,106 Q340,118 168,130" stroke="#dc2626" stroke-width="1.5" fill="none" stroke-dasharray="7,5" class="rline" opacity="0.42" style="animation-delay:.8s"/>
-        <path d="M798,130 Q772,162 734,214" stroke="#dc2626" stroke-width="1.3" fill="none" stroke-dasharray="5,5" class="rline" opacity="0.38" style="animation-delay:1.4s"/>
-        <path d="M798,130 Q822,224 832,344" stroke="#dc2626" stroke-width="1.2" fill="none" stroke-dasharray="5,5" class="rline" opacity="0.34" style="animation-delay:2s"/>
-        <path d="M478,96 Q330,58 168,130" stroke="#dc2626" stroke-width="1.2" fill="none" stroke-dasharray="5,5" class="rline" opacity="0.32" style="animation-delay:.4s"/>
+        <path d="M798,130 Q680,72 560,90 Q510,98 478,96" stroke="#dc2626" stroke-width="2" fill="none" stroke-dasharray="7,5" class="rline" opacity="0.65"/>
+        <path d="M798,130 Q660,88 480,106 Q340,118 168,130" stroke="#dc2626" stroke-width="1.7" fill="none" stroke-dasharray="7,5" class="rline" opacity="0.55" style="animation-delay:.8s"/>
+        <path d="M798,130 Q772,162 734,214" stroke="#dc2626" stroke-width="1.5" fill="none" stroke-dasharray="5,5" class="rline" opacity="0.5" style="animation-delay:1.4s"/>
+        <path d="M798,130 Q822,224 832,344" stroke="#dc2626" stroke-width="1.4" fill="none" stroke-dasharray="5,5" class="rline" opacity="0.46" style="animation-delay:2s"/>
+        <path d="M478,96 Q330,58 168,130" stroke="#dc2626" stroke-width="1.4" fill="none" stroke-dasharray="5,5" class="rline" opacity="0.44" style="animation-delay:.4s"/>
+        <path d="M798,130 Q750,180 716,200" stroke="#dc2626" stroke-width="1.3" fill="none" stroke-dasharray="5,5" class="rline" opacity="0.4" style="animation-delay:1s"/>
+        <path d="M168,130 Q200,118 230,112" stroke="#dc2626" stroke-width="1.2" fill="none" stroke-dasharray="5,5" class="rline" opacity="0.4" style="animation-delay:1.8s"/>
+        <path d="M478,96 Q490,90 500,86" stroke="#dc2626" stroke-width="1.2" fill="none" stroke-dasharray="5,5" class="rline" opacity="0.4" style="animation-delay:2.4s"/>
 
         <!-- 부산 (메인 허브) -->
         <circle class="cpulse" cx="798" cy="130" r="10" fill="#dc2626"/>
@@ -276,6 +288,12 @@
         <circle cx="832" cy="344" r="5" fill="#1d4ed8" opacity="0.88"/><circle cx="832" cy="344" r="2" fill="#fff"/>
         <!-- 뭄바이 -->
         <circle cx="620" cy="198" r="4.5" fill="#1d4ed8" opacity="0.82"/><circle cx="620" cy="198" r="1.8" fill="#fff"/>
+        <!-- 뉴욕 -->
+        <circle cx="230" cy="112" r="5" fill="#1d4ed8" opacity="0.88"/><circle cx="230" cy="112" r="2" fill="#fff"/>
+        <!-- 함부르크 -->
+        <circle cx="500" cy="86" r="4.5" fill="#1d4ed8" opacity="0.85"/><circle cx="500" cy="86" r="1.8" fill="#fff"/>
+        <!-- 호치민 -->
+        <circle cx="716" cy="200" r="4.5" fill="#1d4ed8" opacity="0.85"/><circle cx="716" cy="200" r="1.8" fill="#fff"/>
 
         <!-- 도시 레이블 -->
         <text x="810" y="127" fill="#1e3a8a" font-size="10" font-weight="800" font-family="sans-serif">부산</text>
@@ -286,6 +304,9 @@
         <text x="580" y="147" fill="#1e3a8a" font-size="8.5" font-family="sans-serif">두바이</text>
         <text x="108" y="128" fill="#1e3a8a" font-size="8.5" font-family="sans-serif">LA</text>
         <text x="840" y="342" fill="#1e3a8a" font-size="8.5" font-family="sans-serif">시드니</text>
+        <text x="240" y="109" fill="#1e3a8a" font-size="8.5" font-family="sans-serif">뉴욕</text>
+        <text x="508" y="83"  fill="#1e3a8a" font-size="8.5" font-family="sans-serif">함부르크</text>
+        <text x="696" y="212" fill="#1e3a8a" font-size="8.5" font-family="sans-serif">호치민</text>
 
         <!-- 대륙 워터마크 -->
         <text x="166" y="142" fill="#1e3a8a" font-size="13" font-weight="700" font-family="sans-serif" opacity="0.16" text-anchor="middle">북미</text>
@@ -295,6 +316,14 @@
         <text x="706" y="56"  fill="#1e3a8a" font-size="14" font-weight="700" font-family="sans-serif" opacity="0.16" text-anchor="middle">아시아</text>
         <text x="790" y="372" fill="#1e3a8a" font-size="12" font-weight="700" font-family="sans-serif" opacity="0.14" text-anchor="middle">호주</text>
       </svg>
+      <div class="map-badge">
+        <strong data-i18n="net.map.badge.num">40+</strong>
+        <span data-i18n="net.map.badge.label">COUNTRIES · 120+ PARTNERS</span>
+      </div>
+      <div class="map-legend">
+        <div class="map-legend-item"><span class="map-legend-dot" style="background:#dc2626;"></span><span data-i18n="net.map.legend.hub">메인 허브 (부산)</span></div>
+        <div class="map-legend-item"><span class="map-legend-dot" style="background:#1d4ed8;"></span><span data-i18n="net.map.legend.partner">해외 파트너 거점</span></div>
+      </div>
     </div>
 
     <!-- Service Countries by Region -->
@@ -390,6 +419,6 @@
   </div></div></div>
 </footer>
 <button class="scroll-top" id="scrollTop" aria-label="맨 위로">▲</button>
-<script src="main.js?v=106"></script>
+<script src="main.js?v=107"></script>
 </body>
 </html>

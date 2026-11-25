@@ -1021,10 +1021,10 @@ document.addEventListener('DOMContentLoaded', () => {
         /* ── 드롭다운/모바일메뉴/푸터 하위 메뉴 항목 ── */
         'nav.ceo':'대표 인사말','nav.history':'연혁','nav.directions':'오시는길',
         'nav.sea':'해상운송','nav.sea.all':'해상운송 전체보기','nav.sea.fcl':'해상 FCL','nav.sea.lcl':'해상 LCL',
-        'nav.airland':'항공 / 육상','nav.air':'항공운송','nav.air.general':'일반 항공화물','nav.air.urgent':'긴급·특수화물',
+        'nav.air':'항공운송','nav.air.all':'항공운송 전체보기','nav.air.general':'일반 항공화물','nav.air.urgent':'긴급·특수화물',
         'nav.land':'육상운송','nav.land.domestic':'전국 배송','nav.land.container':'컨테이너 내륙',
-        'nav.rail':'철송',
-        'nav.customs':'통관','nav.customs.export':'수출통관','nav.customs.import':'수입통관',
+        'nav.rail':'철송','nav.landrail':'육상 / 철송',
+        'nav.customs':'통관','nav.customs.export':'수출통관','nav.customs.import':'수입통관','nav.customsnetwork':'통관 / 네트워크',
         'nav.faq':'자주 묻는 질문','nav.quote':'견적 문의','nav.org':'조직도',
         /* ── 푸터 ── */
         'footer.tagline':'신뢰와 혁신으로 연결하는<br/>대한민국 대표 종합물류 기업',
@@ -1312,6 +1312,8 @@ document.addEventListener('DOMContentLoaded', () => {
         'sol.cta.title':'맞춤형 물류 솔루션을 찾고 계신가요?','sol.cta.desc':'귀사의 물류 현황을 분석하고 최적의 3PL·4PL 솔루션을 제안해 드립니다.<br/>전문 물류 컨설턴트와 무료 상담을 시작해 보세요.','sol.cta.btn':'물류 솔루션 상담하기',
         /* ── 글로벌 네트워크 ── */
         'net.overview.title':'40여 개국, 120여 개 해외파트너','net.overview.desc':'미주/유럽/동남아/중국 등 현지 지사 및 파트너사를 통한 전세계 네트워킹',
+        'net.map.badge.num':'40+','net.map.badge.label':'개국 · 120+ 파트너',
+        'net.map.legend.hub':'메인 허브 (부산)','net.map.legend.partner':'해외 파트너 거점',
         'net.region1.title':'아시아',
         'net.region1.li1':'🇨🇳 중국 (상하이·칭다오·선전·홍콩)','net.region1.li2':'🇯🇵 일본','net.region1.li3':'🇸🇬 싱가포르','net.region1.li4':'🇲🇾 말레이시아',
         'net.region1.li5':'🇹🇭 태국','net.region1.li6':'🇻🇳 베트남','net.region1.li7':'🇮🇩 인도네시아','net.region1.li8':'🇵🇭 필리핀',
@@ -1398,10 +1400,10 @@ document.addEventListener('DOMContentLoaded', () => {
         /* ── Dropdown / mobile menu / footer sub items ── */
         'nav.ceo':'CEO Message','nav.history':'History','nav.directions':'Directions',
         'nav.sea':'Ocean Freight','nav.sea.all':'Ocean Freight Overview','nav.sea.fcl':'Sea FCL','nav.sea.lcl':'Sea LCL',
-        'nav.airland':'Air / Land','nav.air':'Air Freight','nav.air.general':'General Air Cargo','nav.air.urgent':'Urgent & Special Cargo',
+        'nav.air':'Air Freight','nav.air.all':'Air Freight Overview','nav.air.general':'General Air Cargo','nav.air.urgent':'Urgent & Special Cargo',
         'nav.land':'Land Transport','nav.land.domestic':'Nationwide Delivery','nav.land.container':'Inland Container',
-        'nav.rail':'Rail Freight',
-        'nav.customs':'Customs','nav.customs.export':'Export Customs','nav.customs.import':'Import Customs',
+        'nav.rail':'Rail Freight','nav.landrail':'Land / Rail',
+        'nav.customs':'Customs','nav.customs.export':'Export Customs','nav.customs.import':'Import Customs','nav.customsnetwork':'Customs / Network',
         'nav.faq':'FAQ','nav.quote':'Quote Inquiry','nav.org':'Organization Chart',
         /* ── Footer ── */
         'footer.tagline':'Connecting Korea\'s logistics<br/>with trust and innovation',
@@ -1722,6 +1724,8 @@ document.addEventListener('DOMContentLoaded', () => {
         'sol.cta.title':'Looking for Customized Logistics Solutions?','sol.cta.desc':'We analyze your logistics status and propose the optimal 3PL/4PL solution.<br/>Start a free consultation with our expert logistics consultants.','sol.cta.btn':'Consult on Logistics Solutions',
         /* ── Global Network ── */
         'net.overview.title':'40+ Countries, 120+ Overseas Partners','net.overview.desc':'Global networking through local offices and partners in the Americas, Europe, Southeast Asia, China, and more',
+        'net.map.badge.num':'40+','net.map.badge.label':'COUNTRIES · 120+ PARTNERS',
+        'net.map.legend.hub':'Main Hub (Busan)','net.map.legend.partner':'Overseas Partner Location',
         'net.region1.title':'Asia',
         'net.region1.li1':'🇨🇳 China (Shanghai · Qingdao · Shenzhen · Hong Kong)','net.region1.li2':'🇯🇵 Japan','net.region1.li3':'🇸🇬 Singapore','net.region1.li4':'🇲🇾 Malaysia',
         'net.region1.li5':'🇹🇭 Thailand','net.region1.li6':'🇻🇳 Vietnam','net.region1.li7':'🇮🇩 Indonesia','net.region1.li8':'🇵🇭 Philippines',

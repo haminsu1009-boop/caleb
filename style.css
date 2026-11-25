@@ -118,7 +118,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 }
 .gnb-drop-sm a:hover { color: var(--primary); background: var(--bg); }
 /* Wide dropdown (사업영역) */
-.gnb-drop-wide { min-width: 820px; left: 50%; transform: translateX(-35%); }
+.gnb-drop-wide { min-width: 980px; left: 50%; transform: translateX(-35%); }
 .mega-inner {
   max-width: 1200px; margin: 0 auto; padding: 44px 48px;
   display: flex; gap: 0;
@@ -1192,10 +1192,33 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 /* World map SVG container */
 .network-map-wrap {
   background: #f0f4fb; border-radius: 20px; padding: 32px;
-  margin-bottom: 56px; overflow: hidden;
+  margin-bottom: 56px; overflow: hidden; position: relative;
+  box-shadow: 0 16px 48px rgba(29,78,216,0.14); border: 1px solid rgba(53,104,212,0.1);
 }
 .network-map-svg { max-width: 720px; margin: 0 auto; }
 .world-map-bg { width: 100%; height: auto; display: block; }
+.map-badge {
+  position: absolute; top: 28px; left: 28px;
+  background: var(--white); border-radius: 12px; padding: 12px 18px;
+  box-shadow: 0 8px 24px rgba(29,78,216,0.16);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.map-badge strong { font-size: 1.3rem; font-weight: 900; color: var(--primary); line-height: 1.1; }
+.map-badge span { font-size: 0.72rem; color: var(--text-light); font-weight: 600; letter-spacing: 0.03em; }
+.map-legend {
+  position: absolute; bottom: 24px; right: 28px;
+  background: rgba(255,255,255,0.92); border-radius: 10px; padding: 10px 16px;
+  display: flex; flex-direction: column; gap: 6px; font-size: 0.78rem; color: var(--text);
+  box-shadow: 0 4px 16px rgba(29,78,216,0.1);
+}
+.map-legend-item { display: flex; align-items: center; gap: 8px; }
+.map-legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+@media (max-width: 640px) {
+  .map-badge { top: 14px; left: 14px; padding: 8px 12px; }
+  .map-badge strong { font-size: 1rem; }
+  .map-badge span { font-size: 0.62rem; }
+  .map-legend { bottom: 12px; right: 14px; padding: 7px 10px; font-size: 0.68rem; }
+}
 
 /* Partner region cards */
 .partner-regions {
