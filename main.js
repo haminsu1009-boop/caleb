@@ -1020,11 +1020,11 @@ document.addEventListener('DOMContentLoaded', () => {
         'nav.notice':'공지사항','nav.support':'고객센터','nav.estimate':'빠른견적문의','nav.consult':'상담 문의',
         /* ── 드롭다운/모바일메뉴/푸터 하위 메뉴 항목 ── */
         'nav.ceo':'대표 인사말','nav.history':'연혁','nav.directions':'오시는길',
-        'nav.sea':'해상운송','nav.sea.all':'해상운송 전체보기','nav.sea.fcl':'해상 FCL','nav.sea.lcl':'해상 LCL',
-        'nav.air':'항공운송','nav.air.all':'항공운송 전체보기','nav.air.general':'일반 항공화물','nav.air.urgent':'긴급·특수화물',
+        'nav.sea':'해상운송','nav.sea.fcl':'해상 FCL','nav.sea.lcl':'해상 LCL','nav.seaair':'해상운송 / 항공운송',
+        'nav.air':'항공운송','nav.air.general':'일반 항공화물','nav.air.urgent':'긴급·특수화물',
         'nav.land':'육상운송','nav.land.domestic':'전국 배송','nav.land.container':'컨테이너 내륙',
         'nav.rail':'철송','nav.landrail':'육상 / 철송',
-        'nav.customs':'통관','nav.customs.export':'수출통관','nav.customs.import':'수입통관','nav.customsnetwork':'통관 / 네트워크',
+        'nav.customs':'통관','nav.customs.export':'수출통관','nav.customs.import':'수입통관',
         'nav.faq':'자주 묻는 질문','nav.quote':'견적 문의','nav.org':'조직도',
         /* ── 푸터 ── */
         'footer.tagline':'신뢰와 혁신으로 연결하는<br/>대한민국 대표 종합물류 기업',
@@ -1399,11 +1399,11 @@ document.addEventListener('DOMContentLoaded', () => {
         'nav.notice':'Notice','nav.support':'Customer Support','nav.estimate':'Quick Inquiry','nav.consult':'Contact Us',
         /* ── Dropdown / mobile menu / footer sub items ── */
         'nav.ceo':'CEO Message','nav.history':'History','nav.directions':'Directions',
-        'nav.sea':'Ocean Freight','nav.sea.all':'Ocean Freight Overview','nav.sea.fcl':'Sea FCL','nav.sea.lcl':'Sea LCL',
-        'nav.air':'Air Freight','nav.air.all':'Air Freight Overview','nav.air.general':'General Air Cargo','nav.air.urgent':'Urgent & Special Cargo',
+        'nav.sea':'Ocean Freight','nav.sea.fcl':'Sea FCL','nav.sea.lcl':'Sea LCL','nav.seaair':'Ocean / Air Freight',
+        'nav.air':'Air Freight','nav.air.general':'General Air Cargo','nav.air.urgent':'Urgent & Special Cargo',
         'nav.land':'Land Transport','nav.land.domestic':'Nationwide Delivery','nav.land.container':'Inland Container',
         'nav.rail':'Rail Freight','nav.landrail':'Land / Rail',
-        'nav.customs':'Customs','nav.customs.export':'Export Customs','nav.customs.import':'Import Customs','nav.customsnetwork':'Customs / Network',
+        'nav.customs':'Customs','nav.customs.export':'Export Customs','nav.customs.import':'Import Customs',
         'nav.faq':'FAQ','nav.quote':'Quote Inquiry','nav.org':'Organization Chart',
         /* ── Footer ── */
         'footer.tagline':'Connecting Korea\'s logistics<br/>with trust and innovation',
