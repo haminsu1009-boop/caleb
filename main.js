@@ -1313,7 +1313,6 @@ document.addEventListener('DOMContentLoaded', () => {
         /* ── 글로벌 네트워크 ── */
         'net.overview.title':'40여 개국, 120여 개 해외파트너','net.overview.desc':'미주/유럽/동남아/중국 등 현지 지사 및 파트너사를 통한 전세계 네트워킹',
         'net.map.badge.num':'40+','net.map.badge.label':'개국 · 120+ 파트너',
-        'net.map.legend.hub':'메인 허브 (부산)','net.map.legend.partner':'해외 파트너 거점',
         'net.cta.btn':'글로벌 네트워크 문의하기 →',
         /* ── FAQ ── */
         'faq.q1':'해상 운임 견적은 어떻게 받을 수 있나요?','faq.a1':'홈페이지 견적 문의 양식 또는 대표전화(02-3142-4051)를 통해 견적을 요청하실 수 있습니다.',
@@ -1712,7 +1711,6 @@ document.addEventListener('DOMContentLoaded', () => {
         /* ── Global Network ── */
         'net.overview.title':'40+ Countries, 120+ Overseas Partners','net.overview.desc':'Global networking through local offices and partners in the Americas, Europe, Southeast Asia, China, and more',
         'net.map.badge.num':'40+','net.map.badge.label':'COUNTRIES · 120+ PARTNERS',
-        'net.map.legend.hub':'Main Hub (Busan)','net.map.legend.partner':'Overseas Partner Location',
         'net.cta.btn':'Global Network Inquiry →',
         /* ── FAQ ── */
         'faq.q1':'How can I get a sea freight quote?','faq.a1':'You can request a quote via the website inquiry form or by calling us at <a href="tel:02-3142-4051" class="tel-link">02-3142-4051</a>. Provide cargo item, weight/volume, origin, and destination for a quick quote.',
