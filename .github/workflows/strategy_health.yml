@@ -1,0 +1,57 @@
+name: 🩺 매일 전략 점검
+
+# 매일 아침(한국시간 08:00) 새로 모인 42종 데이터로 지금 봇 규칙을 다시
+# 돌려 본다 — ml/strategy_health.py. 결과는 reports/health_latest.txt 에
+# 커밋하고, 저장소 비밀값 TG_BOT_TOKEN · TG_CHAT_ID 가 있으면 텔레그램으로
+# 보낸다. (Settings → Secrets and variables → Actions → New repository secret)
+#
+# 데이터 수집(collect_coin_extended 03:00 UTC, collect_core_daily 03:20 UTC)
+# 이 끝난 뒤 한참 지나서 돈다.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 23 * * *"     # 23:00 UTC = 08:00 KST
+
+permissions:
+  contents: write
+
+concurrency:
+  group: strategy-health-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/quant-trading-bot-tkjtd
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install pandas numpy requests
+
+      - name: 점검
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+        run: python ml/strategy_health.py --send
+
+      - name: 커밋 & 푸시
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reports/health_latest.txt reports/health_history.csv
+          git diff --staged --quiet && { echo "변경 없음"; exit 0; }
+          git commit -m "report: daily strategy health $(date -u +%F)"
+          for i in 1 2 3 4; do
+            git pull --rebase origin claude/quant-trading-bot-tkjtd && git push origin HEAD:claude/quant-trading-bot-tkjtd && exit 0
+            sleep $((i*5))
+          done
+          exit 1

@@ -1,0 +1,21 @@
+# 멈춘 봇 자동 재시작 (oversold-watchdog.sh) — 5분마다 타이머가 부른다. root 로 돈다.
+#
+# 설치
+#   sudo install -m 755 -o root -g root deploy/systemd/oversold-watchdog.sh /usr/local/sbin/oversold-watchdog.sh
+#   sudo cp deploy/systemd/oversold-watchdog.service deploy/systemd/oversold-watchdog.timer /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now oversold-watchdog.timer
+# 확인
+#   systemctl list-timers oversold-watchdog.timer
+#   journalctl -t oversold-watchdog -n 20 --no-pager        # 5분마다 메모리 한 줄
+#   sudo /usr/local/sbin/oversold-watchdog.sh --dry          # 재시작 없이 판정만
+
+[Unit]
+Description=Restart oversold bot if it is running but silent
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/oversold-watchdog.sh
+PrivateTmp=true
+ProtectHome=read-only
+NoNewPrivileges=true
