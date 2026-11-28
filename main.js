@@ -1340,7 +1340,7 @@ document.addEventListener('DOMContentLoaded', () => {
         /* ── 공지사항 ── */
         'notice.col.num':'번호','notice.col.title':'제목','notice.col.category':'구분','notice.col.date':'등록일','notice.col.views':'조회',
         'notice.tag.notice':'공지','notice.tag.general':'일반','notice.pagination.prev':'이전','notice.pagination.next':'다음',
-        'notice.total':'총 <strong>10</strong>건의 게시물이 있습니다.',
+        'notice.total':'총 <strong>11</strong>건의 게시물이 있습니다.',
         'notice.news1':'해상 컨테이너 운임 2주 연속 하락…성수기 종료로 수요 둔화',
         'notice.news2':'한·아프리카, 물류·에너지 인프라 협력 확대 논의',
         'notice.news3':'EU, 11월 1일부터 소액물품 통관 수수료 신설 예정…수출기업 영향 주시 필요',
@@ -1350,12 +1350,13 @@ document.addEventListener('DOMContentLoaded', () => {
         'notice.news8':'관세청, 11월 1~20일 수출 101.5%↑ 역대 최대…반도체 수출도 사상 최대',
         'notice.news9':'부산발 해상 컨테이너 운임(KCCI), 5개월 만에 최대 낙폭 하락',
         'notice.news10':'평택항 노사 갈등으로 컨테이너 반출 지연…물류 차질 확산',
-        'notice.news11':'평택항 기름 유출 미신고 예인선 해경에 적발 <span class="new-badge">NEW</span>',
+        'notice.news11':'평택항 기름 유출 미신고 예인선 해경에 적발',
+        'notice.news12':'부산 인근 해상서 화물선 응급환자 발생…선원 1명 사망 <span class="new-badge">NEW</span>',
         /* ── 홈 최근소식 미리보기 ── */
         'home.news.title':'최근 물류 동향','home.news.more':'더 많은 소식 보기',
-        'home.news.item1':'평택항 기름 유출 미신고 예인선 해경에 적발<span class="news-new">NEW</span>',
-        'home.news.item2':'평택항 노사 갈등으로 컨테이너 반출 지연…물류 차질 확산',
-        'home.news.item3':'부산발 해상 컨테이너 운임(KCCI), 5개월 만에 최대 낙폭 하락',
+        'home.news.item1':'부산 인근 해상서 화물선 응급환자 발생…선원 1명 사망<span class="news-new">NEW</span>',
+        'home.news.item2':'평택항 기름 유출 미신고 예인선 해경에 적발',
+        'home.news.item3':'평택항 노사 갈등으로 컨테이너 반출 지연…물류 차질 확산',
         /* ── 서비스 페이지 중간 CTA ── */
         'sea.midcta.btn':'해상운송 서비스로 견적받기','air.midcta.btn':'항공운송 서비스로 견적받기',
         'land.midcta.btn':'육상운송 서비스로 견적받기','rail.midcta.btn':'철송 서비스로 견적받기',
@@ -1739,7 +1740,7 @@ document.addEventListener('DOMContentLoaded', () => {
         /* ── Notice ── */
         'notice.col.num':'No.','notice.col.title':'Title','notice.col.category':'Category','notice.col.date':'Date','notice.col.views':'Views',
         'notice.tag.notice':'Notice','notice.tag.general':'General','notice.pagination.prev':'Prev','notice.pagination.next':'Next',
-        'notice.total':'Total <strong>10</strong> posts',
+        'notice.total':'Total <strong>11</strong> posts',
         'notice.news1':'Container Freight Rates Fall for Second Straight Week as Peak Season Ends',
         'notice.news2':'Korea and Africa Discuss Expanding Logistics and Energy Infrastructure Cooperation',
         'notice.news3':'EU to Introduce New Customs Handling Fee for Low-Value Shipments from November 1',
@@ -1749,12 +1750,13 @@ document.addEventListener('DOMContentLoaded', () => {
         'notice.news8':'Korea Customs: Nov 1-20 Exports Surge 101.5% YoY to All-Time High, Semiconductor Exports Also Record High',
         'notice.news9':'Busan-Origin Container Freight Index (KCCI) Posts Biggest Weekly Drop in 5 Months',
         'notice.news10':'Labor Dispute at Pyeongtaek Port Delays Container Pickup, Disrupting Logistics',
-        'notice.news11':'Tugboat Caught for Unreported Oil Spill at Pyeongtaek Port <span class="new-badge">NEW</span>',
+        'notice.news11':'Tugboat Caught for Unreported Oil Spill at Pyeongtaek Port',
+        'notice.news12':'Medical Emergency on Cargo Ship Near Busan Leaves One Crew Member Dead <span class="new-badge">NEW</span>',
         /* ── Home Recent News Preview ── */
         'home.news.title':'Recent Logistics Trends','home.news.more':'See More News',
-        'home.news.item1':'Tugboat Caught for Unreported Oil Spill at Pyeongtaek Port<span class="news-new">NEW</span>',
-        'home.news.item2':'Labor Dispute at Pyeongtaek Port Delays Container Pickup, Disrupting Logistics',
-        'home.news.item3':'Busan-Origin Container Freight Index (KCCI) Posts Biggest Weekly Drop in 5 Months',
+        'home.news.item1':'Medical Emergency on Cargo Ship Near Busan Leaves One Crew Member Dead<span class="news-new">NEW</span>',
+        'home.news.item2':'Tugboat Caught for Unreported Oil Spill at Pyeongtaek Port',
+        'home.news.item3':'Labor Dispute at Pyeongtaek Port Delays Container Pickup, Disrupting Logistics',
         /* ── Service Page Mid CTA ── */
         'sea.midcta.btn':'Get a Quote for Sea Freight','air.midcta.btn':'Get a Quote for Air Freight',
         'land.midcta.btn':'Get a Quote for Land Transport','rail.midcta.btn':'Get a Quote for Rail Freight',
