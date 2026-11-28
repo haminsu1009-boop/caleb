@@ -1350,12 +1350,8 @@ document.addEventListener('DOMContentLoaded', () => {
         'notice.news8':'관세청, 11월 1~20일 수출 101.5%↑ 역대 최대…반도체 수출도 사상 최대',
         'notice.news9':'부산발 해상 컨테이너 운임(KCCI), 5개월 만에 최대 낙폭 하락',
         'notice.news10':'평택항 노사 갈등으로 컨테이너 반출 지연…물류 차질 확산',
-        'notice.news11':'평택항 기름 유출 미신고 예인선 해경에 적발',
-        'notice.news12':'부산 인근 해상서 화물선 응급환자 발생…선원 1명 사망 <span class="new-badge">NEW</span>',
         /* ── 홈 최근소식 미리보기 ── */
         'home.news.title':'최근 물류 동향','home.news.more':'더 많은 소식 보기',
-        'home.news.item1':'부산 인근 해상서 화물선 응급환자 발생…선원 1명 사망<span class="news-new">NEW</span>',
-        'home.news.item2':'평택항 기름 유출 미신고 예인선 해경에 적발',
         'home.news.item3':'평택항 노사 갈등으로 컨테이너 반출 지연…물류 차질 확산',
         /* ── 서비스 페이지 중간 CTA ── */
         'sea.midcta.btn':'해상운송 서비스로 견적받기','air.midcta.btn':'항공운송 서비스로 견적받기',
@@ -1750,12 +1746,8 @@ document.addEventListener('DOMContentLoaded', () => {
         'notice.news8':'Korea Customs: Nov 1-20 Exports Surge 101.5% YoY to All-Time High, Semiconductor Exports Also Record High',
         'notice.news9':'Busan-Origin Container Freight Index (KCCI) Posts Biggest Weekly Drop in 5 Months',
         'notice.news10':'Labor Dispute at Pyeongtaek Port Delays Container Pickup, Disrupting Logistics',
-        'notice.news11':'Tugboat Caught for Unreported Oil Spill at Pyeongtaek Port',
-        'notice.news12':'Medical Emergency on Cargo Ship Near Busan Leaves One Crew Member Dead <span class="new-badge">NEW</span>',
         /* ── Home Recent News Preview ── */
         'home.news.title':'Recent Logistics Trends','home.news.more':'See More News',
-        'home.news.item1':'Medical Emergency on Cargo Ship Near Busan Leaves One Crew Member Dead<span class="news-new">NEW</span>',
-        'home.news.item2':'Tugboat Caught for Unreported Oil Spill at Pyeongtaek Port',
         'home.news.item3':'Labor Dispute at Pyeongtaek Port Delays Container Pickup, Disrupting Logistics',
         /* ── Service Page Mid CTA ── */
         'sea.midcta.btn':'Get a Quote for Sea Freight','air.midcta.btn':'Get a Quote for Air Freight',
