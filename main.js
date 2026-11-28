@@ -1352,7 +1352,9 @@ document.addEventListener('DOMContentLoaded', () => {
         'notice.news10':'평택항 노사 갈등으로 컨테이너 반출 지연…물류 차질 확산',
         /* ── 홈 최근소식 미리보기 ── */
         'home.news.title':'최근 물류 동향','home.news.more':'더 많은 소식 보기',
-        'home.news.item3':'평택항 노사 갈등으로 컨테이너 반출 지연…물류 차질 확산',
+        'home.news.item1':'평택항 노사 갈등으로 컨테이너 반출 지연…물류 차질 확산<span class="news-new">NEW</span>',
+        'home.news.item2':'부산발 해상 컨테이너 운임(KCCI), 5개월 만에 최대 낙폭 하락',
+        'home.news.item3':'관세청, 11월 1~20일 수출 101.5%↑ 역대 최대…반도체 수출도 사상 최대',
         /* ── 서비스 페이지 중간 CTA ── */
         'sea.midcta.btn':'해상운송 서비스로 견적받기','air.midcta.btn':'항공운송 서비스로 견적받기',
         'land.midcta.btn':'육상운송 서비스로 견적받기','rail.midcta.btn':'철송 서비스로 견적받기',
@@ -1748,7 +1750,9 @@ document.addEventListener('DOMContentLoaded', () => {
         'notice.news10':'Labor Dispute at Pyeongtaek Port Delays Container Pickup, Disrupting Logistics',
         /* ── Home Recent News Preview ── */
         'home.news.title':'Recent Logistics Trends','home.news.more':'See More News',
-        'home.news.item3':'Labor Dispute at Pyeongtaek Port Delays Container Pickup, Disrupting Logistics',
+        'home.news.item1':'Labor Dispute at Pyeongtaek Port Delays Container Pickup, Disrupting Logistics<span class="news-new">NEW</span>',
+        'home.news.item2':'Busan-Origin Container Freight Index (KCCI) Posts Biggest Weekly Drop in 5 Months',
+        'home.news.item3':'Korea Customs: Nov 1-20 Exports Surge 101.5% YoY to All-Time High, Semiconductor Exports Also Record High',
         /* ── Service Page Mid CTA ── */
         'sea.midcta.btn':'Get a Quote for Sea Freight','air.midcta.btn':'Get a Quote for Air Freight',
         'land.midcta.btn':'Get a Quote for Land Transport','rail.midcta.btn':'Get a Quote for Rail Freight',
